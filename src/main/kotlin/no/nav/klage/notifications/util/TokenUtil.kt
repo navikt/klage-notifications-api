@@ -1,12 +1,14 @@
 package no.nav.klage.notifications.util
 
 import no.nav.klage.notifications.config.SecurityConfiguration
+import no.nav.security.token.support.client.spring.ClientConfigurationProperties
 import no.nav.security.token.support.core.context.TokenValidationContextHolder
 import org.springframework.stereotype.Service
 
 @Service
 class TokenUtil(
     private val tokenValidationContextHolder: TokenValidationContextHolder,
+    private val clientConfigurationProperties: ClientConfigurationProperties,
 ) {
 
     companion object {
