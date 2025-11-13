@@ -3,12 +3,12 @@ spring:
     name: notifications
 
   datasource:
-    url: ${DATABASE_JDBC_URL}
-#    username: ${DATABASE_USERNAME}
-#    password: ${DATABASE_PASSWORD}
-#    driver-class-name: org.postgresql.Driver
-#    hikari:
-#      maximum-pool-size: 15
+    hikari:
+      jdbc-url: ${DATABASE_JDBC_URL}
+      username: ${DATABASE_USERNAME}
+      password: ${DATABASE_PASSWORD}
+      driver-class-name: org.postgresql.Driver
+      maximum-pool-size: 15
 
   jpa:
     hibernate:
