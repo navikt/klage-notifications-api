@@ -91,6 +91,8 @@ spec:
       {{/each}}
     outbound:
       rules:
+        - application: logging
+          namespace: nais-system
       external:
       {{#each externalHosts}}
         - host: {{host}}
