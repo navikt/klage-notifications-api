@@ -77,8 +77,6 @@ spec:
   prometheus:
     enabled: true
     path: /internal/prometheus
-  tokenx:
-    enabled: true
   accessPolicy:
     inbound:
       rules:
