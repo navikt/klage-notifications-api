@@ -3,11 +3,9 @@ spring:
     name: notifications
 
   datasource:
+    url: ${NAIS_DATABASE_MYAPP_MYDB_JDBC_URL}
+    driver-class-name: org.postgresql.Driver
     hikari:
-      jdbc-url: ${DATABASE_JDBC_URL}
-      username: ${DATABASE_USERNAME}
-      password: ${DATABASE_PASSWORD}
-      driver-class-name: org.postgresql.Driver
       maximum-pool-size: 15
 
   jpa:
