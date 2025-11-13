@@ -6,6 +6,7 @@ val klageKodeverkVersion = "1.12.5"
 val springMockkVersion = "4.0.2"
 val mockkVersion = "1.14.5"
 val tokenValidationVersion = "5.0.36"
+val logstashVersion = "8.1"
 
 plugins {
     val kotlinVersion = "2.2.21"
@@ -48,6 +49,7 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("net.logstash.logback:logstash-logback-encoder:${logstashVersion}")
     implementation("no.nav.klage:klage-kodeverk:$klageKodeverkVersion")
     implementation("no.nav.security:token-validation-spring:${tokenValidationVersion}")
     implementation("no.nav.security:token-client-spring:${tokenValidationVersion}")
