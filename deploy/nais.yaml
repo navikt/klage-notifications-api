@@ -1,0 +1,111 @@
+apiVersion: "nais.io/v1alpha1"
+kind: "Application"
+metadata:
+  name: klage-notifications-api
+  namespace: klage
+  labels:
+    team: klage
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "1M"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"
+spec:
+  image: {{ image }}
+  observability:
+    autoInstrumentation:
+      enabled: true
+      runtime: java
+  gcp:
+    sqlInstances:
+      - name: klage-notifications-api
+        type: {{ db_type }}
+        maintenance:
+          day: 1
+          hour: 4
+        tier: {{ db_tier }}
+        diskType: SSD
+        highAvailability: {{ db_ha }}
+        diskSize: {{ db_size }}
+        diskAutoresize: true
+        autoBackupHour: 2
+        cascadingDelete: false
+        databases:
+          - name: klage-notifications-api
+  azure:
+    application:
+      enabled: true
+      tenant: {{tenant}}
+      claims:
+        groups:
+        {{#each adRoles}}
+          - id: {{value}}
+        {{/each}}
+        extra:
+          - NAVident
+  kafka:
+    pool: {{kafka_pool}}
+  port: 8080
+  startup:
+    failureThreshold: 20
+    initialDelay: 30
+    path: /internal/health
+    periodSeconds: 10
+    timeout: 2
+  liveness:
+    path: /internal/health
+    initialDelay: 20
+    timeout: 1
+    periodSeconds: 5
+    failureThreshold: 10
+  readiness:
+    path: /internal/health
+    initialDelay: 20
+    timeout: 1
+  resources:
+    limits:
+      memory: 6Gi
+    requests:
+      cpu: 500m
+      memory: 6Gi
+  ingresses:
+  {{#each ingresses as |ingress|}}
+    - {{ingress}}
+  {{/each}}
+  replicas:
+    min: {{replicasMin}}
+    max: {{replicasMax}}
+    cpuThresholdPercentage: 80
+  prometheus:
+    enabled: true
+    path: /internal/prometheus
+  tokenx:
+    enabled: true
+  accessPolicy:
+    inbound:
+      rules:
+      {{#each inboundApplications as |inbound|}}
+        - application: {{inbound.application}}
+#        {{#if inbound.namespace}}
+          namespace: {{inbound.namespace}}
+#        {{/if}}
+#        {{#if inbound.cluster}}
+          cluster: {{inbound.cluster}}
+#        {{/if}}
+      {{/each}}
+    outbound:
+      rules:
+      external:
+      {{#each externalHosts}}
+        - host: {{host}}
+      {{/each}}
+  envFrom:
+  env:
+    - name: SPRING_PROFILES_ACTIVE
+      value: {{springProfile}}
+  {{#each envs}}
+    - name: {{name}}
+      value: {{value}}
+  {{/each}}
+  {{#each adRoles}}
+    - name: {{name}}
+      value: {{value}}
+  {{/each}}

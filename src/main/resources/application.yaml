@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: notifications
+
+  datasource:
+    url: jdbc:postgresql://${NAIS_DATABASE_KLAGE_NOTIFICATIONS_API_KLAGE_NOTIFICATIONS_API_HOST}:${NAIS_DATABASE_KLAGE_NOTIFICATIONS_API_KLAGE_NOTIFICATIONS_API_PORT}/${NAIS_DATABASE_KLAGE_NOTIFICATIONS_API_KLAGE_NOTIFICATIONS_API_DATABASE}
+    username: ${NAIS_DATABASE_KLAGE_NOTIFICATIONS_API_KLAGE_NOTIFICATIONS_API_USERNAME}
+    password: ${NAIS_DATABASE_KLAGE_NOTIFICATIONS_API_KLAGE_NOTIFICATIONS_API_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 15
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: true
+
+  flyway:
+    enabled: true
+    schemas: flyway_history_schema,klage
+    connect-retries: 2
+    clean-disabled: true
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints.web:
+    exposure:
+      include: info, health, metrics, prometheus
+    base-path: "/internal"
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    enabled: false
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+server:
+  port: 8080

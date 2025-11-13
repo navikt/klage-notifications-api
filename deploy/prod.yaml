@@ -1,0 +1,47 @@
+ingresses:
+  - https://klage-notifications-api.intern.nav.no
+externalHosts:
+  - host: login.microsoftonline.com
+inboundApplications:
+  - application: kabal-frontend
+  - application: kabal-api
+springProfile: prod-gcp
+tenant: nav.no
+db_tier: db-custom-1-3840
+db_size: 10
+db_ha: true
+db_type: POSTGRES_18
+kafka_pool: nav-prod
+
+replicasMin: 2
+replicasMax: 4
+
+adRoles:
+  - name: KABAL_OPPGAVESTYRING_ALLE_ENHETER_ROLE_ID
+    value: 1c006e8b-c667-4622-9df7-43ed2fd494d6
+  - name: KABAL_MALTEKSTREDIGERING_ROLE_ID
+    value: 95c25ca2-e3e9-423e-a55f-9bc327c29f96
+  - name: KABAL_SAKSBEHANDLING_ROLE_ID
+    value: 2b671b60-9650-4839-9139-40999bbb0f71
+  - name: KABAL_FAGTEKSTREDIGERING_ROLE_ID
+    value: 1edfbdf1-c1bc-4dc6-9cab-4fff1cb7e2a8
+  - name: KABAL_INNSYN_EGEN_ENHET_ROLE_ID
+    value: e9de217a-7244-45ac-8a06-1994905d7964
+  - name: FORTROLIG_ROLE_ID
+    value: 9ec6487d-f37a-4aad-a027-cd221c1ac32b
+  - name: STRENGT_FORTROLIG_ROLE_ID
+    value: ad7b87a6-9180-467c-affc-20a566b0fec0
+  - name: EGEN_ANSATT_ROLE_ID
+    value: e750ceb5-b70b-4d94-b4fa-9d22467b786b
+  - name: KABAL_ADMIN_ROLE_ID
+    value: 90805436-8a2b-430a-a699-73b29205f25d
+  - name: KABAL_ROL_ROLE_ID
+    value: b16d62b3-ef23-4f4b-b881-8329c13b4e15
+  - name: KABAL_KROL_ROLE_ID
+    value: a478bf9a-fb73-4dee-bd84-411ca4749cb9
+  - name: KABAL_SVARBREVINNSTILLINGER_ROLE_ID
+    value: e11eac72-43dc-48bc-b9cb-383b600fd03b
+
+envs:
+  - name: JAVA_OPTS
+    value: "-Xms512m -Xmx8192m"

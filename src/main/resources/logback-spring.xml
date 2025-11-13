@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <turboFilter class="no.nav.klage.notifications.config.InternalLogFilter" />
+
+    <springProfile name="local">
+        <appender name="text" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+
+        <logger name="team-logs" level="debug" additivity="false">
+            <appender-ref ref="text"/>
+        </logger>
+
+        <root level="info">
+            <appender-ref ref="text"/>
+        </root>
+        <logger name="org.springframework.web.filter.CommonsRequestLoggingFilter" level="debug"/>
+        <logger name="org.hibernate.type" level="trace"/>
+    </springProfile>
+
+    <springProfile name="!local">
+        <appender name="team-logs" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+            <destination>team-logs.nais-system:5170</destination>
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <customFields>{"google_cloud_project":"${GOOGLE_CLOUD_PROJECT}","nais_namespace_name":"${NAIS_NAMESPACE}","nais_pod_name":"${HOSTNAME}","nais_container_name":"${NAIS_APP_NAME}"}</customFields>
+                <includeContext>false</includeContext>
+            </encoder>
+        </appender>
+
+        <logger name="team-logs" level="debug" additivity="false">
+            <appender-ref ref="team-logs"/>
+        </logger>
+
+        <appender name="json" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+        </appender>
+
+        <root level="info">
+            <appender-ref ref="json"/>
+        </root>
+
+        <logger name="org.springframework.web.filter.CommonsRequestLoggingFilter" level="debug" additivity="false">
+            <appender-ref ref="json"/>
+        </logger>
+
+        <logger name="org.springframework.data.convert.CustomConversions" level="error"/>
+
+        <logger name="no.nav.security.token.support" level="info" additivity="false">
+            <appender-ref ref="team-logs"/>
+        </logger>
+
+        <logger name="org.hibernate.SQL_SLOW" level="debug"/>
+
+        <logger name="org.apache.kafka" level="warn"/>
+    </springProfile>
+
+    <logger name="no.nav.klage" level="debug"/>
+
+</configuration>
