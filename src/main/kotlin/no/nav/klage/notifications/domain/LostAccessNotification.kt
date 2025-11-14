@@ -4,8 +4,6 @@ import jakarta.persistence.Column
 import jakarta.persistence.Convert
 import jakarta.persistence.DiscriminatorValue
 import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
 import no.nav.klage.kodeverk.Type
 import no.nav.klage.kodeverk.TypeConverter
 import java.time.LocalDateTime
@@ -15,16 +13,15 @@ import java.util.*
 @DiscriminatorValue("LOST_ACCESS")
 class LostAccessNotification(
     id: UUID = UUID.randomUUID(),
-    title: String,
     message: String,
     navIdent: String,
-    severity: NotificationSeverity,
-    status: NotificationStatus,
+    read: Boolean,
     source: NotificationSource,
     createdAt: LocalDateTime,
     updatedAt: LocalDateTime,
     readAt: LocalDateTime?,
     markedAsDeleted: Boolean,
+    kafkaMessageId: UUID?,
 
     @Column
     val behandlingId: UUID,
@@ -34,16 +31,15 @@ class LostAccessNotification(
     val behandlingType: Type,
 ) : Notification(
     id = id,
-    title = title,
     message = message,
     navIdent = navIdent,
-    severity = severity,
-    status = status,
+    read = read,
     source = source,
     createdAt = createdAt,
     updatedAt = updatedAt,
     readAt = readAt,
     markedAsDeleted = markedAsDeleted,
+    kafkaMessageId = kafkaMessageId,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -56,6 +52,6 @@ class LostAccessNotification(
     }
 
     override fun toString(): String {
-        return "LostAccessNotification(id=$id, title='$title', message='$message', navIdent='$navIdent', severity=$severity, status=$status, source=$source, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, behandlingId=$behandlingId, behandlingType=$behandlingType)"
+        return "LostAccessNotification(id=$id, message='$message', navIdent='$navIdent', read=$read, source=$source, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, behandlingId=$behandlingId, behandlingType=$behandlingType, kafkaMessageId=$kafkaMessageId)"
     }
 }

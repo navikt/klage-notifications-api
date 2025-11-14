@@ -57,3 +57,5 @@ no.nav.security.jwt:
   issuer.aad:
     discoveryurl: ${AZURE_APP_WELL_KNOWN_URL}
     accepted_audience: ${AZURE_APP_CLIENT_ID}
+
+NOTIFICATION_EVENTS_TOPIC: notification-events.v1

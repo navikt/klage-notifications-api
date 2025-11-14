@@ -1,12 +1,13 @@
 package no.nav.klage.notifications.dto
 
+import no.nav.klage.kodeverk.Type
 import no.nav.klage.notifications.domain.NotificationSource
-import no.nav.klage.notifications.domain.NotificationSeverity
+import java.util.*
 
-data class CreateNotificationRequest(
-    val title: String,
+data class CreateLostAccessNotificationRequest(
     val message: String,
     val navIdent: String,
-    val severity: NotificationSeverity,
     val source: NotificationSource,
+    val behandlingId: UUID,
+    val behandlingType: Type,
 )

@@ -2,16 +2,12 @@ package no.nav.klage.notifications.controller
 
 import io.swagger.v3.oas.annotations.tags.Tag
 import no.nav.klage.notifications.config.SecurityConfiguration
-import no.nav.klage.notifications.domain.NotificationStatus
-import no.nav.klage.notifications.dto.CreateNotificationRequest
 import no.nav.klage.notifications.dto.NotificationResponse
-import no.nav.klage.notifications.dto.UpdateNotificationRequest
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.security.token.support.core.api.ProtectedWithClaims
-import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import java.util.UUID
+import java.util.*
 
 @Tag(name = "admin", description = "API for managing notifications")
 @ProtectedWithClaims(issuer = SecurityConfiguration.ISSUER_AAD)

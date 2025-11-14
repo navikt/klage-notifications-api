@@ -2,14 +2,13 @@ package no.nav.klage.notifications.controller
 
 import io.swagger.v3.oas.annotations.tags.Tag
 import no.nav.klage.notifications.config.SecurityConfiguration
-import no.nav.klage.notifications.domain.NotificationStatus
 import no.nav.klage.notifications.dto.NotificationResponse
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.klage.notifications.util.TokenUtil
 import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import java.util.UUID
+import java.util.*
 
 @Tag(name = "user", description = "API for user notifications")
 @ProtectedWithClaims(issuer = SecurityConfiguration.ISSUER_AAD)
@@ -22,10 +21,10 @@ class NotificationUserController(
 
     @GetMapping
     fun getNotificationsByUser(
-        @RequestParam(required = false) status: NotificationStatus?
+        @RequestParam(required = false) read: Boolean?
     ): ResponseEntity<List<NotificationResponse>> {
         val navIdent = tokenUtil.getIdent()
-        return ResponseEntity.ok(notificationService.getNotificationsByNavIdentAndStatus(navIdent, status ?: NotificationStatus.UNREAD))
+        return ResponseEntity.ok(notificationService.getNotificationsByNavIdentAndRead(navIdent, read ?: false))
     }
 
     @GetMapping("/{id}")
@@ -47,11 +46,6 @@ class NotificationUserController(
     @PatchMapping("/{id}/unread")
     fun setUnread(@PathVariable id: UUID): ResponseEntity<NotificationResponse> {
         return ResponseEntity.ok(notificationService.setUnread(id))
-    }
-
-    @PatchMapping("/{id}/archived")
-    fun setArchived(@PathVariable id: UUID): ResponseEntity<NotificationResponse> {
-        return ResponseEntity.ok(notificationService.setArchived(id))
     }
 
     @DeleteMapping("/{id}")

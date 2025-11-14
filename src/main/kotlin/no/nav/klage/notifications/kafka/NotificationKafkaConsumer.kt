@@ -1,36 +1,38 @@
 package no.nav.klage.notifications.kafka
 
-import no.nav.klage.notifications.dto.CreateNotificationRequest
-import no.nav.klage.notifications.dto.KafkaNotificationMessage
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import jakarta.annotation.PostConstruct
 import no.nav.klage.notifications.service.NotificationService
-import org.slf4j.LoggerFactory
-import org.springframework.kafka.annotation.KafkaListener
+import no.nav.klage.notifications.util.getLogger
 import org.springframework.stereotype.Component
+import java.util.*
 
 @Component
 class NotificationKafkaConsumer(
-    private val notificationService: NotificationService
+    private val aivenKafkaClientCreator: AivenKafkaClientCreator,
+    private val notificationService: NotificationService,
 ) {
 
-    private val logger = LoggerFactory.getLogger(NotificationKafkaConsumer::class.java)
+    companion object {
+        @Suppress("JAVA_CLASS_ON_COMPANION")
+        private val logger = getLogger(javaClass.enclosingClass)
+    }
 
-//    @KafkaListener(topics = ["notifications"], groupId = "klage-notification-api")
-//    fun consume(message: KafkaNotificationMessage) {
-//        logger.debug("Received notification from Kafka: {}", message)
-//
-//        try {
-//            val request = CreateNotificationRequest(
-//                title = message.title,
-//                message = message.message,
-//                navIdent = message.navIdent,
-//                severity = message.severity,
-//                source = message.source,
-//            )
-//
-//            notificationService.createNotification(request)
-//            logger.debug("Successfully processed Kafka notification")
-//        } catch (e: Exception) {
-//            logger.error("Error processing Kafka notification", e)
-//        }
-//    }
+    @PostConstruct
+    fun startConsuming() {
+        logger.info("Starting Kafka consumer for persisting notification events")
+        val receiver = aivenKafkaClientCreator.getNewKafkaNotificationEventsReceiver()
+        receiver.receive()
+            .subscribe { record ->
+                try {
+                    notificationService.processNotificationMessage(
+                        messageId = UUID.fromString(record.key()!!),
+                        jsonNode = jacksonObjectMapper().readTree(record.value()),
+                    )
+                } catch (e: Exception) {
+                    logger.error("Error processing notification message: ${e.message}", e)
+                }
+            }
+    }
+
 }

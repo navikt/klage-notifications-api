@@ -2,7 +2,9 @@ package no.nav.klage.notifications.repository
 
 import no.nav.klage.kodeverk.Type
 import no.nav.klage.notifications.db.PostgresIntegrationTestBase
-import no.nav.klage.notifications.domain.*
+import no.nav.klage.notifications.domain.LostAccessNotification
+import no.nav.klage.notifications.domain.MeldingNotification
+import no.nav.klage.notifications.domain.NotificationSource
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -35,16 +37,15 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
 
         val meldingNotification = MeldingNotification(
             id = UUID.randomUUID(),
-            title = "New message received",
             message = "You have a new message in case $behandlingId",
             navIdent = navIdent,
-            severity = NotificationSeverity.LOW,
-            status = NotificationStatus.UNREAD,
+            read = false,
             source = NotificationSource.KABAL,
             createdAt = now,
             updatedAt = now,
             readAt = null,
             markedAsDeleted = false,
+            kafkaMessageId = UUID.randomUUID(),
             behandlingId = behandlingId,
             meldingId = meldingId,
             senderNavIdent = "Z999999",
@@ -63,7 +64,6 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
         assertThat(found.get().senderNavIdent).isEqualTo("Z999999")
         assertThat(found.get().behandlingType).isEqualTo(Type.KLAGE)
         assertThat(found.get().navIdent).isEqualTo(navIdent)
-        assertThat(found.get().title).isEqualTo("New message received")
     }
 
     @Test
@@ -74,16 +74,15 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
 
         val lostAccessNotification = LostAccessNotification(
             id = UUID.randomUUID(),
-            title = "Lost access to case",
             message = "You no longer have access to case $behandlingId",
             navIdent = navIdent,
-            severity = NotificationSeverity.MEDIUM,
-            status = NotificationStatus.UNREAD,
+            read = false,
             source = NotificationSource.KABAL,
             createdAt = now,
             updatedAt = now,
             readAt = null,
             markedAsDeleted = false,
+            kafkaMessageId = UUID.randomUUID(),
             behandlingId = behandlingId,
             behandlingType = Type.ANKE
         )
@@ -98,7 +97,6 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
         assertThat(found.get().behandlingId).isEqualTo(behandlingId)
         assertThat(found.get().behandlingType).isEqualTo(Type.ANKE)
         assertThat(found.get().navIdent).isEqualTo(navIdent)
-        assertThat(found.get().title).isEqualTo("Lost access to case")
     }
 
 }

@@ -13,21 +13,13 @@ open class Notification(
     open val id: UUID = UUID.randomUUID(),
 
     @Column
-    open var title: String,
-
-    @Column
     open var message: String,
 
     @Column
     open var navIdent: String,
 
-    @Enumerated(EnumType.STRING)
     @Column
-    open var severity: NotificationSeverity,
-
-    @Enumerated(EnumType.STRING)
-    @Column
-    open var status: NotificationStatus,
+    open var read: Boolean,
 
     @Enumerated(EnumType.STRING)
     @Column
@@ -44,6 +36,9 @@ open class Notification(
 
     @Column
     open var markedAsDeleted: Boolean,
+
+    @Column
+    open val kafkaMessageId: UUID?,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -56,6 +51,6 @@ open class Notification(
     }
 
     override fun toString(): String {
-        return "${this::class.simpleName}(id=$id, title='$title', message='$message', navIdent='$navIdent', severity=$severity, status=$status, source=$source, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted)"
+        return "${this::class.simpleName}(id=$id, message='$message', navIdent='$navIdent', read=$read, source=$source, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted)"
     }
 }
