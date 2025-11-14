@@ -1,0 +1,31 @@
+name: Deploy kafka topics
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - kafka-aiven/**
+      - '!kafka-aiven/README.md'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      matrix:
+        cluster: [dev]
+        topic: [klage-notification-events.v1]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: deploy kafka-topic ${{ matrix.topic }} to ${{ matrix.cluster }}
+        uses: nais/deploy/actions/deploy@v2
+        env:
+          CLUSTER: ${{ matrix.cluster }}-gcp
+          RESOURCE: kafka-aiven/${{ matrix.topic }}/topic.yaml
+          VARS: kafka-aiven/${{ matrix.topic }}/${{ matrix.cluster }}-vars.yaml
+          PRINT_PAYLOAD: true
