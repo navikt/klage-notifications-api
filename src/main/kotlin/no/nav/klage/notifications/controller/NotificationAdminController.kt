@@ -12,7 +12,7 @@ import java.util.*
 @Tag(name = "admin", description = "API for managing notifications")
 @ProtectedWithClaims(issuer = SecurityConfiguration.ISSUER_AAD)
 @RestController
-@RequestMapping("/api/admin/notifications")
+@RequestMapping("/admin/notifications")
 class NotificationAdminController(
     private val notificationService: NotificationService
 ) {

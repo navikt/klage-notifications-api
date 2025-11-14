@@ -6,6 +6,8 @@ import jakarta.persistence.DiscriminatorValue
 import jakarta.persistence.Entity
 import no.nav.klage.kodeverk.Type
 import no.nav.klage.kodeverk.TypeConverter
+import no.nav.klage.kodeverk.ytelse.Ytelse
+import no.nav.klage.kodeverk.ytelse.YtelseConverter
 import java.time.LocalDateTime
 import java.util.*
 
@@ -25,6 +27,13 @@ class LostAccessNotification(
 
     @Column
     val behandlingId: UUID,
+
+    @Column
+    val saksnummer: String,
+
+    @Column(name = "ytelse_id")
+    @Convert(converter = YtelseConverter::class)
+    val ytelse: Ytelse,
 
     @Column(name = "behandling_type_id")
     @Convert(converter = TypeConverter::class)
@@ -52,6 +61,6 @@ class LostAccessNotification(
     }
 
     override fun toString(): String {
-        return "LostAccessNotification(id=$id, message='$message', navIdent='$navIdent', read=$read, source=$source, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, behandlingId=$behandlingId, behandlingType=$behandlingType, kafkaMessageId=$kafkaMessageId)"
+        return "LostAccessNotification(id=$id, message='$message', navIdent='$navIdent', read=$read, source=$source, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, behandlingId=$behandlingId, saksnummer='$saksnummer', ytelse=$ytelse, behandlingType=$behandlingType, kafkaMessageId=$kafkaMessageId)"
     }
 }

@@ -6,6 +6,8 @@ import jakarta.persistence.DiscriminatorValue
 import jakarta.persistence.Entity
 import no.nav.klage.kodeverk.Type
 import no.nav.klage.kodeverk.TypeConverter
+import no.nav.klage.kodeverk.ytelse.Ytelse
+import no.nav.klage.kodeverk.ytelse.YtelseConverter
 import java.time.LocalDateTime
 import java.util.*
 
@@ -30,7 +32,20 @@ class MeldingNotification(
     val meldingId: UUID,
 
     @Column
-    val senderNavIdent: String,
+    val actorNavIdent: String,
+
+    @Column
+    val actorNavn: String,
+
+    @Column
+    val saksnummer: String,
+
+    @Column(name = "ytelse_id")
+    @Convert(converter = YtelseConverter::class)
+    val ytelse: Ytelse,
+
+    @Column
+    val meldingCreated: LocalDateTime,
 
     @Column(name = "behandling_type_id")
     @Convert(converter = TypeConverter::class)
@@ -58,6 +73,6 @@ class MeldingNotification(
     }
 
     override fun toString(): String {
-        return "MeldingNotification(id=$id, message='$message', navIdent='$navIdent', read=$read, source=$source, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, behandlingId=$behandlingId, meldingId=$meldingId, senderNavIdent='$senderNavIdent', behandlingType=$behandlingType, kafkaMessageId=$kafkaMessageId)"
+        return "MeldingNotification(id=$id, message='$message', navIdent='$navIdent', read=$read, source=$source, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, behandlingId=$behandlingId, meldingId=$meldingId, actorNavIdent='$actorNavIdent', actorNavn='$actorNavn', saksnummer='$saksnummer', ytelse=$ytelse, meldingCreated=$meldingCreated, behandlingType=$behandlingType, kafkaMessageId=$kafkaMessageId)"
     }
 }

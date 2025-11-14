@@ -152,7 +152,7 @@ class NotificationService(
         val now = LocalDateTime.now()
         val notification = MeldingNotification(
             message = request.message,
-            navIdent = request.navIdent,
+            navIdent = request.recipientNavIdent,
             read = false,
             source = request.source,
             createdAt = now,
@@ -162,7 +162,11 @@ class NotificationService(
             kafkaMessageId = kafkaMessageId,
             behandlingId = request.behandlingId,
             meldingId = request.meldingId,
-            senderNavIdent = request.senderNavIdent,
+            actorNavIdent = request.actorNavIdent,
+            actorNavn = request.actorNavn,
+            saksnummer = request.saksnummer,
+            ytelse = request.ytelse,
+            meldingCreated = request.meldingCreated,
             behandlingType = request.behandlingType,
         )
 
@@ -182,6 +186,8 @@ class NotificationService(
             markedAsDeleted = false,
             kafkaMessageId = kafkaMessageId,
             behandlingId = request.behandlingId,
+            saksnummer = request.saksnummer,
+            ytelse = request.ytelse,
             behandlingType = request.behandlingType,
         )
 

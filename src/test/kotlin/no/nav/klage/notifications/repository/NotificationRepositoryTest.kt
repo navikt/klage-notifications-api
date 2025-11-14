@@ -1,6 +1,7 @@
 package no.nav.klage.notifications.repository
 
 import no.nav.klage.kodeverk.Type
+import no.nav.klage.kodeverk.ytelse.Ytelse
 import no.nav.klage.notifications.db.PostgresIntegrationTestBase
 import no.nav.klage.notifications.domain.LostAccessNotification
 import no.nav.klage.notifications.domain.MeldingNotification
@@ -48,7 +49,11 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
             kafkaMessageId = UUID.randomUUID(),
             behandlingId = behandlingId,
             meldingId = meldingId,
-            senderNavIdent = "Z999999",
+            actorNavIdent = "Z999999",
+            actorNavn = "Test Testesen",
+            saksnummer = "202312345",
+            ytelse = Ytelse.OMS_OMP,
+            meldingCreated = now.minusDays(1),
             behandlingType = Type.KLAGE
         )
 
@@ -61,7 +66,8 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
         assertThat(found.get()).isEqualTo(saved)
         assertThat(found.get().behandlingId).isEqualTo(behandlingId)
         assertThat(found.get().meldingId).isEqualTo(meldingId)
-        assertThat(found.get().senderNavIdent).isEqualTo("Z999999")
+        assertThat(found.get().actorNavIdent).isEqualTo("Z999999")
+        assertThat(found.get().actorNavn).isEqualTo("Test Testesen")
         assertThat(found.get().behandlingType).isEqualTo(Type.KLAGE)
         assertThat(found.get().navIdent).isEqualTo(navIdent)
     }
@@ -84,6 +90,8 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
             markedAsDeleted = false,
             kafkaMessageId = UUID.randomUUID(),
             behandlingId = behandlingId,
+            saksnummer = "202398765",
+            ytelse = Ytelse.SYK_SYK,
             behandlingType = Type.ANKE
         )
 

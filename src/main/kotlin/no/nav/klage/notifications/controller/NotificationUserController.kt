@@ -13,11 +13,13 @@ import java.util.*
 @Tag(name = "user", description = "API for user notifications")
 @ProtectedWithClaims(issuer = SecurityConfiguration.ISSUER_AAD)
 @RestController
-@RequestMapping("/api/user/notifications")
+@RequestMapping("/user/notifications")
 class NotificationUserController(
     private val notificationService: NotificationService,
     private val tokenUtil: TokenUtil,
 ) {
+
+    //add events endpoint for SSE clients to listen to user notifications in real-time
 
     @GetMapping
     fun getNotificationsByUser(
@@ -27,10 +29,11 @@ class NotificationUserController(
         return ResponseEntity.ok(notificationService.getNotificationsByNavIdentAndRead(navIdent, read ?: false))
     }
 
-    @GetMapping("/{id}")
-    fun getNotificationById(@PathVariable id: UUID): ResponseEntity<NotificationResponse> {
-        return ResponseEntity.ok(notificationService.getNotificationById(id))
-    }
+    //add endpoint to set multiple notifications as read, by IDs
+//    @PatchMapping("/read")
+//    fun markMultipleAsRead(@RequestBody ids: List<UUID>): ResponseEntity<List<NotificationResponse>> {
+//        return ResponseEntity.ok(notificationService.markMultipleAsRead(ids))
+//    }
 
     @PatchMapping("/{id}/read")
     fun markAsRead(@PathVariable id: UUID): ResponseEntity<NotificationResponse> {
@@ -39,18 +42,12 @@ class NotificationUserController(
 
     @PatchMapping("/read-all")
     fun markAllAsReadForUser(): ResponseEntity<List<NotificationResponse>> {
-        val navIdent = "SOME_NAV_IDENT"
+        val navIdent = tokenUtil.getIdent()
         return ResponseEntity.ok(notificationService.markAllAsReadForUser(navIdent))
     }
 
     @PatchMapping("/{id}/unread")
     fun setUnread(@PathVariable id: UUID): ResponseEntity<NotificationResponse> {
         return ResponseEntity.ok(notificationService.setUnread(id))
-    }
-
-    @DeleteMapping("/{id}")
-    fun markNotificationAsDeleted(@PathVariable id: UUID): ResponseEntity<Void> {
-        notificationService.deleteNotification(id)
-        return ResponseEntity.noContent().build()
     }
 }
