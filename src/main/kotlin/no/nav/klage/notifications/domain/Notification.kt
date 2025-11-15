@@ -8,7 +8,7 @@ import java.util.*
 @Table(name = "notifications", schema = "klage")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "notification_type")
-abstract class Notification(
+open class Notification(
     @Id
     open val id: UUID = UUID.randomUUID(),
 
