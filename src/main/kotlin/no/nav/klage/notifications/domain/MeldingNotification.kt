@@ -24,6 +24,7 @@ class MeldingNotification(
     readAt: LocalDateTime?,
     markedAsDeleted: Boolean,
     kafkaMessageId: UUID?,
+    sourceCreatedAt: LocalDateTime?,
 
     @Column
     val behandlingId: UUID,
@@ -61,6 +62,7 @@ class MeldingNotification(
     readAt = readAt,
     markedAsDeleted = markedAsDeleted,
     kafkaMessageId = kafkaMessageId,
+    sourceCreatedAt = sourceCreatedAt,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

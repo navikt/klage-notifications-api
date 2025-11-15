@@ -2,11 +2,13 @@ package no.nav.klage.notifications.controller
 
 import io.swagger.v3.oas.annotations.tags.Tag
 import no.nav.klage.notifications.config.SecurityConfiguration
-import no.nav.klage.notifications.dto.NotificationResponse
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
 import java.util.*
 
 @Tag(name = "admin", description = "API for managing notifications")
@@ -17,10 +19,10 @@ class NotificationAdminController(
     private val notificationService: NotificationService
 ) {
 
-    @GetMapping("/{id}")
-    fun getNotificationById(@PathVariable id: UUID): ResponseEntity<NotificationResponse> {
-        return ResponseEntity.ok(notificationService.getNotificationById(id))
-    }
+//    @GetMapping("/{id}")
+//    fun getNotificationById(@PathVariable id: UUID): ResponseEntity<NotificationResponse> {
+//        return ResponseEntity.ok(notificationService.getNotificationById(id))
+//    }
 
 //    @PostMapping
 //    fun createNotification(@RequestBody request: CreateNotificationRequest): ResponseEntity<NotificationResponse> {

@@ -2,12 +2,13 @@ package no.nav.klage.notifications.controller
 
 import io.swagger.v3.oas.annotations.tags.Tag
 import no.nav.klage.notifications.config.SecurityConfiguration
-import no.nav.klage.notifications.dto.NotificationResponse
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.klage.notifications.util.TokenUtil
 import no.nav.security.token.support.core.api.ProtectedWithClaims
-import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.PatchMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
 import java.util.*
 
 @Tag(name = "user", description = "API for user notifications")
@@ -19,16 +20,6 @@ class NotificationUserController(
     private val tokenUtil: TokenUtil,
 ) {
 
-    //add events endpoint for SSE clients to listen to user notifications in real-time
-
-    @GetMapping
-    fun getNotificationsByUser(
-        @RequestParam(required = false) read: Boolean?
-    ): ResponseEntity<List<NotificationResponse>> {
-        val navIdent = tokenUtil.getIdent()
-        return ResponseEntity.ok(notificationService.getNotificationsByNavIdentAndRead(navIdent, read ?: false))
-    }
-
     //add endpoint to set multiple notifications as read, by IDs
 //    @PatchMapping("/read")
 //    fun markMultipleAsRead(@RequestBody ids: List<UUID>): ResponseEntity<List<NotificationResponse>> {
@@ -36,18 +27,18 @@ class NotificationUserController(
 //    }
 
     @PatchMapping("/{id}/read")
-    fun markAsRead(@PathVariable id: UUID): ResponseEntity<NotificationResponse> {
-        return ResponseEntity.ok(notificationService.markAsRead(id))
+    fun markAsRead(@PathVariable id: UUID) {
+        notificationService.markAsRead(id)
     }
 
     @PatchMapping("/read-all")
-    fun markAllAsReadForUser(): ResponseEntity<List<NotificationResponse>> {
+    fun markAllAsReadForUser() {
         val navIdent = tokenUtil.getIdent()
-        return ResponseEntity.ok(notificationService.markAllAsReadForUser(navIdent))
+        notificationService.markAllAsReadForUser(navIdent)
     }
 
     @PatchMapping("/{id}/unread")
-    fun setUnread(@PathVariable id: UUID): ResponseEntity<NotificationResponse> {
-        return ResponseEntity.ok(notificationService.setUnread(id))
+    fun setUnread(@PathVariable id: UUID) {
+        notificationService.setUnread(id)
     }
 }

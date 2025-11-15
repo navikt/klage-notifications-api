@@ -7,7 +7,10 @@ import java.util.*
 
 @Repository
 interface NotificationRepository : JpaRepository<Notification, UUID> {
-    fun findByNavIdent(navIdent: String): List<Notification>
-    fun findByNavIdentAndReadOrderByCreatedAtAsc(navIdent: String, read: Boolean): List<Notification>
-    fun findByNavIdentOrderByCreatedAtAsc(navIdent: String): List<Notification>
+    fun findByNavIdentAndMarkedAsDeletedOrderBySourceCreatedAtAsc(
+        navIdent: String,
+        markedAsDeleted: Boolean = false,
+    ): List<Notification>
+
+    fun findByNavIdentAndRead(navIdent: String, read: Boolean): List<Notification>
 }

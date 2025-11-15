@@ -22,7 +22,7 @@ data class BehandlingInfo(
     val saksnummer: String,
 )
 
-data class MeldingNotification(
+data class MeldingNotificationEvent(
     val type: NotificationType,
     val id: UUID,
     val read: Boolean,

@@ -7,7 +7,6 @@ import no.nav.klage.notifications.domain.Notification
 import no.nav.klage.notifications.domain.NotificationType
 import no.nav.klage.notifications.dto.CreateLostAccessNotificationRequest
 import no.nav.klage.notifications.dto.CreateMeldingNotificationRequest
-import no.nav.klage.notifications.dto.NotificationResponse
 import no.nav.klage.notifications.exceptions.NotificationNotFoundException
 import no.nav.klage.notifications.repository.LostAccessNotificationRepository
 import no.nav.klage.notifications.repository.MeldingNotificationRepository
@@ -35,31 +34,15 @@ class NotificationService(
         private val objectMapper = ourJacksonObjectMapper()
     }
 
-//    @Transactional(readOnly = true)
-//    fun getAllNotifications(): List<NotificationResponse> {
-//        return notificationRepository.findAll().map { it.toResponse() }
-//    }
-//
-//    @Transactional(readOnly = true)
-//    fun getNotificationsByNavIdent(navIdent: String): List<NotificationResponse> {
-//        return notificationRepository.findByNavIdentOrderByCreatedAtAsc(navIdent)
-//            .map { it.toResponse() }
-//    }
-
     @Transactional(readOnly = true)
-    fun getNotificationsByNavIdentAndRead(navIdent: String, read: Boolean): List<NotificationResponse> {
-        return notificationRepository.findByNavIdentAndReadOrderByCreatedAtAsc(navIdent, read)
-            .map { it.toResponse() }
+    fun getNotificationsByNavIdent(navIdent: String): List<Notification> {
+        return notificationRepository.findByNavIdentAndMarkedAsDeletedOrderBySourceCreatedAtAsc(
+            navIdent = navIdent,
+            markedAsDeleted = false,
+        )
     }
 
-    @Transactional(readOnly = true)
-    fun getNotificationById(id: UUID): NotificationResponse {
-        val notification = notificationRepository.findById(id)
-            .orElseThrow { NotificationNotFoundException("Notification with id $id not found") }
-        return notification.toResponse()
-    }
-
-    fun markAsRead(id: UUID): NotificationResponse {
+    fun markAsRead(id: UUID) {
         val notification = notificationRepository.findById(id)
             .orElseThrow { NotificationNotFoundException("Notification with id $id not found") }
 
@@ -68,12 +51,9 @@ class NotificationService(
         notification.updatedAt = LocalDateTime.now()
 
         val saved = notificationRepository.save(notification)
-        val response = saved.toResponse()
-
-        return response
     }
 
-    fun setUnread(id: UUID): NotificationResponse {
+    fun setUnread(id: UUID) {
         val notification = notificationRepository.findById(id)
             .orElseThrow { NotificationNotFoundException("Notification with id $id not found") }
 
@@ -81,14 +61,11 @@ class NotificationService(
         notification.updatedAt = LocalDateTime.now()
 
         val saved = notificationRepository.save(notification)
-        val response = saved.toResponse()
-
-        return response
     }
 
-    fun markAllAsReadForUser(navIdent: String): List<NotificationResponse> {
+    fun markAllAsReadForUser(navIdent: String) {
         val notifications =
-            notificationRepository.findByNavIdentAndReadOrderByCreatedAtAsc(navIdent, false)
+            notificationRepository.findByNavIdentAndRead(navIdent, false)
 
         notifications.forEach { notification ->
             notification.read = true
@@ -97,9 +74,6 @@ class NotificationService(
         }
 
         val saved = notificationRepository.saveAll(notifications)
-        val responses = saved.map { it.toResponse() }
-
-        return responses
     }
 
     fun deleteNotification(id: UUID) {
@@ -110,24 +84,12 @@ class NotificationService(
         notification.updatedAt = LocalDateTime.now()
     }
 
-    private fun Notification.toResponse() = NotificationResponse(
-        id = this.id,
-        message = this.message,
-        navIdent = this.navIdent,
-        read = this.read,
-        source = this.source,
-        createdAt = this.createdAt,
-        updatedAt = this.updatedAt,
-        readAt = this.readAt,
-        markedAsDeleted = this.markedAsDeleted,
-    )
-
     fun processNotificationMessage(messageId: UUID, jsonNode: JsonNode) {
         try {
             val type = NotificationType.valueOf(jsonNode.get("type").asText())
             logger.debug("Processing notification message with id {} of type {}", messageId, type)
 
-            when (type) {
+            val notification = when (type) {
                 NotificationType.MELDING -> {
                     val request = objectMapper.treeToValue(
                         jsonNode,
@@ -150,12 +112,28 @@ class NotificationService(
                     )
                 }
             }
-            logger.debug("Successfully processed notification message with id {}", messageId)
+
+            val jsonNodeToPassOn: JsonNode = when (notification) {
+                is MeldingNotification -> {
+                    objectMapper.valueToTree(
+                        notification
+                    )
+                }
+
+                is LostAccessNotification -> {
+                    objectMapper.valueToTree(
+                        notification
+                    )
+                }
+
+                else -> { error("Unsupported notification type: ${notification::class.simpleName}") }
+            }
 
             kafkaInternalEventService.publishInternalNotificationEvent(
-                messageId = messageId,
-                jsonNode = jsonNode,
+                jsonNode = jsonNodeToPassOn,
             )
+
+            logger.debug("Successfully processed notification message with id {}", messageId)
 
         } catch (e: Exception) {
             logger.error("Error processing notification message with id $messageId: ${e.message}", e)
@@ -163,7 +141,7 @@ class NotificationService(
         }
     }
 
-    fun createMeldingNotification(request: CreateMeldingNotificationRequest, kafkaMessageId: UUID) {
+    fun createMeldingNotification(request: CreateMeldingNotificationRequest, kafkaMessageId: UUID): MeldingNotification {
         val now = LocalDateTime.now()
         val notification = MeldingNotification(
             message = request.message,
@@ -175,6 +153,7 @@ class NotificationService(
             readAt = null,
             markedAsDeleted = false,
             kafkaMessageId = kafkaMessageId,
+            sourceCreatedAt = request.sourceCreatedAt,
             behandlingId = request.behandlingId,
             meldingId = request.meldingId,
             actorNavIdent = request.actorNavIdent,
@@ -185,14 +164,14 @@ class NotificationService(
             behandlingType = request.behandlingType,
         )
 
-        meldingNotificationRepository.save(notification)
+        return meldingNotificationRepository.save(notification)
     }
 
-    fun createLostAccessNotification(request: CreateLostAccessNotificationRequest, kafkaMessageId: UUID) {
+    fun createLostAccessNotification(request: CreateLostAccessNotificationRequest, kafkaMessageId: UUID): LostAccessNotification {
         val now = LocalDateTime.now()
         val notification = LostAccessNotification(
             message = request.message,
-            navIdent = request.navIdent,
+            navIdent = request.recipientNavIdent,
             read = false,
             source = request.source,
             createdAt = now,
@@ -200,12 +179,13 @@ class NotificationService(
             readAt = null,
             markedAsDeleted = false,
             kafkaMessageId = kafkaMessageId,
+            sourceCreatedAt = request.sourceCreatedAt,
             behandlingId = request.behandlingId,
             saksnummer = request.saksnummer,
             ytelse = request.ytelse,
             behandlingType = request.behandlingType,
         )
 
-        lostAccessNotificationRepository.save(notification)
+        return lostAccessNotificationRepository.save(notification)
     }
 }

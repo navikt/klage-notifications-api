@@ -7,8 +7,8 @@ import java.util.*
 @Entity
 @Table(name = "notifications", schema = "klage")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@DiscriminatorColumn(name = "notification_type", discriminatorType = DiscriminatorType.STRING)
-open class Notification(
+@DiscriminatorColumn(name = "notification_type")
+abstract class Notification(
     @Id
     open val id: UUID = UUID.randomUUID(),
 
@@ -39,6 +39,9 @@ open class Notification(
 
     @Column
     open val kafkaMessageId: UUID?,
+
+    @Column
+    open val sourceCreatedAt: LocalDateTime?,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -51,6 +54,6 @@ open class Notification(
     }
 
     override fun toString(): String {
-        return "${this::class.simpleName}(id=$id, message='$message', navIdent='$navIdent', read=$read, source=$source, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted)"
+        return "${this::class.simpleName}(id=$id, message='$message', navIdent='$navIdent', read=$read, source=$source, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, sourceCreatedAt=$sourceCreatedAt)"
     }
 }
