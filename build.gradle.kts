@@ -2,18 +2,18 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val testContainersVersion = "1.21.3"
-val klageKodeverkVersion = "1.12.5"
+val klageKodeverkVersion = "1.12.6"
 val springMockkVersion = "4.0.2"
-val mockkVersion = "1.14.5"
-val tokenValidationVersion = "5.0.36"
-val logstashVersion = "8.1"
+val mockkVersion = "1.14.6"
+val tokenValidationVersion = "5.0.39"
+val logstashVersion = "9.0"
 
 plugins {
     val kotlinVersion = "2.2.21"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
     kotlin("plugin.jpa") version kotlinVersion
-    id("org.springframework.boot") version "3.5.6"
+    id("org.springframework.boot") version "3.5.7"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -40,7 +40,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.14")
     implementation("org.springframework.kafka:spring-kafka")
     implementation("io.projectreactor.kafka:reactor-kafka")
     implementation("org.postgresql:postgresql")
