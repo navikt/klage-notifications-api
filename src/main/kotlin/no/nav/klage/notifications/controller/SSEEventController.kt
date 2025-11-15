@@ -25,7 +25,7 @@ import java.time.Duration
 
 
 @RestController
-@Tag(name = "kabal-api")
+@Tag(name = "user", description = "API for user notifications")
 @ProtectedWithClaims(issuer = SecurityConfiguration.ISSUER_AAD)
 class SSEEventController(
     private val aivenKafkaClientCreator: AivenKafkaClientCreator,
@@ -39,7 +39,7 @@ class SSEEventController(
         private val objectMapper = ourJacksonObjectMapper()
     }
 
-    @GetMapping("/user/notifications/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
+    @GetMapping("/user/notificationevents", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun events(): Flux<ServerSentEvent<JsonNode>> {
         //https://docs.spring.io/spring-framework/docs/current/reference/html/web.html#mvc-ann-async-disconnects
         val heartbeatStream: Flux<ServerSentEvent<JsonNode>> = getHeartbeatStream()
