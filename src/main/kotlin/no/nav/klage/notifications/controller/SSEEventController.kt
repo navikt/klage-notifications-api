@@ -40,7 +40,7 @@ class SSEEventController(
     }
 
     @GetMapping("/user/notifications/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
-    fun events(): Flux<ServerSentEvent<JsonNode>?> {
+    fun events(): Flux<ServerSentEvent<JsonNode>> {
         //https://docs.spring.io/spring-framework/docs/current/reference/html/web.html#mvc-ann-async-disconnects
         val heartbeatStream: Flux<ServerSentEvent<JsonNode>> = getHeartbeatStream()
 
@@ -72,7 +72,7 @@ class SSEEventController(
 
     private fun getInternalNotificationEventPublisher(
         navIdent: String,
-    ): Flux<ServerSentEvent<JsonNode>?> {
+    ): Flux<ServerSentEvent<JsonNode>> {
         val flux = aivenKafkaClientCreator.getNewKafkaNotificationInternalEventsReceiver().receive()
             .mapNotNull { consumerRecord ->
                 val jsonNode = objectMapper.readTree(consumerRecord.value())

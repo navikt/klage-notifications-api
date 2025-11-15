@@ -7,13 +7,15 @@ val springMockkVersion = "4.0.2"
 val mockkVersion = "1.14.5"
 val tokenValidationVersion = "5.0.36"
 val logstashVersion = "8.1"
+val reactorKafkaVersion = "1.3.0"
+val springDocVersion = "2.8.13"
 
 plugins {
     val kotlinVersion = "2.2.21"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
     kotlin("plugin.jpa") version kotlinVersion
-    id("org.springframework.boot") version "3.5.6"
+    id("org.springframework.boot") version "4.0.0-RC1"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -39,16 +41,15 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springDocVersion")
     implementation("org.springframework.kafka:spring-kafka")
-    implementation("io.projectreactor.kafka:reactor-kafka")
+    implementation("io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion")
     implementation("org.postgresql:postgresql")
-    implementation("org.flywaydb:flyway-core")
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation("com.zaxxer:HikariCP")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-    implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("net.logstash.logback:logstash-logback-encoder:${logstashVersion}")
     implementation("no.nav.klage:klage-kodeverk:$klageKodeverkVersion")
@@ -56,6 +57,10 @@ dependencies {
     implementation("no.nav.security:token-client-spring:${tokenValidationVersion}")
     implementation("io.micrometer:micrometer-registry-prometheus")
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
+        exclude(group = "org.junit.vintage")
+        exclude(group = "org.mockito")
+    }
+    testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test") {
         exclude(group = "org.junit.vintage")
         exclude(group = "org.mockito")
     }
