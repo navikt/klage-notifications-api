@@ -2,20 +2,20 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val testContainersVersion = "1.21.3"
-val klageKodeverkVersion = "1.12.5"
+val klageKodeverkVersion = "1.12.6"
 val springMockkVersion = "4.0.2"
-val mockkVersion = "1.14.5"
-val tokenValidationVersion = "5.0.36"
-val logstashVersion = "8.1"
-val reactorKafkaVersion = "1.3.0"
-val springDocVersion = "2.8.13"
+val mockkVersion = "1.14.6"
+val tokenValidationVersion = "5.0.39"
+val logstashVersion = "9.0"
+val reactorKafkaVersion = "1.3.25"
+val springDocVersion = "2.8.14"
 
 plugins {
     val kotlinVersion = "2.2.21"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
     kotlin("plugin.jpa") version kotlinVersion
-    id("org.springframework.boot") version "4.0.0-RC1"
+    id("org.springframework.boot") version "4.0.0-RC2"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
