@@ -6,7 +6,7 @@ val klageKodeverkVersion = "1.12.5"
 val springMockkVersion = "4.0.2"
 val mockkVersion = "1.14.5"
 val tokenValidationVersion = "5.0.36"
-val logstashVersion = "8.1"
+val logstashVersion = "9.0"
 val reactorKafkaVersion = "1.3.0"
 val springDocVersion = "2.8.13"
 
