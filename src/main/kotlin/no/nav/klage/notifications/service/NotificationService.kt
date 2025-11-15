@@ -14,7 +14,6 @@ import no.nav.klage.notifications.repository.MeldingNotificationRepository
 import no.nav.klage.notifications.repository.NotificationRepository
 import no.nav.klage.notifications.util.getLogger
 import no.nav.klage.notifications.util.ourJacksonObjectMapper
-import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -26,6 +25,7 @@ class NotificationService(
     private val notificationRepository: NotificationRepository,
     private val meldingNotificationRepository: MeldingNotificationRepository,
     private val lostAccessNotificationRepository: LostAccessNotificationRepository,
+    private val kafkaInternalEventService: KafkaInternalEventService,
 ) {
 
     companion object {
@@ -129,19 +129,34 @@ class NotificationService(
 
             when (type) {
                 NotificationType.MELDING -> {
-                    val request = objectMapper.treeToValue(jsonNode, CreateMeldingNotificationRequest::class.java)
-                    createMeldingNotification(request, messageId)
+                    val request = objectMapper.treeToValue(
+                        jsonNode,
+                        CreateMeldingNotificationRequest::class.java,
+                    )
+                    createMeldingNotification(
+                        request = request,
+                        kafkaMessageId = messageId,
+                    )
                 }
 
                 NotificationType.LOST_ACCESS -> {
-                    val request = objectMapper.treeToValue(jsonNode, CreateLostAccessNotificationRequest::class.java)
-                    createLostAccessNotification(request, messageId)
+                    val request = objectMapper.treeToValue(
+                        jsonNode,
+                        CreateLostAccessNotificationRequest::class.java,
+                    )
+                    createLostAccessNotification(
+                        request = request,
+                        kafkaMessageId = messageId,
+                    )
                 }
             }
             logger.debug("Successfully processed notification message with id {}", messageId)
-        } catch (e: DataIntegrityViolationException) {
-            // Message already processed by another instance
-            logger.debug("Message {} already processed", messageId)
+
+            kafkaInternalEventService.publishInternalNotificationEvent(
+                messageId = messageId,
+                jsonNode = jsonNode,
+            )
+
         } catch (e: Exception) {
             logger.error("Error processing notification message with id $messageId: ${e.message}", e)
             throw e

@@ -59,3 +59,4 @@ no.nav.security.jwt:
     accepted_audience: ${AZURE_APP_CLIENT_ID}
 
 NOTIFICATION_EVENTS_TOPIC: klage.notification-events.v1
+NOTIFICATION_INTERNAL_EVENTS_TOPIC: klage.notification-internal-events.v1
