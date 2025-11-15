@@ -58,5 +58,5 @@ no.nav.security.jwt:
     discoveryurl: ${AZURE_APP_WELL_KNOWN_URL}
     accepted_audience: ${AZURE_APP_CLIENT_ID}
 
-NOTIFICATION_EVENTS_TOPIC: klage.notification-events.v1
-NOTIFICATION_INTERNAL_EVENTS_TOPIC: klage.notification-internal-events.v1
+NOTIFICATION_EVENTS_TOPIC: klage.klage-notification-events.v1
+NOTIFICATION_INTERNAL_EVENTS_TOPIC: klage.klage-notification-internal-events.v1
