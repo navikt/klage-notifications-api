@@ -54,6 +54,7 @@ dependencies {
     implementation("no.nav.klage:klage-kodeverk:$klageKodeverkVersion")
     implementation("no.nav.security:token-validation-spring:${tokenValidationVersion}")
     implementation("no.nav.security:token-client-spring:${tokenValidationVersion}")
+    implementation("io.micrometer:micrometer-registry-prometheus")
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(group = "org.junit.vintage")
         exclude(group = "org.mockito")
