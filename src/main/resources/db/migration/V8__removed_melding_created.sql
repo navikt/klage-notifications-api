@@ -1,1 +1,0 @@
-ALTER TABLE klage.notifications DROP COLUMN melding_created;

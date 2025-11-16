@@ -15,30 +15,46 @@ $$;
 
 CREATE TABLE klage.notifications
 (
-    id                 UUID PRIMARY KEY,
-    notification_type  TEXT      NOT NULL, -- Discriminator column for inheritance
-    title              TEXT      NOT NULL,
-    message            TEXT      NOT NULL,
-    nav_ident          TEXT      NOT NULL,
-    severity           TEXT      NOT NULL,
-    status             TEXT      NOT NULL,
-    source             TEXT      NOT NULL,
-    created_at         TIMESTAMP NOT NULL,
-    updated_at         TIMESTAMP NOT NULL,
+    id                 UUID                  NOT NULL PRIMARY KEY,
+    notification_type  TEXT                  NOT NULL,
+    message            TEXT                  NOT NULL,
+    nav_ident          TEXT                  NOT NULL,
+    source             TEXT                  NOT NULL,
+    created_at         TIMESTAMP             NOT NULL,
+    updated_at         TIMESTAMP             NOT NULL,
     read_at            TIMESTAMP,
-    marked_as_deleted  BOOLEAN   NOT NULL DEFAULT FALSE,
-    -- MeldingNotification and LostAccessNotification properties
+    marked_as_deleted  BOOLEAN DEFAULT FALSE NOT NULL,
     behandling_id      UUID,
     behandling_type_id TEXT,
-    -- MeldingNotification specific properties
     melding_id         UUID,
-    sender_nav_ident   TEXT
+    actor_nav_ident    TEXT,
+    kafka_message_id   UUID,
+    read               BOOLEAN DEFAULT FALSE NOT NULL,
+    actor_navn         TEXT,
+    saksnummer         TEXT,
+    ytelse_id          TEXT,
+    source_created_at  TIMESTAMP
 );
 
--- Create indexes for common queries
-CREATE INDEX idx_notifications_user_id ON klage.notifications (nav_ident);
-CREATE INDEX idx_notifications_status ON klage.notifications (status);
-CREATE INDEX idx_notifications_created_at ON klage.notifications (created_at ASC);
-CREATE INDEX idx_notifications_user_status ON klage.notifications (nav_ident, status);
-CREATE INDEX idx_notifications_type ON klage.notifications (notification_type);
-CREATE INDEX idx_notifications_behandling_id ON klage.notifications (behandling_id) WHERE behandling_id IS NOT NULL;
+CREATE INDEX idx_notifications_user_id
+    ON klage.notifications (nav_ident);
+
+CREATE INDEX idx_notifications_created_at
+    ON klage.notifications (created_at);
+
+CREATE INDEX idx_notifications_type
+    ON klage.notifications (notification_type);
+
+CREATE INDEX idx_notifications_behandling_id
+    ON klage.notifications (behandling_id)
+    WHERE (behandling_id IS NOT NULL);
+
+CREATE UNIQUE INDEX idx_notifications_kafka_message_id
+    ON klage.notifications (kafka_message_id)
+    WHERE (kafka_message_id IS NOT NULL);
+
+CREATE INDEX idx_notifications_read
+    ON klage.notifications (read);
+
+CREATE INDEX idx_notifications_user_read
+    ON klage.notifications (nav_ident, read);
