@@ -17,14 +17,10 @@ class NotificationUserController(
     private val tokenUtil: TokenUtil,
 ) {
 
-    @PatchMapping("/read-multiple")
-    fun markMultipleAsRead(@RequestBody ids: List<UUID>) {
-        notificationService.markMultipleAsRead(ids)
-    }
-
     @PatchMapping("/{id}/read")
     fun markAsRead(@PathVariable id: UUID) {
-        notificationService.markAsRead(id)
+        val navIdent = tokenUtil.getIdent()
+        notificationService.markAsRead(id = id, navIdent = navIdent)
     }
 
     @PatchMapping("/read-all")
@@ -35,6 +31,13 @@ class NotificationUserController(
 
     @PatchMapping("/{id}/unread")
     fun setUnread(@PathVariable id: UUID) {
-        notificationService.setUnread(id)
+        val navIdent = tokenUtil.getIdent()
+        notificationService.setUnread(id = id, navIdent = navIdent)
+    }
+
+    @PatchMapping("/read-multiple")
+    fun markMultipleAsRead(@RequestBody notificationIdList: List<UUID>) {
+        val navIdent = tokenUtil.getIdent()
+        notificationService.markMultipleAsRead(notificationIdList = notificationIdList, navIdent = navIdent)
     }
 }

@@ -8,6 +8,7 @@ import no.nav.klage.notifications.domain.NotificationType
 import no.nav.klage.notifications.dto.CreateLostAccessNotificationRequest
 import no.nav.klage.notifications.dto.CreateMeldingNotificationRequest
 import no.nav.klage.notifications.dto.NotificationChangeEvent
+import no.nav.klage.notifications.exceptions.MissingAccessException
 import no.nav.klage.notifications.exceptions.NotificationNotFoundException
 import no.nav.klage.notifications.repository.LostAccessNotificationRepository
 import no.nav.klage.notifications.repository.MeldingNotificationRepository
@@ -42,15 +43,17 @@ class NotificationService(
         )
     }
 
-    fun markAsRead(id: UUID) {
+    fun markAsRead(id: UUID, navIdent: String) {
         val notification = notificationRepository.findById(id)
             .orElseThrow { NotificationNotFoundException("Notification with id $id not found") }
+
+        if (notification.navIdent != navIdent) {
+            throw MissingAccessException("User with navIdent $navIdent does not have access to notification with id $id")
+        }
 
         notification.read = true
         notification.readAt = LocalDateTime.now()
         notification.updatedAt = LocalDateTime.now()
-
-        notificationRepository.save(notification)
 
         val notificationChangeEvent = NotificationChangeEvent(
             id = notification.id,
@@ -64,15 +67,41 @@ class NotificationService(
         )
     }
 
-    fun setUnread(id: UUID) {
+    fun markMultipleAsRead(notificationIdList: List<UUID>, navIdent: String) {
+        val notifications = notificationRepository.findAllById(notificationIdList)
+
+        notifications.forEach { notification ->
+            if (notification.navIdent != navIdent) {
+                throw MissingAccessException("User with navIdent $navIdent does not have access to notification with id ${notification.id}")
+            }
+            notification.read = true
+            notification.readAt = LocalDateTime.now()
+            notification.updatedAt = LocalDateTime.now()
+
+            val notificationChangeEvent = NotificationChangeEvent(
+                id = notification.id,
+                navIdent = notification.navIdent,
+                type = NotificationChangeEvent.Type.READ,
+                updatedAt = notification.updatedAt,
+            )
+
+            kafkaInternalEventService.publishInternalNotificationChangeEvent(
+                jsonNode = objectMapper.valueToTree(notificationChangeEvent)
+            )
+        }
+    }
+
+    fun setUnread(id: UUID, navIdent: String) {
         val notification = notificationRepository.findById(id)
             .orElseThrow { NotificationNotFoundException("Notification with id $id not found") }
+
+        if (notification.navIdent != navIdent) {
+            throw MissingAccessException("User with navIdent $navIdent does not have access to notification with id $id")
+        }
 
         notification.read = false
         notification.readAt = null
         notification.updatedAt = LocalDateTime.now()
-
-        notificationRepository.save(notification)
 
         val notificationChangeEvent = NotificationChangeEvent(
             id = notification.id,
@@ -96,8 +125,6 @@ class NotificationService(
             notification.updatedAt = LocalDateTime.now()
         }
 
-        notificationRepository.saveAll(notifications)
-
         notifications.forEach { notification ->
             val notificationChangeEvent = NotificationChangeEvent(
                 id = notification.id,
@@ -118,8 +145,6 @@ class NotificationService(
 
         notification.markedAsDeleted = true
         notification.updatedAt = LocalDateTime.now()
-
-        notificationRepository.save(notification)
 
         val notificationChangeEvent = NotificationChangeEvent(
             id = notification.id,
@@ -237,9 +262,4 @@ class NotificationService(
 
         return lostAccessNotificationRepository.save(notification)
     }
-
-    fun markMultipleAsRead(ids: List<UUID>) {
-        TODO("Not yet implemented")
-    }
-
 }
