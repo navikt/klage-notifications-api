@@ -14,7 +14,7 @@ class OpenApiConfig {
         return GroupedOpenApi.builder()
             .packagesToScan(NotificationAdminController::class.java.packageName)
             .group("admin")
-            .pathsToMatch("/api/admin/**")
+            .pathsToMatch("/admin/**")
             .build()
     }
 
@@ -23,7 +23,7 @@ class OpenApiConfig {
         return GroupedOpenApi.builder()
             .packagesToScan(NotificationUserController::class.java.packageName)
             .group("user")
-            .pathsToMatch("/api/user/**")
+            .pathsToMatch("/user/**")
             .build()
     }
 }
