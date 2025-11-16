@@ -39,8 +39,8 @@ class SSEEventController(
         private val objectMapper = ourJacksonObjectMapper()
     }
 
-    @GetMapping("/user/notificationevents", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
-    fun events(): Flux<ServerSentEvent<JsonNode>> {
+    @GetMapping("/user/notifications/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
+    fun notificationEvents(): Flux<ServerSentEvent<JsonNode>> {
         //https://docs.spring.io/spring-framework/docs/current/reference/html/web.html#mvc-ann-async-disconnects
         val heartbeatStream: Flux<ServerSentEvent<JsonNode>> = getHeartbeatStream()
 
