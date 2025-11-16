@@ -46,19 +46,19 @@ class SSEEventController(
     @Operation(
         summary = "Subscribe to real-time notification events",
         description = """
-            Server-Sent Events (SSE) endpoint that streams notification events in real-time.
-            
-            **Event Types:**
-            - `create` - New notification created or existing notifications loaded
-            - `read` - Notification marked as read
-            - `unread` - Notification marked as unread
-            - `delete` - Notification deleted
-            - `HEARTBEAT` - Keep-alive heartbeat (sent every 10 seconds)
-            
-            **Notification Types in 'create' events:**
-            - MESSAGE - Message notifications with actor, behandling info, and content
-            - LOST_ACCESS - Access lost notifications (to be implemented)
-        """
+Server-Sent Events (SSE) endpoint that streams notification events in real-time.
+
+**Event Types:**
+- `create` - New notification created or existing notifications loaded
+- `read` - Notification marked as read
+- `unread` - Notification marked as unread
+- `delete` - Notification deleted
+- `HEARTBEAT` - Keep-alive heartbeat (sent every 10 seconds)
+
+**Notification Types in 'create' events:**
+- MESSAGE - Message notifications with actor, behandling info, and content
+- LOST_ACCESS - Access lost notifications (to be implemented)
+"""
     )
     @ApiResponse(
         responseCode = "200",
@@ -72,62 +72,62 @@ class SSEEventController(
                     summary = "Create event - MESSAGE notification",
                     description = "Event fired when a new message notification is created or loaded",
                     value = """
-                        event: create
-                        id: 2025-11-16T10:30:00_550e8400-e29b-41d4-a716-446655440000
-                        data: {
-                          "type": "MESSAGE",
-                          "id": "550e8400-e29b-41d4-a716-446655440000",
-                          "read": false,
-                          "createdAt": "2025-11-16T10:30:00",
-                          "content": "New message about the case",
-                          "actor": {
-                            "navIdent": "A123456",
-                            "navn": "Ola Nordmann"
-                          },
-                          "behandling": {
-                            "id": "650e8400-e29b-41d4-a716-446655440000",
-                            "typeId": "1",
-                            "ytelseId": "10",
-                            "saksnummer": "2025-12345"
-                          }
-                        }
-                    """
+event: create
+id: 2025-11-16T10:30:00_550e8400-e29b-41d4-a716-446655440000
+data: {
+  "type": "MESSAGE",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "read": false,
+  "createdAt": "2025-11-16T10:30:00",
+  "content": "New message about the case",
+  "actor": {
+    "navIdent": "A123456",
+    "navn": "Ola Nordmann"
+  },
+  "behandling": {
+    "id": "650e8400-e29b-41d4-a716-446655440000",
+    "typeId": "1",
+    "ytelseId": "10",
+    "saksnummer": "2025-12345"
+  }
+}
+"""
                 ),
                 ExampleObject(
                     name = "read_notification",
                     summary = "Read event",
                     description = "Event fired when a notification is marked as read",
                     value = """
-                        event: read
-                        id: 2025-11-16T10:35:00_550e8400-e29b-41d4-a716-446655440000
-                        data: {
-                          "id": "550e8400-e29b-41d4-a716-446655440000"
-                        }
-                    """
+event: read
+id: 2025-11-16T10:35:00_550e8400-e29b-41d4-a716-446655440000
+data: {
+  "id": "550e8400-e29b-41d4-a716-446655440000"
+}
+"""
                 ),
                 ExampleObject(
                     name = "unread_notification",
                     summary = "Unread event",
                     description = "Event fired when a notification is marked as unread",
                     value = """
-                        event: unread
-                        id: 2025-11-16T10:36:00_550e8400-e29b-41d4-a716-446655440000
-                        data: {
-                          "id": "550e8400-e29b-41d4-a716-446655440000"
-                        }
-                    """
+event: unread
+id: 2025-11-16T10:36:00_550e8400-e29b-41d4-a716-446655440000
+data: {
+  "id": "550e8400-e29b-41d4-a716-446655440000"
+}
+"""
                 ),
                 ExampleObject(
                     name = "delete_notification",
                     summary = "Delete event",
                     description = "Event fired when a notification is deleted",
                     value = """
-                        event: delete
-                        id: 2025-11-16T10:37:00_550e8400-e29b-41d4-a716-446655440000
-                        data: {
-                          "id": "550e8400-e29b-41d4-a716-446655440000"
-                        }
-                    """
+event: delete
+id: 2025-11-16T10:37:00_550e8400-e29b-41d4-a716-446655440000
+data: {
+  "id": "550e8400-e29b-41d4-a716-446655440000"
+}
+"""
                 ),
                 ExampleObject(
                     name = "heartbeat",
