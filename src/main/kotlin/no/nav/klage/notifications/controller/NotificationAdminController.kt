@@ -1,5 +1,8 @@
 package no.nav.klage.notifications.controller
 
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import no.nav.klage.notifications.config.SecurityConfiguration
 import no.nav.klage.notifications.service.NotificationService
@@ -38,8 +41,13 @@ class NotificationAdminController(
 //        return ResponseEntity.ok(notificationService.updateNotification(id, request))
 //    }
 
+    @Operation(summary = "Delete a notification", description = "Marks a notification as deleted, by ID")
+    @ApiResponse(responseCode = "204", description = "Notification deleted successfully")
+    @ApiResponse(responseCode = "404", description = "Notification not found")
     @DeleteMapping("/{id}")
-    fun deleteNotification(@PathVariable id: UUID): ResponseEntity<Void> {
+    fun deleteNotification(
+        @Parameter(description = "Notification ID") @PathVariable id: UUID
+    ): ResponseEntity<Void> {
         notificationService.deleteNotification(id)
         return ResponseEntity.noContent().build()
     }
