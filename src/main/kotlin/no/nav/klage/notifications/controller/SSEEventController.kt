@@ -6,9 +6,8 @@ import no.nav.klage.notifications.config.SecurityConfiguration
 import no.nav.klage.notifications.domain.MeldingNotification
 import no.nav.klage.notifications.domain.Notification
 import no.nav.klage.notifications.domain.NotificationType
-import no.nav.klage.notifications.dto.view.BehandlingInfo
-import no.nav.klage.notifications.dto.view.MeldingNotificationEvent
-import no.nav.klage.notifications.dto.view.NavEmployee
+import no.nav.klage.notifications.dto.NotificationChangeEvent
+import no.nav.klage.notifications.dto.view.*
 import no.nav.klage.notifications.dto.view.NotificationType.MESSAGE
 import no.nav.klage.notifications.kafka.AivenKafkaClientCreator
 import no.nav.klage.notifications.service.NotificationService
@@ -45,7 +44,12 @@ class SSEEventController(
         val heartbeatStream: Flux<ServerSentEvent<JsonNode>> = getHeartbeatStream()
 
         val navIdent = tokenUtil.getIdent()
+
         val internalNotificationEventPublisher = getInternalNotificationEventPublisher(
+            navIdent = navIdent,
+        )
+
+        val internalNotificationChangeEventPublisher = getInternalNotificationChangeEventPublisher(
             navIdent = navIdent,
         )
 
@@ -53,20 +57,22 @@ class SSEEventController(
 
         return getNotificationsAsSSEEvents(notificationService.getNotificationsByNavIdent(navIdent = navIdent))
             .mergeWith(internalNotificationEventPublisher)
+            .mergeWith(internalNotificationChangeEventPublisher)
             .mergeWith(emitFirstHeartbeat)
             .mergeWith(heartbeatStream)
     }
 
     private fun getNotificationsAsSSEEvents(notificationsByNavIdent: List<Notification>): Flux<ServerSentEvent<JsonNode>> {
-        return Flux.fromIterable(notificationsByNavIdent
-            .map {
-                val jsonNode = dbToInternalNotificationEvent(notification = it)
-                ServerSentEvent.builder<JsonNode>()
-                    .id("${it.sourceCreatedAt}_${it.id}")
-                    .event("create")
-                    .data(jsonNode)
-                    .build()
-            }
+        return Flux.fromIterable(
+            notificationsByNavIdent
+                .map {
+                    val jsonNode = dbToInternalNotificationEvent(notification = it)
+                    ServerSentEvent.builder<JsonNode>()
+                        .id("${it.updatedAt}_${it.id}")
+                        .event(Action.CREATE.lower)
+                        .data(jsonNode)
+                        .build()
+                }
         )
     }
 
@@ -80,10 +86,10 @@ class SSEEventController(
                 if (recipientNavIdent == navIdent) {
                     val jsonNodeToReturnToClient = jsonToInternalNotificationEvent(jsonNode)
                     val id = jsonNodeToReturnToClient.get("id").asText()
-                    val sourceCreatedAt = jsonNodeToReturnToClient.get("sourceCreatedAt").asText()
+                    val updatedAt = jsonNodeToReturnToClient.get("updatedAt").asText()
                     ServerSentEvent.builder<JsonNode>()
-                        .id("${sourceCreatedAt}_$id")
-                        .event("create")
+                        .id("${updatedAt}_$id")
+                        .event(Action.CREATE.lower)
                         .data(jsonNodeToReturnToClient)
                         .build()
                 } else null
@@ -92,8 +98,37 @@ class SSEEventController(
         return flux
     }
 
+    private fun getInternalNotificationChangeEventPublisher(
+        navIdent: String,
+    ): Flux<ServerSentEvent<JsonNode>> {
+        val flux = aivenKafkaClientCreator.getNewKafkaNotificationInternalChangeEventsReceiver().receive()
+            .mapNotNull { consumerRecord ->
+                val jsonNode = objectMapper.readTree(consumerRecord.value())
+                val recipientNavIdent = jsonNode.get("navIdent").asText()
+                if (recipientNavIdent == navIdent) {
+                    val changeEvent = objectMapper.treeToValue(jsonNode, NotificationChangeEvent::class.java)
+                    ServerSentEvent.builder<JsonNode>()
+                        .id("${changeEvent.updatedAt}_${changeEvent.id}")
+                        .event(
+                            when (changeEvent.type) {
+                                NotificationChangeEvent.Type.READ -> Action.READ.lower
+                                NotificationChangeEvent.Type.UNREAD -> Action.UNREAD.lower
+                                NotificationChangeEvent.Type.DELETED -> Action.DELETE.lower                     }
+                        )
+                        .data(
+                            objectMapper.valueToTree(
+                                NotificationChanged(id = changeEvent.id)
+                            )
+                        )
+                        .build()
+                } else null
+            }
+
+        return flux
+    }
+
     private fun getFirstHeartbeat(): Flux<ServerSentEvent<JsonNode>> {
-        val emitFirstHeartbeat = Flux.generate<ServerSentEvent<JsonNode>> {
+        val emitFirstHeartbeat = Flux.generate {
             it.next(toHeartBeatServerSentEvent())
             it.complete()
         }
@@ -119,7 +154,7 @@ class SSEEventController(
         return when (notification) {
             is MeldingNotification -> {
                 objectMapper.valueToTree(
-                    MeldingNotificationEvent(
+                    MessageNotification(
                         type = MESSAGE,
                         id = notification.meldingId,
                         read = false,
@@ -155,7 +190,7 @@ class SSEEventController(
                 )
 
                 objectMapper.valueToTree(
-                    MeldingNotificationEvent(
+                    MessageNotification(
                         type = MESSAGE,
                         id = request.meldingId,
                         read = false,

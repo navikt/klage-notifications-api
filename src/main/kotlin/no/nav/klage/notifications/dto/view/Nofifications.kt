@@ -22,7 +22,7 @@ data class BehandlingInfo(
     val saksnummer: String,
 )
 
-data class MeldingNotificationEvent(
+data class MessageNotification(
     val type: NotificationType,
     val id: UUID,
     val read: Boolean,
@@ -31,3 +31,14 @@ data class MeldingNotificationEvent(
     val actor: NavEmployee,
     val behandling: BehandlingInfo,
 )
+
+data class NotificationChanged(
+    val id: UUID,
+)
+
+enum class Action(val lower: String) {
+    CREATE("create"),
+    READ("read"),
+    UNREAD("unread"),
+    DELETE("delete"),
+}

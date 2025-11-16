@@ -12,6 +12,8 @@ class KafkaInternalEventService(
     private val aivenKafkaTemplate: KafkaTemplate<String, String>,
     @Value($$"${NOTIFICATION_INTERNAL_EVENTS_TOPIC}")
     private val notificationInternalEventsTopic: String,
+    @Value($$"${NOTIFICATION_INTERNAL_CHANGE_EVENTS_TOPIC}")
+    private val notificationInternalChangeEventsTopic: String,
 ) {
 
     companion object {
@@ -32,6 +34,21 @@ class KafkaInternalEventService(
             logger.debug("Published internalNotificationEvent to Kafka for subscribers")
         }.onFailure {
             logger.error("Could not publish internalNotificationEvent to subscribers", it)
+        }
+    }
+
+    fun publishInternalNotificationChangeEvent(jsonNode: JsonNode) {
+        runCatching {
+            logger.debug("Publishing internalNotificationChangeEvent to Kafka for subscribers")
+
+            aivenKafkaTemplate.send(
+                notificationInternalChangeEventsTopic,
+                jsonNode.get("id").asText(),
+                objectMapper.writeValueAsString(jsonNode)
+            ).get()
+            logger.debug("Published internalNotificationChangeEvent to Kafka for subscribers")
+        }.onFailure {
+            logger.error("Could not publish internalNotificationChangeEvent to subscribers", it)
         }
     }
 }

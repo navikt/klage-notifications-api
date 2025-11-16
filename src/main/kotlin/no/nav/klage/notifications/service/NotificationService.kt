@@ -7,6 +7,7 @@ import no.nav.klage.notifications.domain.Notification
 import no.nav.klage.notifications.domain.NotificationType
 import no.nav.klage.notifications.dto.CreateLostAccessNotificationRequest
 import no.nav.klage.notifications.dto.CreateMeldingNotificationRequest
+import no.nav.klage.notifications.dto.NotificationChangeEvent
 import no.nav.klage.notifications.exceptions.NotificationNotFoundException
 import no.nav.klage.notifications.repository.LostAccessNotificationRepository
 import no.nav.klage.notifications.repository.MeldingNotificationRepository
@@ -30,7 +31,6 @@ class NotificationService(
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
-
         private val objectMapper = ourJacksonObjectMapper()
     }
 
@@ -50,7 +50,18 @@ class NotificationService(
         notification.readAt = LocalDateTime.now()
         notification.updatedAt = LocalDateTime.now()
 
-        val saved = notificationRepository.save(notification)
+        notificationRepository.save(notification)
+
+        val notificationChangeEvent = NotificationChangeEvent(
+            id = notification.id,
+            navIdent = notification.navIdent,
+            type = NotificationChangeEvent.Type.READ,
+            updatedAt = notification.updatedAt,
+        )
+
+        kafkaInternalEventService.publishInternalNotificationChangeEvent(
+            jsonNode = objectMapper.valueToTree(notificationChangeEvent)
+        )
     }
 
     fun setUnread(id: UUID) {
@@ -58,9 +69,21 @@ class NotificationService(
             .orElseThrow { NotificationNotFoundException("Notification with id $id not found") }
 
         notification.read = false
+        notification.readAt = null
         notification.updatedAt = LocalDateTime.now()
 
-        val saved = notificationRepository.save(notification)
+        notificationRepository.save(notification)
+
+        val notificationChangeEvent = NotificationChangeEvent(
+            id = notification.id,
+            navIdent = notification.navIdent,
+            type = NotificationChangeEvent.Type.UNREAD,
+            updatedAt = notification.updatedAt,
+        )
+
+        kafkaInternalEventService.publishInternalNotificationChangeEvent(
+            jsonNode = objectMapper.valueToTree(notificationChangeEvent)
+        )
     }
 
     fun markAllAsReadForUser(navIdent: String) {
@@ -73,7 +96,20 @@ class NotificationService(
             notification.updatedAt = LocalDateTime.now()
         }
 
-        val saved = notificationRepository.saveAll(notifications)
+        notificationRepository.saveAll(notifications)
+
+        notifications.forEach { notification ->
+            val notificationChangeEvent = NotificationChangeEvent(
+                id = notification.id,
+                navIdent = notification.navIdent,
+                type = NotificationChangeEvent.Type.READ,
+                updatedAt = notification.updatedAt,
+            )
+
+            kafkaInternalEventService.publishInternalNotificationChangeEvent(
+                jsonNode = objectMapper.valueToTree(notificationChangeEvent)
+            )
+        }
     }
 
     fun deleteNotification(id: UUID) {
@@ -82,6 +118,19 @@ class NotificationService(
 
         notification.markedAsDeleted = true
         notification.updatedAt = LocalDateTime.now()
+
+        notificationRepository.save(notification)
+
+        val notificationChangeEvent = NotificationChangeEvent(
+            id = notification.id,
+            navIdent = notification.navIdent,
+            type = NotificationChangeEvent.Type.DELETED,
+            updatedAt = notification.updatedAt,
+        )
+
+        kafkaInternalEventService.publishInternalNotificationChangeEvent(
+            jsonNode = objectMapper.valueToTree(notificationChangeEvent)
+        )
     }
 
     fun processNotificationMessage(messageId: UUID, jsonNode: JsonNode) {
@@ -188,4 +237,9 @@ class NotificationService(
 
         return lostAccessNotificationRepository.save(notification)
     }
+
+    fun markMultipleAsRead(ids: List<UUID>) {
+        TODO("Not yet implemented")
+    }
+
 }

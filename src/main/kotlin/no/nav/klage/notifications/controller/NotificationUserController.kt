@@ -5,10 +5,7 @@ import no.nav.klage.notifications.config.SecurityConfiguration
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.klage.notifications.util.TokenUtil
 import no.nav.security.token.support.core.api.ProtectedWithClaims
-import org.springframework.web.bind.annotation.PatchMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import java.util.*
 
 @Tag(name = "user", description = "API for user notifications")
@@ -20,11 +17,10 @@ class NotificationUserController(
     private val tokenUtil: TokenUtil,
 ) {
 
-    //add endpoint to set multiple notifications as read, by IDs
-//    @PatchMapping("/read")
-//    fun markMultipleAsRead(@RequestBody ids: List<UUID>): ResponseEntity<List<NotificationResponse>> {
-//        return ResponseEntity.ok(notificationService.markMultipleAsRead(ids))
-//    }
+    @PatchMapping("/read-multiple")
+    fun markMultipleAsRead(@RequestBody ids: List<UUID>) {
+        notificationService.markMultipleAsRead(ids)
+    }
 
     @PatchMapping("/{id}/read")
     fun markAsRead(@PathVariable id: UUID) {

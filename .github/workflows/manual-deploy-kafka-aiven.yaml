@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         cluster: [dev]
-        topic: [klage-notification-events.v1, klage-notification-internal-events.v1]
+        topic: [klage-notification-events.v1, klage-notification-internal-events.v1, klage-notification-internal-change-events.v1]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

@@ -18,6 +18,8 @@ class AivenKafkaClientCreator(
     private val notificationEventsTopic: String,
     @Value($$"${NOTIFICATION_INTERNAL_EVENTS_TOPIC}")
     private val notificationInternalEventsTopic: String,
+    @Value($$"${NOTIFICATION_INTERNAL_CHANGE_EVENTS_TOPIC}")
+    private val notificationInternalChangeEventsTopic: String,
     private val commonKafkaConfig: Map<String, Any>,
 ) {
 
@@ -40,6 +42,14 @@ class AivenKafkaClientCreator(
             topic = notificationInternalEventsTopic,
             groupId = "klage-notifications-api-internal-event-consumer-$uniqueIdPerInstance",
             clientId = "klage-notifications-api-internal-event-client-$uniqueIdPerInstance",
+        )
+    }
+
+    fun getNewKafkaNotificationInternalChangeEventsReceiver(): KafkaReceiver<String, String> {
+        return defaultKafkaReceiver(
+            topic = notificationInternalChangeEventsTopic,
+            groupId = "klage-notifications-api-internal-change-event-consumer-$uniqueIdPerInstance",
+            clientId = "klage-notifications-api-internal-change-event-client-$uniqueIdPerInstance",
         )
     }
 
