@@ -291,7 +291,9 @@ data: {
                     MeldingNotification::class.java,
                 )
 
-                objectMapper.valueToTree(
+                logger.debug("Mapping incoming MESSAGE notification event for navIdent to internal representation: $request")
+
+                val jsonNodeToReturn: JsonNode = objectMapper.valueToTree(
                     MessageNotification(
                         type = MESSAGE,
                         id = request.meldingId,
@@ -310,6 +312,11 @@ data: {
                         ),
                     )
                 )
+
+                logger.debug("Mapped MESSAGE notification event to internal representation: $jsonNodeToReturn")
+                logger.debug("Mapped MESSAGE notification event to internal representation as pretty: ${jsonNodeToReturn.toPrettyString()}")
+
+                jsonNodeToReturn
             }
 
             NotificationType.LOST_ACCESS -> {
