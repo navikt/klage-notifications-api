@@ -186,6 +186,7 @@ data: {
     ): Flux<ServerSentEvent<Any>> {
         val flux = aivenKafkaClientCreator.getNewKafkaNotificationInternalEventsReceiver().receive()
             .mapNotNull { consumerRecord ->
+                logger.debug("Received internal notification event with key: ${consumerRecord.key()}")
                 val jsonNode = objectMapper.readTree(consumerRecord.value())
                 val recipientNavIdent = jsonNode.get("navIdent").asText()
                 if (recipientNavIdent == navIdent) {
@@ -199,7 +200,6 @@ data: {
                         .build()
                 } else null
             }
-
         return flux
     }
 
@@ -208,6 +208,7 @@ data: {
     ): Flux<ServerSentEvent<Any>> {
         val flux = aivenKafkaClientCreator.getNewKafkaNotificationInternalChangeEventsReceiver().receive()
             .mapNotNull { consumerRecord ->
+                logger.debug("Received notification change event with key: ${consumerRecord.key()}")
                 val jsonNode = objectMapper.readTree(consumerRecord.value())
                 val recipientNavIdent = jsonNode.get("navIdent").asText()
                 if (recipientNavIdent == navIdent) {
@@ -225,7 +226,6 @@ data: {
                         .build()
                 } else null
             }
-
         return flux
     }
 
