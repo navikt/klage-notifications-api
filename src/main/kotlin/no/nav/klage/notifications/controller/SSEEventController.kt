@@ -260,7 +260,7 @@ data: {
                         type = MESSAGE,
                         id = notification.meldingId,
                         read = false,
-                        createdAt = notification.meldingCreated,
+                        createdAt = notification.sourceCreatedAt,
                         content = notification.message,
                         actor = NavEmployee(
                             navIdent = notification.actorNavIdent,
@@ -296,7 +296,7 @@ data: {
                         type = MESSAGE,
                         id = request.meldingId,
                         read = false,
-                        createdAt = request.meldingCreated,
+                        createdAt = request.sourceCreatedAt,
                         content = request.message,
                         actor = NavEmployee(
                             navIdent = request.actorNavIdent,

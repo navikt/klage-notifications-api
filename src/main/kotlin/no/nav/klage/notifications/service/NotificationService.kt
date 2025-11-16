@@ -6,7 +6,7 @@ import no.nav.klage.notifications.domain.MeldingNotification
 import no.nav.klage.notifications.domain.Notification
 import no.nav.klage.notifications.domain.NotificationType
 import no.nav.klage.notifications.dto.CreateLostAccessNotificationRequest
-import no.nav.klage.notifications.dto.CreateMeldingNotificationRequest
+import no.nav.klage.notifications.dto.CreateMeldingNotificationEvent
 import no.nav.klage.notifications.dto.NotificationChangeEvent
 import no.nav.klage.notifications.exceptions.MissingAccessException
 import no.nav.klage.notifications.exceptions.NotificationNotFoundException
@@ -167,7 +167,7 @@ class NotificationService(
                 NotificationType.MELDING -> {
                     val request = objectMapper.treeToValue(
                         jsonNode,
-                        CreateMeldingNotificationRequest::class.java,
+                        CreateMeldingNotificationEvent::class.java,
                     )
                     createMeldingNotification(
                         request = request,
@@ -215,7 +215,7 @@ class NotificationService(
         }
     }
 
-    fun createMeldingNotification(request: CreateMeldingNotificationRequest, kafkaMessageId: UUID): MeldingNotification {
+    fun createMeldingNotification(request: CreateMeldingNotificationEvent, kafkaMessageId: UUID): MeldingNotification {
         val now = LocalDateTime.now()
         val notification = MeldingNotification(
             message = request.message,
@@ -234,7 +234,6 @@ class NotificationService(
             actorNavn = request.actorNavn,
             saksnummer = request.saksnummer,
             ytelse = request.ytelse,
-            meldingCreated = request.meldingCreated,
             behandlingType = request.behandlingType,
         )
 

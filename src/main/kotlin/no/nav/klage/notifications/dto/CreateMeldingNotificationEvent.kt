@@ -7,7 +7,7 @@ import no.nav.klage.notifications.domain.NotificationType
 import java.time.LocalDateTime
 import java.util.*
 
-data class CreateMeldingNotificationRequest(
+data class CreateMeldingNotificationEvent(
     val type: NotificationType,
     val message: String,
     val recipientNavIdent: String,
@@ -19,6 +19,5 @@ data class CreateMeldingNotificationRequest(
     val actorNavn: String,
     val saksnummer: String,
     val ytelse: Ytelse,
-    val meldingCreated: LocalDateTime,
-    val sourceCreatedAt: LocalDateTime?,
+    val sourceCreatedAt: LocalDateTime,
 )

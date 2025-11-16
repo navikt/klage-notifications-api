@@ -16,5 +16,5 @@ data class CreateLostAccessNotificationRequest(
     val saksnummer: String,
     val ytelse: Ytelse,
     val behandlingType: Type,
-    val sourceCreatedAt: LocalDateTime?,
+    val sourceCreatedAt: LocalDateTime,
 )

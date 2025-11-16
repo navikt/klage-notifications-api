@@ -54,7 +54,6 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
             actorNavn = "Test Testesen",
             saksnummer = "202312345",
             ytelse = Ytelse.OMS_OMP,
-            meldingCreated = now.minusDays(1),
             behandlingType = Type.KLAGE
         )
 

@@ -24,7 +24,7 @@ class LostAccessNotification(
     readAt: LocalDateTime?,
     markedAsDeleted: Boolean,
     kafkaMessageId: UUID?,
-    sourceCreatedAt: LocalDateTime?,
+    sourceCreatedAt: LocalDateTime,
 
     @Column
     val behandlingId: UUID,

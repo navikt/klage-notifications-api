@@ -41,7 +41,7 @@ open class Notification(
     open val kafkaMessageId: UUID?,
 
     @Column
-    open val sourceCreatedAt: LocalDateTime?,
+    open val sourceCreatedAt: LocalDateTime,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
