@@ -146,7 +146,7 @@ data: {
         logger.debug("New SSE connection for notification events established by navIdent=${tokenUtil.getIdent()}")
 
         //https://docs.spring.io/spring-framework/docs/current/reference/html/web.html#mvc-ann-async-disconnects
-        val heartbeatStream: Flux<ServerSentEvent<Any>> = getHeartbeatStream()
+        val heartbeatStream = getHeartbeatStream()
 
         val navIdent = tokenUtil.getIdent()
 
@@ -158,16 +158,17 @@ data: {
             navIdent = navIdent,
         )
 
-        val emitFirstHeartbeat = getFirstHeartbeat()
+        val previousNotificationsAsSSEEvents =
+            getPreviousNotificationsAsSSEEvents(notificationService.getNotificationsByNavIdent(navIdent = navIdent))
 
-        return getNotificationsAsSSEEvents(notificationService.getNotificationsByNavIdent(navIdent = navIdent))
-            .mergeWith(internalNotificationEventPublisher)
-            .mergeWith(internalNotificationChangeEventPublisher)
-            .mergeWith(emitFirstHeartbeat)
+        return getFirstHeartbeat()
             .mergeWith(heartbeatStream)
+            .mergeWith(previousNotificationsAsSSEEvents)
+            .mergeWith(internalNotificationChangeEventPublisher)
+            .mergeWith(internalNotificationEventPublisher)
     }
 
-    private fun getNotificationsAsSSEEvents(notificationsByNavIdent: List<Notification>): Flux<ServerSentEvent<Any>> {
+    private fun getPreviousNotificationsAsSSEEvents(notificationsByNavIdent: List<Notification>): Flux<ServerSentEvent<Any>> {
         return Flux.fromIterable(
             notificationsByNavIdent
                 .map {
