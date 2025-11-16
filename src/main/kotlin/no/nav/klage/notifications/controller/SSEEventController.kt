@@ -141,12 +141,12 @@ data: {
         )]
     )
     @GetMapping("/user/notifications/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
-    fun notificationEvents(): Flux<ServerSentEvent<JsonNode>> {
+    fun notificationEvents(): Flux<ServerSentEvent<Any>> {
 
         logger.debug("New SSE connection for notification events established by navIdent=${tokenUtil.getIdent()}")
 
         //https://docs.spring.io/spring-framework/docs/current/reference/html/web.html#mvc-ann-async-disconnects
-        val heartbeatStream: Flux<ServerSentEvent<JsonNode>> = getHeartbeatStream()
+        val heartbeatStream: Flux<ServerSentEvent<Any>> = getHeartbeatStream()
 
         val navIdent = tokenUtil.getIdent()
 
@@ -167,15 +167,15 @@ data: {
             .mergeWith(heartbeatStream)
     }
 
-    private fun getNotificationsAsSSEEvents(notificationsByNavIdent: List<Notification>): Flux<ServerSentEvent<JsonNode>> {
+    private fun getNotificationsAsSSEEvents(notificationsByNavIdent: List<Notification>): Flux<ServerSentEvent<Any>> {
         return Flux.fromIterable(
             notificationsByNavIdent
                 .map {
-                    val jsonNode = dbToInternalNotificationEvent(notification = it)
-                    ServerSentEvent.builder<JsonNode>()
+                    val data = dbToInternalNotificationEvent(notification = it)
+                    ServerSentEvent.builder<Any>()
                         .id("${it.updatedAt}_${it.id}")
                         .event(Action.CREATE.lower)
-                        .data(jsonNode)
+                        .data(data)
                         .build()
                 }
         )
@@ -183,19 +183,19 @@ data: {
 
     private fun getInternalNotificationEventPublisher(
         navIdent: String,
-    ): Flux<ServerSentEvent<JsonNode>> {
+    ): Flux<ServerSentEvent<Any>> {
         val flux = aivenKafkaClientCreator.getNewKafkaNotificationInternalEventsReceiver().receive()
             .mapNotNull { consumerRecord ->
                 val jsonNode = objectMapper.readTree(consumerRecord.value())
                 val recipientNavIdent = jsonNode.get("navIdent").asText()
                 if (recipientNavIdent == navIdent) {
-                    val jsonNodeToReturnToClient = jsonToInternalNotificationEvent(jsonNode)
-                    val id = jsonNodeToReturnToClient.get("id").asText()
-                    val updatedAt = jsonNodeToReturnToClient.get("updatedAt").asText()
-                    ServerSentEvent.builder<JsonNode>()
+                    val data = jsonToInternalNotificationEvent(jsonNode)
+                    val id = jsonNode.get("id").asText()
+                    val updatedAt = jsonNode.get("updatedAt").asText()
+                    ServerSentEvent.builder<Any>()
                         .id("${updatedAt}_$id")
                         .event(Action.CREATE.lower)
-                        .data(jsonNodeToReturnToClient)
+                        .data(data)
                         .build()
                 } else null
             }
@@ -205,26 +205,23 @@ data: {
 
     private fun getInternalNotificationChangeEventPublisher(
         navIdent: String,
-    ): Flux<ServerSentEvent<JsonNode>> {
+    ): Flux<ServerSentEvent<Any>> {
         val flux = aivenKafkaClientCreator.getNewKafkaNotificationInternalChangeEventsReceiver().receive()
             .mapNotNull { consumerRecord ->
                 val jsonNode = objectMapper.readTree(consumerRecord.value())
                 val recipientNavIdent = jsonNode.get("navIdent").asText()
                 if (recipientNavIdent == navIdent) {
                     val changeEvent = objectMapper.treeToValue(jsonNode, NotificationChangeEvent::class.java)
-                    ServerSentEvent.builder<JsonNode>()
+                    ServerSentEvent.builder<Any>()
                         .id("${changeEvent.updatedAt}_${changeEvent.id}")
                         .event(
                             when (changeEvent.type) {
                                 NotificationChangeEvent.Type.READ -> Action.READ.lower
                                 NotificationChangeEvent.Type.UNREAD -> Action.UNREAD.lower
-                                NotificationChangeEvent.Type.DELETED -> Action.DELETE.lower                     }
+                                NotificationChangeEvent.Type.DELETED -> Action.DELETE.lower
+                            }
                         )
-                        .data(
-                            objectMapper.valueToTree(
-                                NotificationChanged(id = changeEvent.id)
-                            )
-                        )
+                        .data(NotificationChanged(id = changeEvent.id))
                         .build()
                 } else null
             }
@@ -232,7 +229,7 @@ data: {
         return flux
     }
 
-    private fun getFirstHeartbeat(): Flux<ServerSentEvent<JsonNode>> {
+    private fun getFirstHeartbeat(): Flux<ServerSentEvent<Any>> {
         val emitFirstHeartbeat = Flux.generate {
             it.next(toHeartBeatServerSentEvent())
             it.complete()
@@ -241,48 +238,40 @@ data: {
     }
 
     private fun getHeartbeatStream(
-    ): Flux<ServerSentEvent<JsonNode>> {
-        val heartbeatStream: Flux<ServerSentEvent<JsonNode>> = Flux.interval(Duration.ofSeconds(10))
+    ): Flux<ServerSentEvent<Any>> {
+        val heartbeatStream: Flux<ServerSentEvent<Any>> = Flux.interval(Duration.ofSeconds(10))
             .map {
                 toHeartBeatServerSentEvent()
             }
         return heartbeatStream
     }
 
-    private fun toHeartBeatServerSentEvent(): ServerSentEvent<JsonNode> {
-        return ServerSentEvent.builder<JsonNode>()
+    private fun toHeartBeatServerSentEvent(): ServerSentEvent<Any> {
+        return ServerSentEvent.builder<Any>()
             .event("HEARTBEAT")
             .build()
     }
 
-    private fun dbToInternalNotificationEvent(notification: Notification): JsonNode {
+    private fun dbToInternalNotificationEvent(notification: Notification): Any {
         return when (notification) {
             is MeldingNotification -> {
-                logger.debug("Mapping DB MESSAGE notification event for navIdent to internal representation: $notification")
-
-                val jsonNode: JsonNode = objectMapper.valueToTree(
-                    MessageNotification(
-                        type = MESSAGE,
-                        id = notification.meldingId,
-                        read = false,
-                        createdAt = notification.sourceCreatedAt,
-                        content = notification.message,
-                        actor = NavEmployee(
-                            navIdent = notification.actorNavIdent,
-                            navn = notification.actorNavn,
-                        ),
-                        behandling = BehandlingInfo(
-                            id = notification.behandlingId,
-                            typeId = notification.behandlingType.id,
-                            ytelseId = notification.ytelse.id,
-                            saksnummer = notification.saksnummer,
-                        ),
+                MessageNotification(
+                    type = MESSAGE,
+                    id = notification.meldingId,
+                    read = false,
+                    createdAt = notification.sourceCreatedAt,
+                    content = notification.message,
+                    actor = NavEmployee(
+                        navIdent = notification.actorNavIdent,
+                        navn = notification.actorNavn,
+                    ),
+                    behandling = BehandlingInfo(
+                        id = notification.behandlingId,
+                        typeId = notification.behandlingType.id,
+                        ytelseId = notification.ytelse.id,
+                        saksnummer = notification.saksnummer,
                     )
                 )
-
-                logger.debug("Mapped notification event to internal representation: $jsonNode")
-
-                jsonNode
             }
 
             else -> {
@@ -292,40 +281,30 @@ data: {
         }
     }
 
-    private fun jsonToInternalNotificationEvent(jsonNode: JsonNode): JsonNode {
+    private fun jsonToInternalNotificationEvent(jsonNode: JsonNode): Any {
         return when (NotificationType.valueOf(jsonNode.get("type").asText())) {
             NotificationType.MELDING -> {
                 val request = objectMapper.treeToValue(
                     jsonNode,
                     MeldingNotification::class.java,
                 )
-
-                logger.debug("Mapping incoming MESSAGE notification event for navIdent to internal representation: $request")
-
-                val jsonNodeToReturn: JsonNode = objectMapper.valueToTree(
-                    MessageNotification(
-                        type = MESSAGE,
-                        id = request.meldingId,
-                        read = false,
-                        createdAt = request.sourceCreatedAt,
-                        content = request.message,
-                        actor = NavEmployee(
-                            navIdent = request.actorNavIdent,
-                            navn = request.actorNavn,
-                        ),
-                        behandling = BehandlingInfo(
-                            id = request.behandlingId,
-                            typeId = request.behandlingType.id,
-                            ytelseId = request.ytelse.id,
-                            saksnummer = request.saksnummer,
-                        ),
-                    )
+                MessageNotification(
+                    type = MESSAGE,
+                    id = request.meldingId,
+                    read = false,
+                    createdAt = request.sourceCreatedAt,
+                    content = request.message,
+                    actor = NavEmployee(
+                        navIdent = request.actorNavIdent,
+                        navn = request.actorNavn,
+                    ),
+                    behandling = BehandlingInfo(
+                        id = request.behandlingId,
+                        typeId = request.behandlingType.id,
+                        ytelseId = request.ytelse.id,
+                        saksnummer = request.saksnummer,
+                    ),
                 )
-
-                logger.debug("Mapped MESSAGE notification event to internal representation: $jsonNodeToReturn")
-                logger.debug("Mapped MESSAGE notification event to internal representation as pretty: ${jsonNodeToReturn.toPrettyString()}")
-
-                jsonNodeToReturn
             }
 
             NotificationType.LOST_ACCESS -> {
