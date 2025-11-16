@@ -158,10 +158,10 @@ class NotificationService(
         )
     }
 
-    fun processNotificationMessage(messageId: UUID, jsonNode: JsonNode) {
+    fun processNotificationMessage(kafkaMessageId: UUID, jsonNode: JsonNode) {
         try {
             val type = NotificationType.valueOf(jsonNode.get("type").asText())
-            logger.debug("Processing notification message with id {} of type {}", messageId, type)
+            logger.debug("Processing notification message with id {} of type {}", kafkaMessageId, type)
 
             val notification = when (type) {
                 NotificationType.MELDING -> {
@@ -171,7 +171,7 @@ class NotificationService(
                     )
                     createMeldingNotification(
                         request = request,
-                        kafkaMessageId = messageId,
+                        kafkaMessageId = kafkaMessageId,
                     )
                 }
 
@@ -182,7 +182,7 @@ class NotificationService(
                     )
                     createLostAccessNotification(
                         request = request,
-                        kafkaMessageId = messageId,
+                        kafkaMessageId = kafkaMessageId,
                     )
                 }
             }
@@ -207,10 +207,10 @@ class NotificationService(
                 jsonNode = jsonNodeToPassOn,
             )
 
-            logger.debug("Successfully processed notification message with id {}", messageId)
+            logger.debug("Successfully processed notification message with kafkaMessageId {}", kafkaMessageId)
 
         } catch (e: Exception) {
-            logger.error("Error processing notification message with id $messageId: ${e.message}", e)
+            logger.error("Error processing notification message with kafkaMessageId $kafkaMessageId: ${e.message}", e)
             throw e
         }
     }

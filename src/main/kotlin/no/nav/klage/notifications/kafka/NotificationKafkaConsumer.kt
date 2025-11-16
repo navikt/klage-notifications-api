@@ -26,7 +26,7 @@ class NotificationKafkaConsumer(
             .subscribe { record ->
                 try {
                     notificationService.processNotificationMessage(
-                        messageId = UUID.fromString(record.key()!!),
+                        kafkaMessageId = UUID.fromString(record.key()!!),
                         jsonNode = jacksonObjectMapper().readTree(record.value()),
                     )
                 } catch (e: Exception) {
