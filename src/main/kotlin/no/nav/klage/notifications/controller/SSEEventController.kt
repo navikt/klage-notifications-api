@@ -142,6 +142,9 @@ data: {
     )
     @GetMapping("/user/notifications/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun notificationEvents(): Flux<ServerSentEvent<JsonNode>> {
+
+        logger.debug("New SSE connection for notification events established by navIdent=${tokenUtil.getIdent()}")
+
         //https://docs.spring.io/spring-framework/docs/current/reference/html/web.html#mvc-ann-async-disconnects
         val heartbeatStream: Flux<ServerSentEvent<JsonNode>> = getHeartbeatStream()
 
@@ -255,7 +258,9 @@ data: {
     private fun dbToInternalNotificationEvent(notification: Notification): JsonNode {
         return when (notification) {
             is MeldingNotification -> {
-                objectMapper.valueToTree(
+                logger.debug("Mapping DB MESSAGE notification event for navIdent to internal representation: $notification")
+
+                val jsonNode: JsonNode = objectMapper.valueToTree(
                     MessageNotification(
                         type = MESSAGE,
                         id = notification.meldingId,
@@ -274,6 +279,10 @@ data: {
                         ),
                     )
                 )
+
+                logger.debug("Mapped notification event to internal representation: $jsonNode")
+
+                jsonNode
             }
 
             else -> {

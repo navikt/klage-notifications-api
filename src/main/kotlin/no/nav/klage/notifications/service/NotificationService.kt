@@ -37,6 +37,7 @@ class NotificationService(
 
     @Transactional(readOnly = true)
     fun getNotificationsByNavIdent(navIdent: String): List<Notification> {
+        logger.debug("Fetching notifications for navIdent {}", navIdent)
         return notificationRepository.findByNavIdentAndMarkedAsDeletedOrderBySourceCreatedAtAsc(
             navIdent = navIdent,
             markedAsDeleted = false,
