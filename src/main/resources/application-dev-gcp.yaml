@@ -1,3 +1,8 @@
 spring:
   flyway:
     clean-disabled: false
+springdoc:
+  swagger-ui:
+    enabled: true
+  api-docs:
+    enabled: true
