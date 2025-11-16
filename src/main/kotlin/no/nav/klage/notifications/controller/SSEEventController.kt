@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import no.nav.klage.notifications.config.SecurityConfiguration
 import no.nav.klage.notifications.domain.MeldingNotification
 import no.nav.klage.notifications.domain.Notification
-import no.nav.klage.notifications.domain.NotificationType
 import no.nav.klage.notifications.dto.NotificationChangeEvent
 import no.nav.klage.notifications.dto.view.*
 import no.nav.klage.notifications.dto.view.NotificationType.MESSAGE
@@ -283,34 +282,28 @@ data: {
     }
 
     private fun jsonToInternalNotificationEvent(jsonNode: JsonNode): Any {
-        return when (NotificationType.valueOf(jsonNode.get("type").asText())) {
-            NotificationType.MELDING -> {
-                val request = objectMapper.treeToValue(
-                    jsonNode,
-                    MeldingNotification::class.java,
-                )
-                MessageNotification(
-                    type = MESSAGE,
-                    id = request.meldingId,
-                    read = false,
-                    createdAt = request.sourceCreatedAt,
-                    content = request.message,
-                    actor = NavEmployee(
-                        navIdent = request.actorNavIdent,
-                        navn = request.actorNavn,
-                    ),
-                    behandling = BehandlingInfo(
-                        id = request.behandlingId,
-                        typeId = request.behandlingType.id,
-                        ytelseId = request.ytelse.id,
-                        saksnummer = request.saksnummer,
-                    ),
-                )
-            }
-
-            NotificationType.LOST_ACCESS -> {
-                TODO()
-            }
-        }
+        return if (jsonNode.has("meldingId")) {
+            val request = objectMapper.treeToValue(
+                jsonNode,
+                MeldingNotification::class.java,
+            )
+            MessageNotification(
+                type = MESSAGE,
+                id = request.meldingId,
+                read = false,
+                createdAt = request.sourceCreatedAt,
+                content = request.message,
+                actor = NavEmployee(
+                    navIdent = request.actorNavIdent,
+                    navn = request.actorNavn,
+                ),
+                behandling = BehandlingInfo(
+                    id = request.behandlingId,
+                    typeId = request.behandlingType.id,
+                    ytelseId = request.ytelse.id,
+                    saksnummer = request.saksnummer,
+                ),
+            )
+        } else TODO()
     }
 }
