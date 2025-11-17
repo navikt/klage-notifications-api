@@ -1,6 +1,7 @@
 package no.nav.klage.notifications.service
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import no.nav.klage.notifications.domain.LostAccessNotification
 import no.nav.klage.notifications.domain.MeldingNotification
 import no.nav.klage.notifications.domain.Notification
@@ -14,7 +15,6 @@ import no.nav.klage.notifications.repository.LostAccessNotificationRepository
 import no.nav.klage.notifications.repository.MeldingNotificationRepository
 import no.nav.klage.notifications.repository.NotificationRepository
 import no.nav.klage.notifications.util.getLogger
-import no.nav.klage.notifications.util.ourJacksonObjectMapper
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -27,12 +27,12 @@ class NotificationService(
     private val meldingNotificationRepository: MeldingNotificationRepository,
     private val lostAccessNotificationRepository: LostAccessNotificationRepository,
     private val kafkaInternalEventService: KafkaInternalEventService,
+    private val objectMapper: ObjectMapper,
 ) {
 
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
-        private val objectMapper = ourJacksonObjectMapper()
     }
 
     @Transactional(readOnly = true)
