@@ -22,15 +22,32 @@ data class BehandlingInfo(
     val saksnummer: String,
 )
 
+abstract class Notification(
+    open val type: NotificationType,
+    open val id: UUID,
+    open val read: Boolean,
+    open val createdAt: LocalDateTime,
+)
+
 data class MessageNotification(
-    val type: NotificationType,
-    val id: UUID,
-    val read: Boolean,
-    val createdAt: LocalDateTime,
-    val content: String,
+    override val type: NotificationType,
+    override val id: UUID,
+    override val read: Boolean,
+    override val createdAt: LocalDateTime,
+    val message: Message,
     val actor: NavEmployee,
     val behandling: BehandlingInfo,
-)
+): Notification(
+    type = type,
+    id = id,
+    read = read,
+    createdAt = createdAt,
+) {
+    data class Message(
+        val id: UUID,
+        val content: String,
+    )
+}
 
 data class NotificationChanged(
     val id: UUID,

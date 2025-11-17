@@ -78,7 +78,10 @@ data: {
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "read": false,
   "createdAt": "2025-11-16T10:30:00",
-  "content": "New message about the case",
+  "message": {
+    "id": "750e8400-e29b-41d4-a716-446655440000",
+    "content": "New message about the case"
+  },
   "actor": {
     "navIdent": "A123456",
     "navn": "Ola Nordmann"
@@ -257,10 +260,13 @@ data: {
             is MeldingNotification -> {
                 MessageNotification(
                     type = MESSAGE,
-                    id = notification.meldingId,
+                    id = notification.id,
                     read = false,
                     createdAt = notification.sourceCreatedAt,
-                    content = notification.message,
+                    message = MessageNotification.Message(
+                        id = notification.meldingId,
+                        content = notification.message,
+                    ),
                     actor = NavEmployee(
                         navIdent = notification.actorNavIdent,
                         navn = notification.actorNavn,
@@ -289,10 +295,13 @@ data: {
             )
             MessageNotification(
                 type = MESSAGE,
-                id = request.meldingId,
+                id = request.id,
                 read = false,
                 createdAt = request.sourceCreatedAt,
-                content = request.message,
+                message = MessageNotification.Message(
+                    id = request.meldingId,
+                    content = request.message,
+                ),
                 actor = NavEmployee(
                     navIdent = request.actorNavIdent,
                     navn = request.actorNavn,
