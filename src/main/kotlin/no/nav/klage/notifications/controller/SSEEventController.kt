@@ -1,6 +1,7 @@
 package no.nav.klage.notifications.controller
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.ExampleObject
@@ -17,7 +18,6 @@ import no.nav.klage.notifications.kafka.AivenKafkaClientCreator
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.klage.notifications.util.TokenUtil
 import no.nav.klage.notifications.util.getLogger
-import no.nav.klage.notifications.util.ourJacksonObjectMapper
 import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.http.MediaType
 import org.springframework.http.codec.ServerSentEvent
@@ -34,12 +34,12 @@ class SSEEventController(
     private val aivenKafkaClientCreator: AivenKafkaClientCreator,
     private val notificationService: NotificationService,
     private val tokenUtil: TokenUtil,
+    private val objectMapper: ObjectMapper,
 ) {
 
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
-        private val objectMapper = ourJacksonObjectMapper()
     }
 
     @Operation(
