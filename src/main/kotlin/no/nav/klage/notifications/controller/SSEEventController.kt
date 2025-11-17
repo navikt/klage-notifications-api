@@ -189,10 +189,11 @@ data: {
     ): Flux<ServerSentEvent<Any>> {
         val flux = aivenKafkaClientCreator.getNewKafkaNotificationInternalEventsReceiver().receive()
             .mapNotNull { consumerRecord ->
-                logger.debug("Received internal notification event with key: ${consumerRecord.key()}")
+                logger.debug("$navIdent received internal notification event with key: ${consumerRecord.key()}")
                 val jsonNode = objectMapper.readTree(consumerRecord.value())
                 val recipientNavIdent = jsonNode.get("navIdent").asText()
                 if (recipientNavIdent == navIdent) {
+                    logger.debug("Correct navIdent for notification change event: $navIdent")
                     val data = jsonToInternalNotificationEvent(jsonNode)
                     val id = jsonNode.get("id").asText()
                     val updatedAt = jsonNode.get("updatedAt").asText()
@@ -201,7 +202,10 @@ data: {
                         .event(Action.CREATE.lower)
                         .data(data)
                         .build()
-                } else null
+                } else {
+                    logger.debug("Ignoring internal notification event for navIdent=$recipientNavIdent, not matching subscriber navIdent=$navIdent")
+                    null
+                }
             }
         return flux
     }
@@ -211,10 +215,11 @@ data: {
     ): Flux<ServerSentEvent<Any>> {
         val flux = aivenKafkaClientCreator.getNewKafkaNotificationInternalChangeEventsReceiver().receive()
             .mapNotNull { consumerRecord ->
-                logger.debug("Received notification change event with key: ${consumerRecord.key()}")
+                logger.debug("$navIdent received notification change event with key: ${consumerRecord.key()}")
                 val jsonNode = objectMapper.readTree(consumerRecord.value())
                 val recipientNavIdent = jsonNode.get("navIdent").asText()
                 if (recipientNavIdent == navIdent) {
+                    logger.debug("Correct navIdent for notification change event: $navIdent")
                     val changeEvent = objectMapper.treeToValue(jsonNode, NotificationChangeEvent::class.java)
                     ServerSentEvent.builder<Any>()
                         .id("${changeEvent.updatedAt}_${changeEvent.id}")
@@ -227,7 +232,10 @@ data: {
                         )
                         .data(NotificationChanged(id = changeEvent.id))
                         .build()
-                } else null
+                } else {
+                    logger.debug("Ignoring notification change event for navIdent=$recipientNavIdent, not matching subscriber navIdent=$navIdent")
+                    null
+                }
             }
         return flux
     }
