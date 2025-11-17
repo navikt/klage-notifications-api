@@ -26,7 +26,6 @@ class AivenKafkaClientCreator(
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
-        val uniqueIdPerInstance = UUID.randomUUID().toString()
     }
 
     fun getNewKafkaNotificationEventsReceiver(): KafkaReceiver<String, String> {
@@ -38,6 +37,7 @@ class AivenKafkaClientCreator(
     }
 
     fun getNewKafkaNotificationInternalEventsReceiver(): KafkaReceiver<String, String> {
+        val uniqueIdPerInstance = UUID.randomUUID().toString()
         return defaultKafkaReceiver(
             topic = notificationInternalEventsTopic,
             groupId = "klage-notifications-api-internal-event-consumer-$uniqueIdPerInstance",
@@ -46,6 +46,7 @@ class AivenKafkaClientCreator(
     }
 
     fun getNewKafkaNotificationInternalChangeEventsReceiver(): KafkaReceiver<String, String> {
+        val uniqueIdPerInstance = UUID.randomUUID().toString()
         return defaultKafkaReceiver(
             topic = notificationInternalChangeEventsTopic,
             groupId = "klage-notifications-api-internal-change-event-consumer-$uniqueIdPerInstance",
