@@ -261,7 +261,7 @@ data: {
                 MessageNotification(
                     type = MESSAGE,
                     id = notification.id,
-                    read = false,
+                    read = notification.read,
                     createdAt = notification.sourceCreatedAt,
                     message = MessageNotification.Message(
                         id = notification.meldingId,
