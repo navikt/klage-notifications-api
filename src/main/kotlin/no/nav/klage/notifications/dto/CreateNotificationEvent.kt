@@ -11,7 +11,7 @@ import java.util.*
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes(
-    JsonSubTypes.Type(value = CreateNotificationEvent::class, name = "MESSAGE"),
+    JsonSubTypes.Type(value = CreateMeldingNotificationEvent::class, name = "MELDING"),
     JsonSubTypes.Type(value = CreateLostAccessNotificationRequest::class, name = "LOST_ACCESS"),
 )
 sealed class CreateNotificationEvent(
