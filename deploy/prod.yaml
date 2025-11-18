@@ -44,4 +44,4 @@ adRoles:
 
 envs:
   - name: JAVA_OPTS
-    value: "-Xms512m -Xmx8192m"
+    value: "-Xms256m -Xmx2048m"

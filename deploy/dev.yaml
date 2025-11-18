@@ -47,4 +47,4 @@ envs:
   - name: JAVA_TOOL_OPTIONS
     value: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
   - name: JAVA_OPTS
-    value: "-Xms1m -Xmx4096m"
+    value: "-Xms1m -Xmx2048m"
