@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.kafka.core.DefaultKafkaProducerFactory
 import org.springframework.kafka.core.KafkaTemplate
+import org.springframework.kafka.support.serializer.JacksonJsonSerializer
 
 @Configuration
 class AivenKafkaConfiguration(
@@ -37,17 +38,16 @@ class AivenKafkaConfiguration(
 
     //Producer bean
     @Bean
-    fun aivenKafkaTemplate(commonKafkaConfig: Map<String, Any>): KafkaTemplate<String, String> {
+    fun aivenKafkaTemplate(commonKafkaConfig: Map<String, Any>): KafkaTemplate<String, Any> {
         val config = mapOf(
             ProducerConfig.CLIENT_ID_CONFIG to "klage-notification-api-producer",
             ProducerConfig.ACKS_CONFIG to "1",
             ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
-            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
+            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to JacksonJsonSerializer::class.java
         ) + commonKafkaConfig
 
         return KafkaTemplate(DefaultKafkaProducerFactory(config))
     }
-
 
     private fun securityConfig() = mapOf(
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to "SSL",

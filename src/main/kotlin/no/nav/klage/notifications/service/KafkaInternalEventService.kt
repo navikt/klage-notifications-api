@@ -1,7 +1,7 @@
 package no.nav.klage.notifications.service
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
+import no.nav.klage.notifications.domain.Notification
+import no.nav.klage.notifications.dto.NotificationChangeEvent
 import no.nav.klage.notifications.util.getLogger
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.kafka.core.KafkaTemplate
@@ -9,8 +9,7 @@ import org.springframework.stereotype.Service
 
 @Service
 class KafkaInternalEventService(
-    private val aivenKafkaTemplate: KafkaTemplate<String, String>,
-    private val objectMapper: ObjectMapper,
+    private val aivenKafkaTemplate: KafkaTemplate<String, Any>,
     @Value($$"${NOTIFICATION_INTERNAL_EVENTS_TOPIC}")
     private val notificationInternalEventsTopic: String,
     @Value($$"${NOTIFICATION_INTERNAL_CHANGE_EVENTS_TOPIC}")
@@ -22,14 +21,14 @@ class KafkaInternalEventService(
         private val logger = getLogger(javaClass.enclosingClass)
     }
 
-    fun publishInternalNotificationEvent(jsonNode: JsonNode) {
+    fun publishInternalNotificationEvent(notification: Notification) {
         runCatching {
             logger.debug("Publishing internalNotificationEvent to Kafka for subscribers")
 
             aivenKafkaTemplate.send(
                 notificationInternalEventsTopic,
-                jsonNode.get("id").asText(),
-                objectMapper.writeValueAsString(jsonNode)
+                notification.id.toString(),
+                notification,
             ).get()
             logger.debug("Published internalNotificationEvent to Kafka for subscribers")
         }.onFailure {
@@ -37,14 +36,14 @@ class KafkaInternalEventService(
         }
     }
 
-    fun publishInternalNotificationChangeEvent(jsonNode: JsonNode) {
+    fun publishInternalNotificationChangeEvent(notificationChangeEvent: NotificationChangeEvent) {
         runCatching {
             logger.debug("Publishing internalNotificationChangeEvent to Kafka for subscribers")
 
             aivenKafkaTemplate.send(
                 notificationInternalChangeEventsTopic,
-                jsonNode.get("id").asText(),
-                objectMapper.writeValueAsString(jsonNode)
+                notificationChangeEvent.id.toString(),
+                notificationChangeEvent,
             ).get()
             logger.debug("Published internalNotificationChangeEvent to Kafka for subscribers")
         }.onFailure {

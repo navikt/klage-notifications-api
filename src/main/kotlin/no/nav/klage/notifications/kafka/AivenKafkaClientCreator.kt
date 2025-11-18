@@ -1,9 +1,13 @@
 package no.nav.klage.notifications.kafka
 
+import no.nav.klage.notifications.domain.Notification
+import no.nav.klage.notifications.dto.CreateNotificationEvent
+import no.nav.klage.notifications.dto.NotificationChangeEvent
 import no.nav.klage.notifications.util.getLogger
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.kafka.support.serializer.JacksonJsonDeserializer
 import org.springframework.stereotype.Component
 import reactor.kafka.receiver.KafkaReceiver
 import reactor.kafka.receiver.ReceiverOptions
@@ -29,49 +33,55 @@ class AivenKafkaClientCreator(
         val uniqueIdPerInstance = UUID.randomUUID().toString()
     }
 
-    fun getNewKafkaNotificationEventsReceiver(): KafkaReceiver<String, String> {
+    fun getNewKafkaNotificationEventsReceiver(): KafkaReceiver<String, CreateNotificationEvent> {
         logger.debug("Creating Kafka receiver for topic: $notificationEventsTopic")
         return defaultKafkaReceiver(
             topic = notificationEventsTopic,
             groupId = "klage-notifications-api-event-consumer",
             clientId = "klage-notifications-api-event-client",
+            className = CreateNotificationEvent::class.java.name
         )
     }
 
-    fun getNewKafkaNotificationInternalEventsReceiver(): KafkaReceiver<String, String> {
+    fun getNewKafkaNotificationInternalEventsReceiver(): KafkaReceiver<String, Notification> {
         logger.debug("Creating Kafka receiver for topic: $notificationInternalEventsTopic")
         return defaultKafkaReceiver(
             topic = notificationInternalEventsTopic,
             groupId = "klage-notifications-api-internal-event-consumer-$uniqueIdPerInstance",
             clientId = "klage-notifications-api-internal-event-client-$uniqueIdPerInstance",
+            className = Notification::class.java.name
         )
     }
 
-    fun getNewKafkaNotificationInternalChangeEventsReceiver(): KafkaReceiver<String, String> {
+    fun getNewKafkaNotificationInternalChangeEventsReceiver(): KafkaReceiver<String, NotificationChangeEvent> {
         logger.debug("Creating Kafka receiver for topic: $notificationInternalChangeEventsTopic")
         return defaultKafkaReceiver(
             topic = notificationInternalChangeEventsTopic,
             groupId = "klage-notifications-api-internal-change-event-consumer-$uniqueIdPerInstance",
             clientId = "klage-notifications-api-internal-change-event-client-$uniqueIdPerInstance",
+            className = NotificationChangeEvent::class.java.name
         )
     }
 
-    private fun defaultKafkaReceiver(
+    private fun <T> defaultKafkaReceiver(
         topic: String,
         groupId: String,
         clientId: String,
-    ): DefaultKafkaReceiver<String, String> {
+        className: String,
+    ): DefaultKafkaReceiver<String, T> {
         val config = mapOf(
             ConsumerConfig.GROUP_ID_CONFIG to groupId,
             ConsumerConfig.CLIENT_ID_CONFIG to clientId,
             ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG to true,
             ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
-            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
+            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to JacksonJsonDeserializer::class.java,
+            JacksonJsonDeserializer.TRUSTED_PACKAGES to "*",
+            JacksonJsonDeserializer.VALUE_DEFAULT_TYPE to className
         ) + commonKafkaConfig
 
         return DefaultKafkaReceiver(
             ConsumerFactory.INSTANCE,
-            ReceiverOptions.create<String, String>(config).subscription(listOf(topic))
+            ReceiverOptions.create<String, T>(config).subscription(listOf(topic))
         )
     }
 

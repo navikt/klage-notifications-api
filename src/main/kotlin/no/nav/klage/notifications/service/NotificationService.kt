@@ -1,13 +1,12 @@
 package no.nav.klage.notifications.service
 
-import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import no.nav.klage.notifications.domain.LostAccessNotification
 import no.nav.klage.notifications.domain.MeldingNotification
 import no.nav.klage.notifications.domain.Notification
-import no.nav.klage.notifications.domain.NotificationType
 import no.nav.klage.notifications.dto.CreateLostAccessNotificationRequest
 import no.nav.klage.notifications.dto.CreateMeldingNotificationEvent
+import no.nav.klage.notifications.dto.CreateNotificationEvent
 import no.nav.klage.notifications.dto.NotificationChangeEvent
 import no.nav.klage.notifications.exceptions.MissingAccessException
 import no.nav.klage.notifications.exceptions.NotificationNotFoundException
@@ -64,7 +63,7 @@ class NotificationService(
         )
 
         kafkaInternalEventService.publishInternalNotificationChangeEvent(
-            jsonNode = objectMapper.valueToTree(notificationChangeEvent)
+            notificationChangeEvent = notificationChangeEvent
         )
     }
 
@@ -87,7 +86,7 @@ class NotificationService(
             )
 
             kafkaInternalEventService.publishInternalNotificationChangeEvent(
-                jsonNode = objectMapper.valueToTree(notificationChangeEvent)
+                notificationChangeEvent = notificationChangeEvent
             )
         }
     }
@@ -112,7 +111,7 @@ class NotificationService(
         )
 
         kafkaInternalEventService.publishInternalNotificationChangeEvent(
-            jsonNode = objectMapper.valueToTree(notificationChangeEvent)
+            notificationChangeEvent = notificationChangeEvent
         )
     }
 
@@ -135,7 +134,7 @@ class NotificationService(
             )
 
             kafkaInternalEventService.publishInternalNotificationChangeEvent(
-                jsonNode = objectMapper.valueToTree(notificationChangeEvent)
+                notificationChangeEvent = notificationChangeEvent
             )
         }
     }
@@ -155,57 +154,31 @@ class NotificationService(
         )
 
         kafkaInternalEventService.publishInternalNotificationChangeEvent(
-            jsonNode = objectMapper.valueToTree(notificationChangeEvent)
+            notificationChangeEvent = notificationChangeEvent
         )
     }
 
-    fun processNotificationMessage(kafkaMessageId: UUID, jsonNode: JsonNode) {
+    fun processNotificationMessage(kafkaMessageId: UUID, createNotificationEvent: CreateNotificationEvent) {
         try {
-            val type = NotificationType.valueOf(jsonNode.get("type").asText())
-            logger.debug("Processing notification message with id {} of type {}", kafkaMessageId, type)
+            logger.debug("Processing notification message with id {} of type {}", kafkaMessageId, createNotificationEvent.type)
 
-            val notification = when (type) {
-                NotificationType.MELDING -> {
-                    val request = objectMapper.treeToValue(
-                        jsonNode,
-                        CreateMeldingNotificationEvent::class.java,
-                    )
+            val notification = when (createNotificationEvent) {
+                is CreateMeldingNotificationEvent -> {
                     createMeldingNotification(
-                        request = request,
+                        event = createNotificationEvent,
                         kafkaMessageId = kafkaMessageId,
                     )
                 }
-
-                NotificationType.LOST_ACCESS -> {
-                    val request = objectMapper.treeToValue(
-                        jsonNode,
-                        CreateLostAccessNotificationRequest::class.java,
-                    )
+                is CreateLostAccessNotificationRequest -> {
                     createLostAccessNotification(
-                        request = request,
+                        request = createNotificationEvent,
                         kafkaMessageId = kafkaMessageId,
                     )
                 }
-            }
-
-            val jsonNodeToPassOn: JsonNode = when (notification) {
-                is MeldingNotification -> {
-                    objectMapper.valueToTree(
-                        notification
-                    )
-                }
-
-                is LostAccessNotification -> {
-                    objectMapper.valueToTree(
-                        notification
-                    )
-                }
-
-                else -> { error("Unsupported notification type: ${notification::class.simpleName}") }
             }
 
             kafkaInternalEventService.publishInternalNotificationEvent(
-                jsonNode = jsonNodeToPassOn,
+                notification = notification,
             )
 
             logger.debug("Successfully processed notification message with kafkaMessageId {}", kafkaMessageId)
@@ -216,26 +189,26 @@ class NotificationService(
         }
     }
 
-    fun createMeldingNotification(request: CreateMeldingNotificationEvent, kafkaMessageId: UUID): MeldingNotification {
+    fun createMeldingNotification(event: CreateMeldingNotificationEvent, kafkaMessageId: UUID): MeldingNotification {
         val now = LocalDateTime.now()
         val notification = MeldingNotification(
-            message = request.message,
-            navIdent = request.recipientNavIdent,
+            message = event.message,
+            navIdent = event.recipientNavIdent,
             read = false,
-            source = request.source,
+            source = event.source,
             createdAt = now,
             updatedAt = now,
             readAt = null,
             markedAsDeleted = false,
             kafkaMessageId = kafkaMessageId,
-            sourceCreatedAt = request.sourceCreatedAt,
-            behandlingId = request.behandlingId,
-            meldingId = request.meldingId,
-            actorNavIdent = request.actorNavIdent,
-            actorNavn = request.actorNavn,
-            saksnummer = request.saksnummer,
-            ytelse = request.ytelse,
-            behandlingType = request.behandlingType,
+            sourceCreatedAt = event.sourceCreatedAt,
+            behandlingId = event.behandlingId,
+            meldingId = event.meldingId,
+            actorNavIdent = event.actorNavIdent,
+            actorNavn = event.actorNavn,
+            saksnummer = event.saksnummer,
+            ytelse = event.ytelse,
+            behandlingType = event.behandlingType,
         )
 
         return meldingNotificationRepository.save(notification)
