@@ -1,6 +1,5 @@
 package no.nav.klage.notifications.service
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import no.nav.klage.notifications.domain.LostAccessNotification
 import no.nav.klage.notifications.domain.MeldingNotification
 import no.nav.klage.notifications.domain.Notification
@@ -26,7 +25,6 @@ class NotificationService(
     private val meldingNotificationRepository: MeldingNotificationRepository,
     private val lostAccessNotificationRepository: LostAccessNotificationRepository,
     private val kafkaInternalEventService: KafkaInternalEventService,
-    private val objectMapper: ObjectMapper,
 ) {
 
     companion object {
