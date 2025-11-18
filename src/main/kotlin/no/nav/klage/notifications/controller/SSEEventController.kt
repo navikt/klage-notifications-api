@@ -1,7 +1,5 @@
 package no.nav.klage.notifications.controller
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.ExampleObject
@@ -19,6 +17,7 @@ import no.nav.klage.notifications.service.NotificationService
 import no.nav.klage.notifications.util.TokenUtil
 import no.nav.klage.notifications.util.getLogger
 import no.nav.security.token.support.core.api.ProtectedWithClaims
+import org.springframework.core.env.Environment
 import org.springframework.http.MediaType
 import org.springframework.http.codec.ServerSentEvent
 import org.springframework.web.bind.annotation.GetMapping
@@ -34,7 +33,7 @@ class SSEEventController(
     private val aivenKafkaClientCreator: AivenKafkaClientCreator,
     private val notificationService: NotificationService,
     private val tokenUtil: TokenUtil,
-    private val objectMapper: ObjectMapper,
+    private val environment: Environment,
 ) {
 
     companion object {
@@ -272,30 +271,26 @@ data: {
         }
     }
 
-    private fun jsonToInternalNotificationEvent(jsonNode: JsonNode): Any {
-        return if (jsonNode.has("meldingId")) {
-            val request = objectMapper.treeToValue(
-                jsonNode,
-                MeldingNotification::class.java,
-            )
+    private fun jsonToInternalNotificationEvent(notification: Notification): Any {
+        return if (notification is MeldingNotification) {
             MessageNotification(
                 type = MESSAGE,
-                id = request.id,
+                id = notification.id,
                 read = false,
-                createdAt = request.sourceCreatedAt,
+                createdAt = notification.sourceCreatedAt,
                 message = MessageNotification.Message(
-                    id = request.meldingId,
-                    content = request.message,
+                    id = notification.meldingId,
+                    content = notification.message,
                 ),
                 actor = NavEmployee(
-                    navIdent = request.actorNavIdent,
-                    navn = request.actorNavn,
+                    navIdent = notification.actorNavIdent,
+                    navn = notification.actorNavn,
                 ),
                 behandling = BehandlingInfo(
-                    id = request.behandlingId,
-                    typeId = request.behandlingType.id,
-                    ytelseId = request.ytelse.id,
-                    saksnummer = request.saksnummer,
+                    id = notification.behandlingId,
+                    typeId = notification.behandlingType.id,
+                    ytelseId = notification.ytelse.id,
+                    saksnummer = notification.saksnummer,
                 ),
             )
         } else TODO()
@@ -306,10 +301,14 @@ data: {
         aivenKafkaClientCreator.getNewKafkaNotificationInternalEventsReceiver().receive()
             .mapNotNull { consumerRecord ->
                 logger.debug("Received internal notification event: ${consumerRecord.key()}")
-                val jsonNode = objectMapper.readTree(consumerRecord.value())
-                val recipientNavIdent = jsonNode.get("navIdent").asText()
-                val data = jsonToInternalNotificationEvent(jsonNode)
-                Pair(recipientNavIdent, data)
+                val data = jsonToInternalNotificationEvent(consumerRecord.value())
+                if (environment.activeProfiles.contains("dev-gcp")) {
+                    logger.debug(
+                        "Received internal Kafka-message (notification): {}",
+                        consumerRecord.value()
+                    )
+                }
+                Pair(consumerRecord.value().navIdent, data)
             }
             .share() // Share among all subscribers
     }
@@ -317,11 +316,14 @@ data: {
     private val sharedChangeEvents: Flux<Pair<String, NotificationChangeEvent>> by lazy {
         aivenKafkaClientCreator.getNewKafkaNotificationInternalChangeEventsReceiver().receive()
             .mapNotNull { consumerRecord ->
-                logger.debug("Received change event: ${consumerRecord.key()}")
-                val jsonNode = objectMapper.readTree(consumerRecord.value())
-                val recipientNavIdent = jsonNode.get("navIdent").asText()
-                val changeEvent = objectMapper.treeToValue(jsonNode, NotificationChangeEvent::class.java)
-                Pair(recipientNavIdent, changeEvent)
+                if (environment.activeProfiles.contains("dev-gcp")) {
+                    logger.debug(
+                        "Received internal Kafka-message (notification change): {}",
+                        consumerRecord.value()
+                    )
+                }
+                val changeEvent = consumerRecord.value()
+                Pair(changeEvent.navIdent, changeEvent)
             }
             .share() // Share among all subscribers
     }

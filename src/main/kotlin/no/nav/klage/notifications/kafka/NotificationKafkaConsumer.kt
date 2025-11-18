@@ -1,6 +1,5 @@
 package no.nav.klage.notifications.kafka
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import jakarta.annotation.PostConstruct
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.klage.notifications.util.getLogger
@@ -32,7 +31,7 @@ class NotificationKafkaConsumer(
                 try {
                     notificationService.processNotificationMessage(
                         kafkaMessageId = UUID.fromString(record.key()!!),
-                        jsonNode = jacksonObjectMapper().readTree(record.value()),
+                        createNotificationEvent = record.value(),
                     )
                 } catch (e: Exception) {
                     logger.error("Error processing notification message: ${e.message}", e)
