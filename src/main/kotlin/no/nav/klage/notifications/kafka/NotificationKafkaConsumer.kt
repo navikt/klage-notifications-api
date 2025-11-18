@@ -4,6 +4,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import jakarta.annotation.PostConstruct
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.klage.notifications.util.getLogger
+import org.springframework.core.env.Environment
 import org.springframework.stereotype.Component
 import java.util.*
 
@@ -11,6 +12,7 @@ import java.util.*
 class NotificationKafkaConsumer(
     private val aivenKafkaClientCreator: AivenKafkaClientCreator,
     private val notificationService: NotificationService,
+    private val environment: Environment,
 ) {
 
     companion object {
@@ -24,6 +26,9 @@ class NotificationKafkaConsumer(
         val receiver = aivenKafkaClientCreator.getNewKafkaNotificationEventsReceiver()
         receiver.receive()
             .subscribe { record ->
+                if (environment.activeProfiles.contains("dev-gcp")) {
+                    logger.debug("Received Kafka-message (notification) from kabal-api: ${record.value()}")
+                }
                 try {
                     notificationService.processNotificationMessage(
                         kafkaMessageId = UUID.fromString(record.key()!!),
