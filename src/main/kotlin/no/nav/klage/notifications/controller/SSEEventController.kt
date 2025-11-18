@@ -184,60 +184,38 @@ data: {
         )
     }
 
-    private fun getInternalNotificationEventPublisher(
-        navIdent: String,
-    ): Flux<ServerSentEvent<Any>> {
-        val flux = aivenKafkaClientCreator.getNewKafkaNotificationInternalEventsReceiver().receive()
-            .mapNotNull { consumerRecord ->
-                logger.debug("$navIdent received internal notification event with key: ${consumerRecord.key()}")
-                val jsonNode = objectMapper.readTree(consumerRecord.value())
-                val recipientNavIdent = jsonNode.get("navIdent").asText()
-                if (recipientNavIdent == navIdent) {
-                    logger.debug("Correct navIdent for notification change event: $navIdent")
-                    val data = jsonToInternalNotificationEvent(jsonNode)
-                    val id = jsonNode.get("id").asText()
-                    val updatedAt = jsonNode.get("updatedAt").asText()
-                    ServerSentEvent.builder<Any>()
-                        .id("${updatedAt}_$id")
-                        .event(Action.CREATE.lower)
-                        .data(data)
-                        .build()
-                } else {
-                    logger.debug("Ignoring internal notification event for navIdent=$recipientNavIdent, not matching subscriber navIdent=$navIdent")
-                    null
+    private fun getInternalNotificationEventPublisher(navIdent: String): Flux<ServerSentEvent<Any>> {
+        return sharedInternalEvents
+            .filter { (recipientNavIdent, _) -> recipientNavIdent == navIdent }
+            .map { (_, data) ->
+                val id = when (data) {
+                    is MessageNotification -> "${data.createdAt}_${data.id}"
+                    else -> TODO()
                 }
+                ServerSentEvent.builder<Any>()
+                    .id(id)
+                    .event(Action.CREATE.lower)
+                    .data(data)
+                    .build()
             }
-        return flux
     }
 
-    private fun getInternalNotificationChangeEventPublisher(
-        navIdent: String,
-    ): Flux<ServerSentEvent<Any>> {
-        val flux = aivenKafkaClientCreator.getNewKafkaNotificationInternalChangeEventsReceiver().receive()
-            .mapNotNull { consumerRecord ->
-                logger.debug("$navIdent received notification change event with key: ${consumerRecord.key()}")
-                val jsonNode = objectMapper.readTree(consumerRecord.value())
-                val recipientNavIdent = jsonNode.get("navIdent").asText()
-                if (recipientNavIdent == navIdent) {
-                    logger.debug("Correct navIdent for notification change event: $navIdent")
-                    val changeEvent = objectMapper.treeToValue(jsonNode, NotificationChangeEvent::class.java)
-                    ServerSentEvent.builder<Any>()
-                        .id("${changeEvent.updatedAt}_${changeEvent.id}")
-                        .event(
-                            when (changeEvent.type) {
-                                NotificationChangeEvent.Type.READ -> Action.READ.lower
-                                NotificationChangeEvent.Type.UNREAD -> Action.UNREAD.lower
-                                NotificationChangeEvent.Type.DELETED -> Action.DELETE.lower
-                            }
-                        )
-                        .data(NotificationChanged(id = changeEvent.id))
-                        .build()
-                } else {
-                    logger.debug("Ignoring notification change event for navIdent=$recipientNavIdent, not matching subscriber navIdent=$navIdent")
-                    null
-                }
+    private fun getInternalNotificationChangeEventPublisher(navIdent: String): Flux<ServerSentEvent<Any>> {
+        return sharedChangeEvents
+            .filter { (recipientNavIdent, _) -> recipientNavIdent == navIdent }
+            .map { (_, changeEvent) ->
+                ServerSentEvent.builder<Any>()
+                    .id("${changeEvent.updatedAt}_${changeEvent.id}")
+                    .event(
+                        when (changeEvent.type) {
+                            NotificationChangeEvent.Type.READ -> Action.READ.lower
+                            NotificationChangeEvent.Type.UNREAD -> Action.UNREAD.lower
+                            NotificationChangeEvent.Type.DELETED -> Action.DELETE.lower
+                        }
+                    )
+                    .data(NotificationChanged(id = changeEvent.id))
+                    .build()
             }
-        return flux
     }
 
     private fun getFirstHeartbeat(): Flux<ServerSentEvent<Any>> {
@@ -291,7 +269,6 @@ data: {
             else -> {
                 TODO()
             }
-
         }
     }
 
@@ -322,5 +299,30 @@ data: {
                 ),
             )
         } else TODO()
+    }
+
+    // Shared Kafka consumers - created once and shared by all clients
+    private val sharedInternalEvents: Flux<Pair<String, Any>> by lazy {
+        aivenKafkaClientCreator.getNewKafkaNotificationInternalEventsReceiver().receive()
+            .mapNotNull { consumerRecord ->
+                logger.debug("Received internal notification event: ${consumerRecord.key()}")
+                val jsonNode = objectMapper.readTree(consumerRecord.value())
+                val recipientNavIdent = jsonNode.get("navIdent").asText()
+                val data = jsonToInternalNotificationEvent(jsonNode)
+                Pair(recipientNavIdent, data)
+            }
+            .share() // Share among all subscribers
+    }
+
+    private val sharedChangeEvents: Flux<Pair<String, NotificationChangeEvent>> by lazy {
+        aivenKafkaClientCreator.getNewKafkaNotificationInternalChangeEventsReceiver().receive()
+            .mapNotNull { consumerRecord ->
+                logger.debug("Received change event: ${consumerRecord.key()}")
+                val jsonNode = objectMapper.readTree(consumerRecord.value())
+                val recipientNavIdent = jsonNode.get("navIdent").asText()
+                val changeEvent = objectMapper.treeToValue(jsonNode, NotificationChangeEvent::class.java)
+                Pair(recipientNavIdent, changeEvent)
+            }
+            .share() // Share among all subscribers
     }
 }
