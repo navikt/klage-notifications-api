@@ -45,21 +45,19 @@ spec:
     pool: {{kafka_pool}}
   port: 8080
   startup:
-    failureThreshold: 20
+    failureThreshold: 10
     initialDelay: 10
     path: /internal/health
     periodSeconds: 10
-    timeout: 2
+    timeout: 3
   liveness:
     path: /internal/health
-    initialDelay: 10
-    timeout: 1
+    timeout: 3
     periodSeconds: 5
     failureThreshold: 10
   readiness:
     path: /internal/health
-    initialDelay: 10
-    timeout: 1
+    timeout: 3
   resources:
     limits:
       memory: 2Gi
