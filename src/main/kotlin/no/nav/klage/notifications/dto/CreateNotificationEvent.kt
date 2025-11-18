@@ -1,5 +1,7 @@
 package no.nav.klage.notifications.dto
 
+import com.fasterxml.jackson.annotation.JsonSubTypes
+import com.fasterxml.jackson.annotation.JsonTypeInfo
 import no.nav.klage.kodeverk.Type
 import no.nav.klage.kodeverk.ytelse.Ytelse
 import no.nav.klage.notifications.domain.NotificationSource
@@ -7,6 +9,12 @@ import no.nav.klage.notifications.domain.NotificationType
 import java.time.LocalDateTime
 import java.util.*
 
+
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", visible = true)
+@JsonSubTypes(
+    JsonSubTypes.Type(value = CreateMeldingNotificationEvent::class, name = "MELDING"),
+    JsonSubTypes.Type(value = CreateLostAccessNotificationRequest::class, name = "LOST_ACCESS"),
+)
 sealed class CreateNotificationEvent(
     open val type: NotificationType,
     open val message: String,

@@ -7,6 +7,7 @@ spring:
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 15
+#     FIXME Don't log password (in jdbc url)
 
   jpa:
     hibernate:
