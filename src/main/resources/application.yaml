@@ -31,8 +31,6 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
-  tracing:
-    enabled: false
   prometheus:
     metrics:
       export:
