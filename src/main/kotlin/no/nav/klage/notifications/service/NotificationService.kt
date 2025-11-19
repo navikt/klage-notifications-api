@@ -195,7 +195,7 @@ class NotificationService(
         )
 
         if (unreadNotifications.isNotEmpty()) {
-            val message = "Kan ikke avslutte behandling. Uleste varsler: ${unreadNotifications.size}."
+            val message = "Du må markere alle varsler knyttet til behandlingen som lest før du kan fullføre. Uleste varsler: ${unreadNotifications.size}."
             logger.warn(message)
             throw UnreadNotificationsException(message, unreadNotifications.size)
         }
