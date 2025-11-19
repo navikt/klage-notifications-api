@@ -8,10 +8,7 @@ import no.nav.klage.notifications.config.SecurityConfiguration
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.DeleteMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import java.util.*
 
 @Tag(name = "admin", description = "API for managing notifications")
@@ -44,5 +41,19 @@ class NotificationAdminController(
     ): ResponseEntity<Void> {
         notificationService.deleteNotificationsByBehandlingId(behandlingId)
         return ResponseEntity.noContent().build()
+    }
+
+    @Operation(
+        summary = "Validate no unread notifications for behandling",
+        description = "Validates that there are no unread notifications for a specific behandlingId. Returns 400 if unread notifications exist."
+    )
+    @ApiResponse(responseCode = "200", description = "No unread notifications found")
+    @ApiResponse(responseCode = "400", description = "Unread notifications exist for this behandlingId")
+    @GetMapping("/behandling/{behandlingId}/validate-no-unread")
+    fun validateNoUnreadNotifications(
+        @Parameter(description = "Behandling ID") @PathVariable behandlingId: UUID
+    ): ResponseEntity<Void> {
+        notificationService.validateNoUnreadNotificationsForBehandling(behandlingId)
+        return ResponseEntity.ok().build()
     }
 }

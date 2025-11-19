@@ -23,6 +23,15 @@ interface NotificationRepository : JpaRepository<Notification, UUID> {
     """)
     fun findAllByBehandlingId(behandlingId: UUID): List<Notification>
 
+    @Query("""
+        SELECT n FROM Notification n 
+        WHERE n.read = :read 
+        AND n.markedAsDeleted = false
+        AND ((TYPE(n) = MeldingNotification AND TREAT(n AS MeldingNotification).behandlingId = :behandlingId)
+        OR (TYPE(n) = LostAccessNotification AND TREAT(n AS LostAccessNotification).behandlingId = :behandlingId))
+    """)
+    fun findByReadAndBehandlingIdAndNotMarkedAsDeleted(read: Boolean, behandlingId: UUID): List<Notification>
+
     fun findByMarkedAsDeletedAndUpdatedAtBefore(
         markedAsDeleted: Boolean,
         updatedAt: LocalDateTime

@@ -9,6 +9,7 @@ import no.nav.klage.notifications.dto.CreateNotificationEvent
 import no.nav.klage.notifications.dto.NotificationChangeEvent
 import no.nav.klage.notifications.exceptions.MissingAccessException
 import no.nav.klage.notifications.exceptions.NotificationNotFoundException
+import no.nav.klage.notifications.exceptions.UnreadNotificationsException
 import no.nav.klage.notifications.repository.LostAccessNotificationRepository
 import no.nav.klage.notifications.repository.MeldingNotificationRepository
 import no.nav.klage.notifications.repository.NotificationRepository
@@ -183,6 +184,23 @@ class NotificationService(
         }
 
         logger.debug("Marked {} notifications as deleted for behandlingId {}", notifications.size, behandlingId)
+    }
+
+    fun validateNoUnreadNotificationsForBehandling(behandlingId: UUID) {
+        logger.debug("Validating no unread notifications for behandlingId {}", behandlingId)
+
+        val unreadNotifications = notificationRepository.findByReadAndBehandlingIdAndNotMarkedAsDeleted(
+            read = false,
+            behandlingId = behandlingId
+        )
+
+        if (unreadNotifications.isNotEmpty()) {
+            val message = "Kan ikke avslutte behandling. Uleste varsler: ${unreadNotifications.size}."
+            logger.warn(message)
+            throw UnreadNotificationsException(message, unreadNotifications.size)
+        }
+
+        logger.debug("No unread notifications found for behandlingId {}", behandlingId)
     }
 
     fun deleteOldMarkedAsDeletedNotifications(daysOld: Int): Int {

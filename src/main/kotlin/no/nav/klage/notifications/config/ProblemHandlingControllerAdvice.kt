@@ -2,14 +2,10 @@ package no.nav.klage.notifications.config
 
 import no.nav.klage.notifications.exceptions.MissingAccessException
 import no.nav.klage.notifications.exceptions.NotificationNotFoundException
+import no.nav.klage.notifications.exceptions.UnreadNotificationsException
 import no.nav.klage.notifications.util.getLogger
 import no.nav.klage.notifications.util.getTeamLogger
-import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpStatus
-import org.springframework.http.HttpStatusCode
-import org.springframework.http.MediaType
-import org.springframework.http.ProblemDetail
-import org.springframework.http.ResponseEntity
+import org.springframework.http.*
 import org.springframework.orm.jpa.JpaObjectRetrievalFailureException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -62,6 +58,10 @@ class ProblemHandlingControllerAdvice : ResponseEntityExceptionHandler() {
     @ExceptionHandler
     fun handleMissingAccess(ex: MissingAccessException): ProblemDetail =
         create(HttpStatus.FORBIDDEN, ex)
+
+    @ExceptionHandler
+    fun handleUnreadNotifications(ex: UnreadNotificationsException): ProblemDetail =
+        create(HttpStatus.BAD_REQUEST, ex)
 
     @ExceptionHandler
     fun handleResponseStatusException(ex: WebClientResponseException): ResponseEntity<Any> =

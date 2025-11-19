@@ -1,13 +1,11 @@
-package no.nav.klage.notifications.service
+package no.nav.klage.notifications.repository
 
 import no.nav.klage.kodeverk.Type
 import no.nav.klage.kodeverk.ytelse.Ytelse
 import no.nav.klage.notifications.db.PostgresIntegrationTestBase
 import no.nav.klage.notifications.domain.MeldingNotification
 import no.nav.klage.notifications.domain.NotificationSource
-import no.nav.klage.notifications.repository.MeldingNotificationRepository
-import no.nav.klage.notifications.repository.NotificationRepository
-import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -19,7 +17,7 @@ import java.util.*
 
 @ActiveProfiles("local")
 @DataJpaTest
-class NotificationCleanupServiceTest : PostgresIntegrationTestBase() {
+class NotificationRepositoryCleanupTest : PostgresIntegrationTestBase() {
 
     @Autowired
     lateinit var testEntityManager: TestEntityManager
@@ -71,8 +69,8 @@ class NotificationCleanupServiceTest : PostgresIntegrationTestBase() {
         )
 
         // Verify that exactly 1 notification was found
-        assertThat(oldDeletedNotifications).hasSize(1)
-        assertThat(oldDeletedNotifications.first().id).isEqualTo(oldDeletedNotification.id)
+        Assertions.assertThat(oldDeletedNotifications).hasSize(1)
+        Assertions.assertThat(oldDeletedNotifications.first().id).isEqualTo(oldDeletedNotification.id)
     }
 
     private fun createMeldingNotification(
@@ -101,4 +99,3 @@ class NotificationCleanupServiceTest : PostgresIntegrationTestBase() {
         )
     }
 }
-
