@@ -185,6 +185,27 @@ class NotificationService(
         logger.debug("Marked {} notifications as deleted for behandlingId {}", notifications.size, behandlingId)
     }
 
+    fun deleteOldMarkedAsDeletedNotifications(daysOld: Int): Int {
+        val cutoffDate = LocalDateTime.now().minusDays(daysOld.toLong())
+        logger.debug("Finding notifications marked as deleted before {}", cutoffDate)
+
+        val oldNotifications = notificationRepository.findByMarkedAsDeletedAndUpdatedAtBefore(
+            markedAsDeleted = true,
+            updatedAt = cutoffDate
+        )
+
+        if (oldNotifications.isEmpty()) {
+            logger.debug("No old deleted notifications found")
+            return 0
+        }
+
+        logger.debug("Permanently deleting {} old notifications marked as deleted", oldNotifications.size)
+        notificationRepository.deleteAll(oldNotifications)
+        logger.debug("Successfully deleted {} old notifications", oldNotifications.size)
+
+        return oldNotifications.size
+    }
+
     fun processNotificationMessage(kafkaMessageId: UUID, createNotificationEvent: CreateNotificationEvent) {
         try {
             logger.debug("Processing notification message with id {} of type {}", kafkaMessageId, createNotificationEvent.type)

@@ -4,6 +4,7 @@ import no.nav.klage.notifications.domain.Notification
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
+import java.time.LocalDateTime
 import java.util.*
 
 @Repository
@@ -21,4 +22,9 @@ interface NotificationRepository : JpaRepository<Notification, UUID> {
         OR (TYPE(n) = LostAccessNotification AND TREAT(n AS LostAccessNotification).behandlingId = :behandlingId)
     """)
     fun findAllByBehandlingId(behandlingId: UUID): List<Notification>
+
+    fun findByMarkedAsDeletedAndUpdatedAtBefore(
+        markedAsDeleted: Boolean,
+        updatedAt: LocalDateTime
+    ): List<Notification>
 }
