@@ -156,6 +156,35 @@ class NotificationService(
         )
     }
 
+    fun deleteNotificationsByBehandlingId(behandlingId: UUID) {
+        logger.debug("Deleting all notifications for behandlingId {}", behandlingId)
+
+        val notifications = notificationRepository.findAllByBehandlingId(behandlingId)
+
+        if (notifications.isEmpty()) {
+            logger.warn("No notifications found for behandlingId {}", behandlingId)
+            return
+        }
+
+        notifications.forEach { notification ->
+            notification.markedAsDeleted = true
+            notification.updatedAt = LocalDateTime.now()
+
+            val notificationChangeEvent = NotificationChangeEvent(
+                id = notification.id,
+                navIdent = notification.navIdent,
+                type = NotificationChangeEvent.Type.DELETED,
+                updatedAt = notification.updatedAt,
+            )
+
+            kafkaInternalEventService.publishInternalNotificationChangeEvent(
+                notificationChangeEvent = notificationChangeEvent
+            )
+        }
+
+        logger.debug("Marked {} notifications as deleted for behandlingId {}", notifications.size, behandlingId)
+    }
+
     fun processNotificationMessage(kafkaMessageId: UUID, createNotificationEvent: CreateNotificationEvent) {
         try {
             logger.debug("Processing notification message with id {} of type {}", kafkaMessageId, createNotificationEvent.type)

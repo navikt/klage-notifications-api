@@ -22,25 +22,6 @@ class NotificationAdminController(
     private val notificationService: NotificationService
 ) {
 
-//    @GetMapping("/{id}")
-//    fun getNotificationById(@PathVariable id: UUID): ResponseEntity<NotificationResponse> {
-//        return ResponseEntity.ok(notificationService.getNotificationById(id))
-//    }
-
-//    @PostMapping
-//    fun createNotification(@RequestBody request: CreateNotificationRequest): ResponseEntity<NotificationResponse> {
-//        val notification = notificationService.createNotification(request)
-//        return ResponseEntity.status(HttpStatus.CREATED).body(notification)
-//    }
-//
-//    @PutMapping("/{id}")
-//    fun updateNotification(
-//        @PathVariable id: UUID,
-//        @RequestBody request: UpdateNotificationRequest
-//    ): ResponseEntity<NotificationResponse> {
-//        return ResponseEntity.ok(notificationService.updateNotification(id, request))
-//    }
-
     @Operation(summary = "Delete a notification", description = "Marks a notification as deleted, by ID")
     @ApiResponse(responseCode = "204", description = "Notification deleted successfully")
     @ApiResponse(responseCode = "404", description = "Notification not found")
@@ -49,6 +30,19 @@ class NotificationAdminController(
         @Parameter(description = "Notification ID") @PathVariable id: UUID
     ): ResponseEntity<Void> {
         notificationService.deleteNotification(id)
+        return ResponseEntity.noContent().build()
+    }
+
+    @Operation(
+        summary = "Delete all notifications for a behandling",
+        description = "Marks all notifications related to a specific behandlingId as deleted"
+    )
+    @ApiResponse(responseCode = "200", description = "Notifications deleted successfully")
+    @DeleteMapping("/behandling/{behandlingId}")
+    fun deleteNotificationsByBehandlingId(
+        @Parameter(description = "Behandling ID") @PathVariable behandlingId: UUID
+    ): ResponseEntity<Void> {
+        notificationService.deleteNotificationsByBehandlingId(behandlingId)
         return ResponseEntity.noContent().build()
     }
 }
