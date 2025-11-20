@@ -299,31 +299,50 @@ data: {
     // Shared Kafka consumers - created once and shared by all clients
     private val sharedInternalEvents: Flux<Pair<String, Any>> by lazy {
         aivenKafkaClientCreator.getNewKafkaNotificationInternalEventsReceiver().receive()
-            .mapNotNull { consumerRecord ->
-                logger.debug("Received internal notification event: ${consumerRecord.key()}")
-                val data = jsonToInternalNotificationEvent(consumerRecord.value())
+            .doOnNext { consumerRecord ->
+                logger.debug("Received internal notification event at offset {}: {}", consumerRecord.offset(), consumerRecord.key())
                 if (environment.activeProfiles.contains("dev-gcp")) {
                     logger.debug(
                         "Received internal Kafka-message (notification): {}",
                         consumerRecord.value()
                     )
                 }
-                Pair(consumerRecord.value().navIdent, data)
+            }
+            .mapNotNull { consumerRecord ->
+                try {
+                    val data = jsonToInternalNotificationEvent(consumerRecord.value())
+                    // Acknowledge after successful processing
+                    consumerRecord.receiverOffset().acknowledge()
+                    Pair(consumerRecord.value().navIdent, data)
+                } catch (e: Exception) {
+                    logger.error("Error processing internal notification event at offset {}: ${e.message}", consumerRecord.offset(), e)
+                    null // Don't acknowledge - message will be reprocessed
+                }
             }
             .share() // Share among all subscribers
     }
 
     private val sharedChangeEvents: Flux<Pair<String, NotificationChangeEvent>> by lazy {
         aivenKafkaClientCreator.getNewKafkaNotificationInternalChangeEventsReceiver().receive()
-            .mapNotNull { consumerRecord ->
+            .doOnNext { consumerRecord ->
                 if (environment.activeProfiles.contains("dev-gcp")) {
                     logger.debug(
-                        "Received internal Kafka-message (notification change): {}",
+                        "Received internal Kafka-message (notification change) at offset {}: {}",
+                        consumerRecord.offset(),
                         consumerRecord.value()
                     )
                 }
-                val changeEvent = consumerRecord.value()
-                Pair(changeEvent.navIdent, changeEvent)
+            }
+            .mapNotNull { consumerRecord ->
+                try {
+                    val changeEvent = consumerRecord.value()
+                    // Acknowledge after successful processing
+                    consumerRecord.receiverOffset().acknowledge()
+                    Pair(changeEvent.navIdent, changeEvent)
+                } catch (e: Exception) {
+                    logger.error("Error processing internal change event at offset {}: ${e.message}", consumerRecord.offset(), e)
+                    null // Don't acknowledge - message will be reprocessed
+                }
             }
             .share() // Share among all subscribers
     }

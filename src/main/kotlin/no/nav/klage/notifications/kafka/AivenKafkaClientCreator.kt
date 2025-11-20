@@ -72,7 +72,7 @@ class AivenKafkaClientCreator(
         val config = mapOf(
             ConsumerConfig.GROUP_ID_CONFIG to groupId,
             ConsumerConfig.CLIENT_ID_CONFIG to clientId,
-            ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG to true,
+            ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG to false,
             ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
             ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to JacksonJsonDeserializer::class.java,
             JacksonJsonDeserializer.TRUSTED_PACKAGES to "*",
