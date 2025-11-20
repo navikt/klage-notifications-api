@@ -26,7 +26,16 @@ class NotificationKafkaConsumer(
         receiver.receive()
             .subscribe { record ->
                 if (environment.activeProfiles.contains("dev-gcp")) {
-                    logger.debug("Received Kafka-message (notification) from kabal-api: ${record.value()}")
+                    logger.debug(
+                        "Received Kafka-message (notification) from kabal-api at offset {}: {}",
+                        record.offset(),
+                        record.value(),
+                    )
+                } else {
+                    logger.debug(
+                        "Received Kafka-message (notification) from kabal-api at offset {}",
+                        record.offset(),
+                    )
                 }
                 try {
                     notificationService.processNotificationMessage(
