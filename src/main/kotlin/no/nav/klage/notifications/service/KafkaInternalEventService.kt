@@ -1,6 +1,7 @@
 package no.nav.klage.notifications.service
 
 import no.nav.klage.notifications.domain.Notification
+import no.nav.klage.notifications.domain.SystemNotification
 import no.nav.klage.notifications.dto.NotificationChangeEvent
 import no.nav.klage.notifications.util.getLogger
 import org.springframework.beans.factory.annotation.Value
@@ -14,6 +15,8 @@ class KafkaInternalEventService(
     private val notificationInternalEventsTopic: String,
     @Value($$"${NOTIFICATION_INTERNAL_CHANGE_EVENTS_TOPIC}")
     private val notificationInternalChangeEventsTopic: String,
+    @Value($$"${NOTIFICATION_INTERNAL_SYSTEM_EVENTS_TOPIC}")
+    private val notificationInternalSystemEventsTopic: String,
 ) {
 
     companion object {
@@ -48,6 +51,21 @@ class KafkaInternalEventService(
             logger.debug("Published internalNotificationChangeEvent to Kafka for subscribers")
         }.onFailure {
             logger.error("Could not publish internalNotificationChangeEvent to subscribers", it)
+        }
+    }
+
+    fun publishSystemNotificationEvent(systemNotification: SystemNotification) {
+        runCatching {
+            logger.debug("Publishing system notification event to Kafka for SSE subscribers")
+
+            aivenKafkaTemplate.send(
+                notificationInternalSystemEventsTopic,
+                systemNotification.id.toString(),
+                systemNotification,
+            ).get()
+            logger.debug("Published system notification event to Kafka for SSE subscribers")
+        }.onFailure {
+            logger.error("Could not publish system notification event to subscribers", it)
         }
     }
 }

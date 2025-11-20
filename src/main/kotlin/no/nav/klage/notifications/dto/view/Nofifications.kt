@@ -49,6 +49,20 @@ data class MessageNotification(
     )
 }
 
+data class SystemNotificationView(
+    override val type: NotificationType,
+    override val id: UUID,
+    override val read: Boolean,
+    override val createdAt: LocalDateTime,
+    val title: String,
+    val message: String,
+): Notification(
+    type = type,
+    id = id,
+    read = read,
+    createdAt = createdAt,
+)
+
 data class NotificationChanged(
     val id: UUID,
 )
