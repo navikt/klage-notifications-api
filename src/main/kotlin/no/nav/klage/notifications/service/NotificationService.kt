@@ -99,13 +99,25 @@ class NotificationService(
                 val systemNotification = systemNotificationRepository.findById(id)
                 if (systemNotification.isPresent) {
                     if (!systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(id, navIdent)) {
+                        val now = LocalDateTime.now()
                         val readStatus = SystemNotificationReadStatus(
                             systemNotificationId = id,
                             navIdent = navIdent,
-                            readAt = LocalDateTime.now(),
+                            readAt = now,
                         )
                         systemNotificationReadStatusRepository.save(readStatus)
                         logger.debug("Marked system notification {} as read for user {}", id, navIdent)
+
+                        // Publish change event for SSE clients
+                        val notificationChangeEvent = NotificationChangeEvent(
+                            id = id,
+                            navIdent = navIdent,
+                            type = NotificationChangeEvent.Type.READ,
+                            updatedAt = now,
+                        )
+                        kafkaInternalEventService.publishInternalNotificationChangeEvent(
+                            notificationChangeEvent = notificationChangeEvent
+                        )
                     }
                 } else {
                     throw NotificationNotFoundException("Notification with id $id not found")
@@ -239,21 +251,34 @@ class NotificationService(
         val cutoffDate = LocalDateTime.now().minusDays(daysOld.toLong())
         logger.debug("Finding notifications marked as deleted before {}", cutoffDate)
 
+        // Find old regular notifications
         val oldNotifications = notificationRepository.findByMarkedAsDeletedAndUpdatedAtBefore(
             markedAsDeleted = true,
             updatedAt = cutoffDate
         )
 
-        if (oldNotifications.isEmpty()) {
+        // Find old system notifications
+        val oldSystemNotifications = systemNotificationRepository.findByMarkedAsDeletedAndUpdatedAtBefore(
+            markedAsDeleted = true,
+            updatedAt = cutoffDate
+        )
+
+        val totalCount = oldNotifications.size + oldSystemNotifications.size
+
+        if (totalCount == 0) {
             logger.debug("No old deleted notifications found")
             return 0
         }
 
-        logger.debug("Permanently deleting {} old notifications marked as deleted", oldNotifications.size)
-        notificationRepository.deleteAll(oldNotifications)
-        logger.debug("Successfully deleted {} old notifications", oldNotifications.size)
+        logger.debug("Permanently deleting {} old notifications marked as deleted ({} regular, {} system)",
+            totalCount, oldNotifications.size, oldSystemNotifications.size)
 
-        return oldNotifications.size
+        notificationRepository.deleteAll(oldNotifications)
+        systemNotificationRepository.deleteAll(oldSystemNotifications)
+
+        logger.debug("Successfully deleted {} old notifications", totalCount)
+
+        return totalCount
     }
 
     fun processNotificationMessage(kafkaMessageId: UUID, createNotificationEvent: CreateNotificationEvent) {
@@ -381,13 +406,25 @@ class NotificationService(
             .orElseThrow { NotificationNotFoundException("System notification with id $id not found") }
 
         if (!systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(id, navIdent)) {
+            val now = LocalDateTime.now()
             val readStatus = SystemNotificationReadStatus(
                 systemNotificationId = id,
                 navIdent = navIdent,
-                readAt = LocalDateTime.now(),
+                readAt = now,
             )
             systemNotificationReadStatusRepository.save(readStatus)
             logger.debug("Marked system notification {} as read for user {}", id, navIdent)
+
+            // Publish change event for SSE clients
+            val notificationChangeEvent = NotificationChangeEvent(
+                id = id,
+                navIdent = navIdent,
+                type = NotificationChangeEvent.Type.READ,
+                updatedAt = now,
+            )
+            kafkaInternalEventService.publishInternalNotificationChangeEvent(
+                notificationChangeEvent = notificationChangeEvent
+            )
         } else {
             logger.debug("System notification {} is already marked as read for user {}", id, navIdent)
         }
@@ -399,6 +436,17 @@ class NotificationService(
 
         systemNotificationReadStatusRepository.deleteBySystemNotificationIdAndNavIdent(id, navIdent)
         logger.debug("Marked system notification {} as unread for user {}", id, navIdent)
+
+        // Publish change event for SSE clients
+        val notificationChangeEvent = NotificationChangeEvent(
+            id = id,
+            navIdent = navIdent,
+            type = NotificationChangeEvent.Type.UNREAD,
+            updatedAt = LocalDateTime.now(),
+        )
+        kafkaInternalEventService.publishInternalNotificationChangeEvent(
+            notificationChangeEvent = notificationChangeEvent
+        )
     }
 
     fun deleteSystemNotification(id: UUID) {
