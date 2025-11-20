@@ -11,11 +11,11 @@ import org.springframework.stereotype.Service
 @Service
 class KafkaInternalEventService(
     private val aivenKafkaTemplate: KafkaTemplate<String, Any>,
-    @Value("${'$'}{NOTIFICATION_INTERNAL_EVENTS_TOPIC}")
+    @Value($$"${NOTIFICATION_INTERNAL_EVENTS_TOPIC}")
     private val notificationInternalEventsTopic: String,
-    @Value("${'$'}{NOTIFICATION_INTERNAL_CHANGE_EVENTS_TOPIC}")
+    @Value($$"${NOTIFICATION_INTERNAL_CHANGE_EVENTS_TOPIC}")
     private val notificationInternalChangeEventsTopic: String,
-    @Value("${'$'}{NOTIFICATION_INTERNAL_SYSTEM_EVENTS_TOPIC}")
+    @Value($$"${NOTIFICATION_INTERNAL_SYSTEM_EVENTS_TOPIC}")
     private val notificationInternalSystemEventsTopic: String,
 ) {
 
