@@ -1,6 +1,7 @@
 package no.nav.klage.notifications.kafka
 
 import no.nav.klage.notifications.domain.Notification
+import no.nav.klage.notifications.domain.SystemNotification
 import no.nav.klage.notifications.dto.CreateNotificationEvent
 import no.nav.klage.notifications.dto.NotificationChangeEvent
 import no.nav.klage.notifications.util.getLogger
@@ -24,6 +25,8 @@ class AivenKafkaClientCreator(
     private val notificationInternalEventsTopic: String,
     @Value($$"${NOTIFICATION_INTERNAL_CHANGE_EVENTS_TOPIC}")
     private val notificationInternalChangeEventsTopic: String,
+    @Value($$"${NOTIFICATION_INTERNAL_SYSTEM_EVENTS_TOPIC}")
+    private val notificationInternalSystemEventsTopic: String,
     private val commonKafkaConfig: Map<String, Any>,
 ) {
 
@@ -60,6 +63,16 @@ class AivenKafkaClientCreator(
             groupId = "klage-notifications-api-internal-change-event-consumer-$uniqueIdPerInstance",
             clientId = "klage-notifications-api-internal-change-event-client-$uniqueIdPerInstance",
             className = NotificationChangeEvent::class.java.name
+        )
+    }
+
+    fun getNewKafkaNotificationInternalSystemEventsReceiver(): KafkaReceiver<String, SystemNotification> {
+        logger.debug("Creating Kafka receiver for topic: $notificationInternalSystemEventsTopic")
+        return defaultKafkaReceiver(
+            topic = notificationInternalSystemEventsTopic,
+            groupId = "klage-notifications-api-internal-system-event-consumer-$uniqueIdPerInstance",
+            clientId = "klage-notifications-api-internal-system-event-client-$uniqueIdPerInstance",
+            className = SystemNotification::class.java.name
         )
     }
 

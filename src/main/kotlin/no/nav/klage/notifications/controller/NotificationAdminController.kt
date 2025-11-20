@@ -5,8 +5,10 @@ import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import no.nav.klage.notifications.config.SecurityConfiguration
+import no.nav.klage.notifications.dto.CreateSystemNotificationRequest
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.security.token.support.core.api.ProtectedWithClaims
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.util.*
@@ -55,5 +57,32 @@ class NotificationAdminController(
     ): ResponseEntity<Void> {
         notificationService.validateNoUnreadNotificationsForBehandling(behandlingId)
         return ResponseEntity.ok().build()
+    }
+
+    @Operation(
+        summary = "Create a system notification",
+        description = "Creates a system-wide notification that will be sent to all users via SSE"
+    )
+    @ApiResponse(responseCode = "201", description = "System notification created successfully")
+    @PostMapping("/system")
+    fun createSystemNotification(
+        @RequestBody request: CreateSystemNotificationRequest
+    ): ResponseEntity<Map<String, UUID>> {
+        val notification = notificationService.createSystemNotification(request)
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapOf("id" to notification.id))
+    }
+
+    @Operation(
+        summary = "Delete a system notification",
+        description = "Marks a system notification as deleted, by ID"
+    )
+    @ApiResponse(responseCode = "204", description = "System notification deleted successfully")
+    @ApiResponse(responseCode = "404", description = "System notification not found")
+    @DeleteMapping("/system/{id}")
+    fun deleteSystemNotification(
+        @Parameter(description = "System Notification ID") @PathVariable id: UUID
+    ): ResponseEntity<Void> {
+        notificationService.deleteSystemNotification(id)
+        return ResponseEntity.noContent().build()
     }
 }

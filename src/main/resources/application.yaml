@@ -56,3 +56,4 @@ no.nav.security.jwt:
 NOTIFICATION_EVENTS_TOPIC: klage.klage-notification-events.v1
 NOTIFICATION_INTERNAL_EVENTS_TOPIC: klage.klage-notification-internal-events.v1
 NOTIFICATION_INTERNAL_CHANGE_EVENTS_TOPIC: klage.klage-notification-internal-change-events.v1
+NOTIFICATION_INTERNAL_SYSTEM_EVENTS_TOPIC: klage.klage-notification-internal-system-events.v1

@@ -9,9 +9,11 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import no.nav.klage.notifications.config.SecurityConfiguration
 import no.nav.klage.notifications.domain.MeldingNotification
 import no.nav.klage.notifications.domain.Notification
+import no.nav.klage.notifications.domain.SystemNotification
 import no.nav.klage.notifications.dto.NotificationChangeEvent
 import no.nav.klage.notifications.dto.view.*
 import no.nav.klage.notifications.dto.view.NotificationType.MESSAGE
+import no.nav.klage.notifications.dto.view.NotificationType.SYSTEM
 import no.nav.klage.notifications.kafka.AivenKafkaClientCreator
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.klage.notifications.util.TokenUtil
@@ -55,7 +57,13 @@ Server-Sent Events (SSE) endpoint that streams notification events in real-time.
 
 **Notification Types in 'create' events:**
 - MESSAGE - Message notifications with actor, behandling info, and content
+- SYSTEM - System-wide notifications sent to all users (title, message)
 - LOST_ACCESS - Access lost notifications (to be implemented)
+
+**Note on SYSTEM notifications:**
+- Sent to ALL connected users (not filtered by navIdent)
+- Each user has their own read/unread status
+- Controlled by admins via /admin/notifications/system endpoint
 """
     )
     @ApiResponse(
@@ -91,6 +99,23 @@ data: {
     "ytelseId": "10",
     "saksnummer": "2025-12345"
   }
+}
+"""
+                ),
+                ExampleObject(
+                    name = "create_system_notification",
+                    summary = "Create event - SYSTEM notification",
+                    description = "Event fired when a new system notification is created or loaded. Sent to ALL users with personalized read status.",
+                    value = """
+event: create
+id: 2025-11-16T10:32:00_650e8400-e29b-41d4-a716-446655440001
+data: {
+  "type": "SYSTEM",
+  "id": "650e8400-e29b-41d4-a716-446655440001",
+  "read": false,
+  "createdAt": "2025-11-16T10:32:00",
+  "title": "System Maintenance",
+  "message": "The system will be down for maintenance on Saturday from 10:00 to 12:00"
 }
 """
                 ),
@@ -160,16 +185,24 @@ data: {
         )
 
         val previousNotificationsAsSSEEvents =
-            getPreviousNotificationsAsSSEEvents(notificationService.getNotificationsByNavIdent(navIdent = navIdent))
+            getPreviousNotificationsAsSSEEvents(navIdent = navIdent)
+
+        val systemNotificationEventPublisher = getSystemNotificationEventPublisher(navIdent)
+
+        val previousSystemNotificationsAsSSEEvents =
+            getPreviousSystemNotificationsAsSSEEvents(navIdent)
 
         return getFirstHeartbeat()
             .mergeWith(heartbeatStream)
             .mergeWith(previousNotificationsAsSSEEvents)
+            .mergeWith(previousSystemNotificationsAsSSEEvents)
             .mergeWith(internalNotificationChangeEventPublisher)
             .mergeWith(internalNotificationEventPublisher)
+            .mergeWith(systemNotificationEventPublisher)
     }
 
-    private fun getPreviousNotificationsAsSSEEvents(notificationsByNavIdent: List<Notification>): Flux<ServerSentEvent<Any>> {
+    private fun getPreviousNotificationsAsSSEEvents(navIdent: String): Flux<ServerSentEvent<Any>> {
+        val notificationsByNavIdent = notificationService.getNotificationsByNavIdent(navIdent = navIdent)
         return Flux.fromIterable(
             notificationsByNavIdent
                 .map {
@@ -197,6 +230,32 @@ data: {
                     .data(data)
                     .build()
             }
+    }
+
+    private fun getSystemNotificationEventPublisher(navIdent: String): Flux<ServerSentEvent<Any>> {
+        return sharedSystemNotificationEvents
+            .map { systemNotification ->
+                val data = systemNotificationToView(systemNotification, navIdent)
+                ServerSentEvent.builder<Any>()
+                    .id("${systemNotification.createdAt}_${systemNotification.id}")
+                    .event(Action.CREATE.lower)
+                    .data(data)
+                    .build()
+            }
+    }
+
+    private fun getPreviousSystemNotificationsAsSSEEvents(navIdent: String): Flux<ServerSentEvent<Any>> {
+        val systemNotifications = notificationService.getAllSystemNotifications()
+        return Flux.fromIterable(
+            systemNotifications.map { systemNotification ->
+                val data = systemNotificationToView(systemNotification, navIdent)
+                ServerSentEvent.builder<Any>()
+                    .id("${systemNotification.updatedAt}_${systemNotification.id}")
+                    .event(Action.CREATE.lower)
+                    .data(data)
+                    .build()
+            }
+        )
     }
 
     private fun getInternalNotificationChangeEventPublisher(navIdent: String): Flux<ServerSentEvent<Any>> {
@@ -238,6 +297,21 @@ data: {
         return ServerSentEvent.builder<Any>()
             .event("HEARTBEAT")
             .build()
+    }
+
+    private fun systemNotificationToView(systemNotification: SystemNotification, navIdent: String): SystemNotificationView {
+        val isRead = notificationService.isSystemNotificationReadByUser(
+            systemNotificationId = systemNotification.id,
+            navIdent = navIdent
+        )
+        return SystemNotificationView(
+            type = SYSTEM,
+            id = systemNotification.id,
+            read = isRead,
+            createdAt = systemNotification.createdAt,
+            title = systemNotification.title,
+            message = systemNotification.message,
+        )
     }
 
     private fun dbToInternalNotificationEvent(notification: Notification): Any {
@@ -316,6 +390,30 @@ data: {
                     Pair(consumerRecord.value().navIdent, data)
                 } catch (e: Exception) {
                     logger.error("Error processing internal notification event at offset {}: ${e.message}", consumerRecord.offset(), e)
+                    null // Don't acknowledge - message will be reprocessed
+                }
+            }
+            .share() // Share among all subscribers
+    }
+
+    private val sharedSystemNotificationEvents: Flux<SystemNotification> by lazy {
+        aivenKafkaClientCreator.getNewKafkaNotificationInternalSystemEventsReceiver().receive()
+            .doOnNext { consumerRecord ->
+                logger.debug("Received system notification event at offset {}: {}", consumerRecord.offset(), consumerRecord.key())
+                if (environment.activeProfiles.contains("dev-gcp")) {
+                    logger.debug(
+                        "Received internal Kafka-message (system notification): {}",
+                        consumerRecord.value()
+                    )
+                }
+            }
+            .mapNotNull { consumerRecord ->
+                try {
+                    // Acknowledge after successful processing
+                    consumerRecord.receiverOffset().acknowledge()
+                    consumerRecord.value()
+                } catch (e: Exception) {
+                    logger.error("Error processing system notification event at offset {}: ${e.message}", consumerRecord.offset(), e)
                     null // Don't acknowledge - message will be reprocessed
                 }
             }
