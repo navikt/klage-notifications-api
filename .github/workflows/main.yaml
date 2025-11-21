@@ -18,12 +18,12 @@ jobs:
     secrets:
       NAIS_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
   
-#  deploy_to_prod:
-#    name: Prod
-#    permissions:
-#      contents: write
-#      id-token: write
-#    needs: deploy_to_dev
-#    uses: ./.github/workflows/deploy-to-prod.yaml
-#    secrets:
-#      NAIS_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+  deploy_to_prod:
+    name: Prod
+    permissions:
+      contents: write
+      id-token: write
+    needs: deploy_to_dev
+    uses: ./.github/workflows/deploy-to-prod.yaml
+    secrets:
+      NAIS_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}

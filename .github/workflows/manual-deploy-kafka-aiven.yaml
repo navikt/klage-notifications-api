@@ -17,7 +17,7 @@ jobs:
       id-token: write
     strategy:
       matrix:
-        cluster: [dev]
+        cluster: [dev,prod]
         topic: [klage-notification-events.v1, klage-notification-internal-events.v1, klage-notification-internal-change-events.v1, klage-notification-internal-system-events.v1]
     steps:
       - name: Checkout code
