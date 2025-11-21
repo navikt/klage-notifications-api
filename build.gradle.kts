@@ -8,7 +8,7 @@ val mockkVersion = "1.14.6"
 val tokenValidationVersion = "6.0.0"
 val logstashVersion = "9.0"
 val reactorKafkaVersion = "1.3.25"
-val springDocVersion = "2.8.14"
+val springDocVersion = "3.0.0"
 
 plugins {
     val kotlinVersion = "2.2.21"
