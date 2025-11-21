@@ -158,13 +158,16 @@ class NotificationService(
     }
 
     fun markAllAsReadForUser(navIdent: String) {
+        val now = LocalDateTime.now()
+
+        // Handle regular notifications
         val notifications =
             notificationRepository.findByNavIdentAndRead(navIdent, false)
 
         notifications.forEach { notification ->
             notification.read = true
-            notification.readAt = LocalDateTime.now()
-            notification.updatedAt = LocalDateTime.now()
+            notification.readAt = now
+            notification.updatedAt = now
         }
 
         notifications.forEach { notification ->
@@ -179,6 +182,41 @@ class NotificationService(
                 notificationChangeEvent = notificationChangeEvent
             )
         }
+
+        // Handle system notifications
+        val allSystemNotifications = systemNotificationRepository.findByMarkedAsDeletedOrderByCreatedAtDesc(false)
+        val unreadSystemNotifications = allSystemNotifications.filter { systemNotification ->
+            !systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(
+                systemNotification.id,
+                navIdent
+            )
+        }
+
+        unreadSystemNotifications.forEach { systemNotification ->
+            val readStatus = SystemNotificationReadStatus(
+                systemNotificationId = systemNotification.id,
+                navIdent = navIdent,
+                readAt = now,
+            )
+            systemNotificationReadStatusRepository.save(readStatus)
+
+            val notificationChangeEvent = NotificationChangeEvent(
+                id = systemNotification.id,
+                navIdent = navIdent,
+                type = NotificationChangeEvent.Type.READ,
+                updatedAt = now,
+            )
+            kafkaInternalEventService.publishInternalNotificationChangeEvent(
+                notificationChangeEvent = notificationChangeEvent
+            )
+        }
+
+        logger.debug(
+            "Marked {} regular and {} system notifications as read for user {}",
+            notifications.size,
+            unreadSystemNotifications.size,
+            navIdent
+        )
     }
 
     fun deleteNotification(id: UUID) {
