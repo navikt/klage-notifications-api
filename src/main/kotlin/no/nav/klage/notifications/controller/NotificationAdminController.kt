@@ -68,9 +68,17 @@ class NotificationAdminController(
     @PostMapping("/system")
     fun createSystemNotification(
         @RequestBody request: CreateSystemNotificationRequest
-    ): ResponseEntity<Map<String, UUID>> {
+    ): ResponseEntity<SystemNotificationResponse> {
         val notification = notificationService.createSystemNotification(request)
-        return ResponseEntity.status(HttpStatus.CREATED).body(mapOf("id" to notification.id))
+        val response = SystemNotificationResponse(
+            id = notification.id,
+            title = notification.title,
+            message = notification.message,
+            source = notification.source,
+            createdAt = notification.createdAt,
+            updatedAt = notification.updatedAt,
+        )
+        return ResponseEntity.status(HttpStatus.CREATED).body(response)
     }
 
     @Operation(
