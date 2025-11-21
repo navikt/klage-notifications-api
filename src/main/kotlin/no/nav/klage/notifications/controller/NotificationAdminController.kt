@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import no.nav.klage.notifications.config.SecurityConfiguration
 import no.nav.klage.notifications.dto.CreateSystemNotificationRequest
+import no.nav.klage.notifications.dto.view.SystemNotificationResponse
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.http.HttpStatus
@@ -84,5 +85,26 @@ class NotificationAdminController(
     ): ResponseEntity<Void> {
         notificationService.deleteSystemNotification(id)
         return ResponseEntity.noContent().build()
+    }
+
+    @Operation(
+        summary = "Get all system notifications",
+        description = "Returns all system notifications that are not marked as deleted"
+    )
+    @ApiResponse(responseCode = "200", description = "System notifications retrieved successfully")
+    @GetMapping("/system")
+    fun getAllSystemNotifications(): ResponseEntity<List<SystemNotificationResponse>> {
+        val systemNotifications = notificationService.getAllSystemNotifications()
+        val response = systemNotifications.map { notification ->
+            SystemNotificationResponse(
+                id = notification.id,
+                title = notification.title,
+                message = notification.message,
+                source = notification.source,
+                createdAt = notification.createdAt,
+                updatedAt = notification.updatedAt,
+            )
+        }
+        return ResponseEntity.ok(response)
     }
 }
