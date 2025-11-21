@@ -260,7 +260,7 @@ data: {
 
     private fun getInternalNotificationChangeEventPublisher(navIdent: String): Flux<ServerSentEvent<Any>> {
         return sharedChangeEvents
-            .filter { (recipientNavIdent, _) -> recipientNavIdent == navIdent }
+            .filter { (recipientNavIdent, _) -> recipientNavIdent == navIdent || recipientNavIdent == "*" }
             .map { (_, changeEvent) ->
                 ServerSentEvent.builder<Any>()
                     .id("${changeEvent.updatedAt}_${changeEvent.id}")

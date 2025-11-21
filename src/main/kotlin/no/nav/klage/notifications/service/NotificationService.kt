@@ -495,5 +495,15 @@ class NotificationService(
         notification.updatedAt = LocalDateTime.now()
         systemNotificationRepository.save(notification)
         logger.debug("Marked system notification {} as deleted", id)
+
+        val notificationChangeEvent = NotificationChangeEvent(
+            id = id,
+            navIdent = "*",
+            type = NotificationChangeEvent.Type.DELETED,
+            updatedAt = notification.updatedAt,
+        )
+        kafkaInternalEventService.publishInternalNotificationChangeEvent(
+            notificationChangeEvent = notificationChangeEvent
+        )
     }
 }
