@@ -10,4 +10,5 @@ import java.util.*
 interface SystemNotificationRepository : JpaRepository<SystemNotification, UUID> {
     fun findByMarkedAsDeletedOrderByCreatedAtDesc(markedAsDeleted: Boolean): List<SystemNotification>
     fun findByMarkedAsDeletedAndUpdatedAtBefore(markedAsDeleted: Boolean, updatedAt: LocalDateTime): List<SystemNotification>
+    fun findByIdIn(ids: List<UUID>): List<SystemNotification>
 }

@@ -69,61 +69,91 @@ class NotificationService(
     }
 
     fun markMultipleAsRead(notificationIdList: List<UUID>, navIdent: String) {
-        notificationIdList.forEach { id ->
-            // Try to find as regular notification first
-            val regularNotification = notificationRepository.findById(id)
+        if (notificationIdList.isEmpty()) return
 
-            if (regularNotification.isPresent) {
-                val notification = regularNotification.get()
+        val now = LocalDateTime.now()
 
-                if (notification.navIdent != navIdent) {
-                    throw MissingAccessException("User with navIdent $navIdent does not have access to notification with id $id")
-                }
+        val regularNotifications = notificationRepository.findByIdInAndNavIdent(notificationIdList, navIdent)
+        val regularNotificationIds = regularNotifications.map { it.id }.toSet()
 
-                notification.read = true
-                notification.readAt = LocalDateTime.now()
-                notification.updatedAt = LocalDateTime.now()
-
-                val notificationChangeEvent = NotificationChangeEvent(
-                    id = notification.id,
-                    navIdent = notification.navIdent,
-                    type = NotificationChangeEvent.Type.READ,
-                    updatedAt = notification.updatedAt,
-                )
-
-                kafkaInternalEventService.publishInternalNotificationChangeEvent(
-                    notificationChangeEvent = notificationChangeEvent
-                )
-            } else {
-                // Try as system notification
-                val systemNotification = systemNotificationRepository.findById(id)
-                if (systemNotification.isPresent) {
-                    if (!systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(id, navIdent)) {
-                        val now = LocalDateTime.now()
-                        val readStatus = SystemNotificationReadStatus(
-                            systemNotificationId = id,
-                            navIdent = navIdent,
-                            readAt = now,
-                        )
-                        systemNotificationReadStatusRepository.save(readStatus)
-                        logger.debug("Marked system notification {} as read for user {}", id, navIdent)
-
-                        // Publish change event for SSE clients
-                        val notificationChangeEvent = NotificationChangeEvent(
-                            id = id,
-                            navIdent = navIdent,
-                            type = NotificationChangeEvent.Type.READ,
-                            updatedAt = now,
-                        )
-                        kafkaInternalEventService.publishInternalNotificationChangeEvent(
-                            notificationChangeEvent = notificationChangeEvent
-                        )
-                    }
-                } else {
-                    throw NotificationNotFoundException("Notification with id $id not found")
-                }
-            }
+        regularNotifications.forEach { notification ->
+            notification.read = true
+            notification.readAt = now
+            notification.updatedAt = now
         }
+
+        // Find IDs that weren't regular notifications - they might be system notifications
+        val remainingIds = notificationIdList.filterNot { it in regularNotificationIds }
+
+        val systemNotifications = systemNotificationRepository.findByIdIn(remainingIds)
+
+        // Check which ones are not already marked as read
+        val existingReadStatuses = if (systemNotifications.isNotEmpty()) {
+            systemNotificationReadStatusRepository.findBySystemNotificationIdInAndNavIdent(
+                systemNotifications.map { it.id },
+                navIdent
+            )
+        } else {
+            emptyList()
+        }
+
+        val alreadyReadSystemNotificationIds = existingReadStatuses.map { it.systemNotificationId }.toSet()
+
+        // Create read statuses for system notifications that aren't already read
+        val systemNotificationReadStatuses = systemNotifications
+            .filter { it.id !in alreadyReadSystemNotificationIds }
+            .map { systemNotification ->
+                SystemNotificationReadStatus(
+                    systemNotificationId = systemNotification.id,
+                    navIdent = navIdent,
+                    readAt = now,
+                )
+            }
+
+        // Batch insert new read statuses
+        if (systemNotificationReadStatuses.isNotEmpty()) {
+            systemNotificationReadStatusRepository.saveAll(systemNotificationReadStatuses)
+            logger.debug("Marked {} system notifications as read for user {}", systemNotificationReadStatuses.size, navIdent)
+        }
+
+        // Validate that all requested IDs were found
+        val allFoundIds = regularNotificationIds + systemNotifications.map { it.id }.toSet()
+        val notFoundIds = notificationIdList.filterNot { it in allFoundIds }
+        if (notFoundIds.isNotEmpty()) {
+            throw NotificationNotFoundException("Notifications not found: $notFoundIds")
+        }
+
+        // Batch publish change events
+        regularNotifications.forEach { notification ->
+            val notificationChangeEvent = NotificationChangeEvent(
+                id = notification.id,
+                navIdent = notification.navIdent,
+                type = NotificationChangeEvent.Type.READ,
+                updatedAt = notification.updatedAt,
+            )
+            kafkaInternalEventService.publishInternalNotificationChangeEvent(
+                notificationChangeEvent = notificationChangeEvent
+            )
+        }
+
+        systemNotificationReadStatuses.forEach { readStatus ->
+            val notificationChangeEvent = NotificationChangeEvent(
+                id = readStatus.systemNotificationId,
+                navIdent = navIdent,
+                type = NotificationChangeEvent.Type.READ,
+                updatedAt = now,
+            )
+            kafkaInternalEventService.publishInternalNotificationChangeEvent(
+                notificationChangeEvent = notificationChangeEvent
+            )
+        }
+
+        logger.debug(
+            "Marked {} regular and {} system notifications as read for user {}",
+            regularNotifications.size,
+            systemNotificationReadStatuses.size,
+            navIdent
+        )
     }
 
     fun setUnread(id: UUID, navIdent: String) {
