@@ -69,6 +69,7 @@ data class NotificationChanged(
 
 enum class Action(val lower: String) {
     CREATE("create"),
+    CREATE_MULTIPLE("create_multiple"),
     READ("read"),
     UNREAD("unread"),
     DELETE("delete"),

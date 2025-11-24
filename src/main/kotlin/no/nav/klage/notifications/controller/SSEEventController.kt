@@ -49,13 +49,14 @@ class SSEEventController(
 Server-Sent Events (SSE) endpoint that streams notification events in real-time.
 
 **Event Types:**
-- `create` - New notification created or existing notifications loaded
+- `create` - New notification created
+- `create_multiple` - Multiple notifications loaded (initial load when client connects)
 - `read` - Notification marked as read
 - `unread` - Notification marked as unread
 - `delete` - Notification deleted
 - `HEARTBEAT` - Keep-alive heartbeat (sent every 10 seconds)
 
-**Notification Types in 'create' events:**
+**Notification Types in 'create' and 'create_multiple' events:**
 - MESSAGE - Message notifications with actor, behandling info, and content
 - SYSTEM - System-wide notifications sent to all users (title, message)
 - LOST_ACCESS - Access lost notifications (to be implemented)
@@ -117,6 +118,45 @@ data: {
   "title": "System Maintenance",
   "message": "The system will be down for maintenance on Saturday from 10:00 to 12:00"
 }
+"""
+                ),
+                ExampleObject(
+                    name = "create_multiple_notifications",
+                    summary = "Create Multiple event - Initial load",
+                    description = "Event fired when client first connects, containing all existing notifications in an array",
+                    value = """
+event: create_multiple
+id: 2025-11-16T10:33:00_650e8400-e29b-41d4-a716-446655440003
+data: [
+  {
+    "type": "MESSAGE",
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "read": false,
+    "createdAt": "2025-11-16T10:30:00",
+    "message": {
+      "id": "750e8400-e29b-41d4-a716-446655440000",
+      "content": "New message about the case"
+    },
+    "actor": {
+      "navIdent": "A123456",
+      "navn": "Ola Nordmann"
+    },
+    "behandling": {
+      "id": "650e8400-e29b-41d4-a716-446655440000",
+      "typeId": "1",
+      "ytelseId": "10",
+      "saksnummer": "2025-12345"
+    }
+  },
+  {
+    "type": "SYSTEM",
+    "id": "650e8400-e29b-41d4-a716-446655440001",
+    "read": true,
+    "createdAt": "2025-11-16T10:32:00",
+    "title": "System Maintenance",
+    "message": "The system will be down for maintenance on Saturday from 10:00 to 12:00"
+  }
+]
 """
                 ),
                 ExampleObject(
@@ -189,13 +229,9 @@ data: {
 
         val systemNotificationEventPublisher = getSystemNotificationEventPublisher(navIdent)
 
-        val previousSystemNotificationsAsSSEEvents =
-            getPreviousSystemNotificationsAsSSEEvents(navIdent)
-
         return getFirstHeartbeat()
             .mergeWith(heartbeatStream)
             .mergeWith(previousNotificationsAsSSEEvents)
-            .mergeWith(previousSystemNotificationsAsSSEEvents)
             .mergeWith(internalNotificationChangeEventPublisher)
             .mergeWith(internalNotificationEventPublisher)
             .mergeWith(systemNotificationEventPublisher)
@@ -203,16 +239,27 @@ data: {
 
     private fun getPreviousNotificationsAsSSEEvents(navIdent: String): Flux<ServerSentEvent<Any>> {
         val notificationsByNavIdent = notificationService.getNotificationsByNavIdent(navIdent = navIdent)
-        return Flux.fromIterable(
-            notificationsByNavIdent
-                .map {
-                    val data = dbToInternalNotificationEvent(notification = it)
-                    ServerSentEvent.builder<Any>()
-                        .id("${it.updatedAt}_${it.id}")
-                        .event(Action.CREATE.lower)
-                        .data(data)
-                        .build()
-                }
+        val systemNotifications = notificationService.getAllSystemNotifications()
+
+        if (notificationsByNavIdent.isEmpty() && systemNotifications.isEmpty()) {
+            return Flux.empty()
+        }
+
+        // Combine both regular and system notifications into one array
+        val regularNotificationData = notificationsByNavIdent.map { dbToInternalNotificationEvent(notification = it) }
+        val systemNotificationData = systemNotifications.map { systemNotificationToView(it, navIdent) }
+        val allNotifications = (regularNotificationData + systemNotificationData)
+            .sortedByDescending { (it as no.nav.klage.notifications.dto.view.Notification).createdAt }
+
+        // Use the first notification (most recent) for the SSE ID
+        val firstNotification = allNotifications.first() as no.nav.klage.notifications.dto.view.Notification
+
+        return Flux.just(
+            ServerSentEvent.builder<Any>()
+                .id("${firstNotification.createdAt}_${firstNotification.id}")
+                .event(Action.CREATE_MULTIPLE.lower)
+                .data(allNotifications)
+                .build()
         )
     }
 
@@ -242,20 +289,6 @@ data: {
                     .data(data)
                     .build()
             }
-    }
-
-    private fun getPreviousSystemNotificationsAsSSEEvents(navIdent: String): Flux<ServerSentEvent<Any>> {
-        val systemNotifications = notificationService.getAllSystemNotifications()
-        return Flux.fromIterable(
-            systemNotifications.map { systemNotification ->
-                val data = systemNotificationToView(systemNotification, navIdent)
-                ServerSentEvent.builder<Any>()
-                    .id("${systemNotification.updatedAt}_${systemNotification.id}")
-                    .event(Action.CREATE.lower)
-                    .data(data)
-                    .build()
-            }
-        )
     }
 
     private fun getInternalNotificationChangeEventPublisher(navIdent: String): Flux<ServerSentEvent<Any>> {
