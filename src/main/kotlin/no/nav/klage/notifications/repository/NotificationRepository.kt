@@ -36,4 +36,6 @@ interface NotificationRepository : JpaRepository<Notification, UUID> {
         markedAsDeleted: Boolean,
         updatedAt: LocalDateTime
     ): List<Notification>
+
+    fun findByIdInAndNavIdent(ids: List<UUID>, navIdent: String): List<Notification>
 }

@@ -10,4 +10,5 @@ interface SystemNotificationReadStatusRepository : JpaRepository<SystemNotificat
     fun existsBySystemNotificationIdAndNavIdent(systemNotificationId: UUID, navIdent: String): Boolean
     fun findBySystemNotificationIdAndNavIdent(systemNotificationId: UUID, navIdent: String): SystemNotificationReadStatus?
     fun deleteBySystemNotificationIdAndNavIdent(systemNotificationId: UUID, navIdent: String)
+    fun findBySystemNotificationIdInAndNavIdent(systemNotificationIds: List<UUID>, navIdent: String): List<SystemNotificationReadStatus>
 }
