@@ -259,20 +259,6 @@ class NotificationService(
             notification.updatedAt = now
         }
 
-        notifications.forEach { notification ->
-            val notificationChangeEvent = NotificationChangeEvent(
-                id = notification.id,
-                ids = null,
-                navIdent = notification.navIdent,
-                type = NotificationChangeEvent.Type.READ,
-                updatedAt = notification.updatedAt,
-            )
-
-            kafkaInternalEventService.publishInternalNotificationChangeEvent(
-                notificationChangeEvent = notificationChangeEvent
-            )
-        }
-
         // Handle system notifications
         val allSystemNotifications = systemNotificationRepository.findByMarkedAsDeletedOrderByCreatedAtDesc(false)
         val unreadSystemNotifications = allSystemNotifications.filter { systemNotification ->
@@ -282,19 +268,26 @@ class NotificationService(
             )
         }
 
-        unreadSystemNotifications.forEach { systemNotification ->
-            val readStatus = SystemNotificationReadStatus(
+        val systemNotificationReadStatuses = unreadSystemNotifications.map { systemNotification ->
+            SystemNotificationReadStatus(
                 systemNotificationId = systemNotification.id,
                 navIdent = navIdent,
                 readAt = now,
             )
-            systemNotificationReadStatusRepository.save(readStatus)
+        }
 
+        if (systemNotificationReadStatuses.isNotEmpty()) {
+            systemNotificationReadStatusRepository.saveAll(systemNotificationReadStatuses)
+        }
+
+        // Publish a single READ_MULTIPLE event for all updated notifications
+        val allUpdatedIds = notifications.map { it.id } + systemNotificationReadStatuses.map { it.systemNotificationId }
+        if (allUpdatedIds.isNotEmpty()) {
             val notificationChangeEvent = NotificationChangeEvent(
-                id = systemNotification.id,
-                ids = null,
+                ids = allUpdatedIds,
+                id = null,
                 navIdent = navIdent,
-                type = NotificationChangeEvent.Type.READ,
+                type = NotificationChangeEvent.Type.READ_MULTIPLE,
                 updatedAt = now,
             )
             kafkaInternalEventService.publishInternalNotificationChangeEvent(
@@ -305,7 +298,7 @@ class NotificationService(
         logger.debug(
             "Marked {} regular and {} system notifications as read for user {}",
             notifications.size,
-            unreadSystemNotifications.size,
+            systemNotificationReadStatuses.size,
             navIdent
         )
     }
