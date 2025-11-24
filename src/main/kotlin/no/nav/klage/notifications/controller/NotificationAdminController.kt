@@ -96,6 +96,20 @@ class NotificationAdminController(
     }
 
     @Operation(
+        summary = "Delete multiple system notifications",
+        description = "Marks multiple system notifications as deleted by their IDs"
+    )
+    @ApiResponse(responseCode = "204", description = "System notifications deleted successfully")
+    @ApiResponse(responseCode = "404", description = "One or more system notifications not found")
+    @DeleteMapping("/system")
+    fun deleteMultipleSystemNotifications(
+        @Parameter(description = "List of system notification IDs to delete") @RequestBody notificationIdList: List<UUID>
+    ): ResponseEntity<Void> {
+        notificationService.deleteMultipleSystemNotifications(notificationIdList)
+        return ResponseEntity.noContent().build()
+    }
+
+    @Operation(
         summary = "Get all system notifications",
         description = "Returns all system notifications that are not marked as deleted"
     )

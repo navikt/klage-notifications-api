@@ -51,9 +51,12 @@ Server-Sent Events (SSE) endpoint that streams notification events in real-time.
 **Event Types:**
 - `create` - New notification created
 - `create_multiple` - Multiple notifications loaded (initial load when client connects)
-- `read` - Notification marked as read
-- `unread` - Notification marked as unread
-- `delete` - Notification deleted
+- `read` - Single notification marked as read
+- `read_multiple` - Multiple notifications marked as read
+- `unread` - Single notification marked as unread
+- `unread_multiple` - Multiple notifications marked as unread
+- `delete` - Single notification deleted
+- `delete_multiple` - Multiple notifications deleted
 - `HEARTBEAT` - Keep-alive heartbeat (sent every 10 seconds)
 
 **Notification Types in 'create' and 'create_multiple' events:**
@@ -172,6 +175,18 @@ data: {
 """
                 ),
                 ExampleObject(
+                    name = "read_multiple_notifications",
+                    summary = "Read Multiple event",
+                    description = "Event fired when multiple notifications are marked as read",
+                    value = """
+event: read_multiple
+id: 2025-11-16T10:35:30_550e8400-e29b-41d4-a716-446655440000
+data: {
+  "ids": ["550e8400-e29b-41d4-a716-446655440000", "650e8400-e29b-41d4-a716-446655440001", "750e8400-e29b-41d4-a716-446655440002"]
+}
+"""
+                ),
+                ExampleObject(
                     name = "unread_notification",
                     summary = "Unread event",
                     description = "Event fired when a notification is marked as unread",
@@ -184,6 +199,18 @@ data: {
 """
                 ),
                 ExampleObject(
+                    name = "unread_multiple_notifications",
+                    summary = "Unread Multiple event",
+                    description = "Event fired when multiple notifications are marked as unread",
+                    value = """
+event: unread_multiple
+id: 2025-11-16T10:36:30_550e8400-e29b-41d4-a716-446655440000
+data: {
+  "ids": ["550e8400-e29b-41d4-a716-446655440000", "650e8400-e29b-41d4-a716-446655440001"]
+}
+"""
+                ),
+                ExampleObject(
                     name = "delete_notification",
                     summary = "Delete event",
                     description = "Event fired when a notification is deleted",
@@ -192,6 +219,18 @@ event: delete
 id: 2025-11-16T10:37:00_550e8400-e29b-41d4-a716-446655440000
 data: {
   "id": "550e8400-e29b-41d4-a716-446655440000"
+}
+"""
+                ),
+                ExampleObject(
+                    name = "delete_multiple_notifications",
+                    summary = "Delete Multiple event",
+                    description = "Event fired when multiple notifications are deleted",
+                    value = """
+event: delete_multiple
+id: 2025-11-16T10:37:30_550e8400-e29b-41d4-a716-446655440000
+data: {
+  "ids": ["550e8400-e29b-41d4-a716-446655440000", "650e8400-e29b-41d4-a716-446655440001"]
 }
 """
                 ),
@@ -295,17 +334,50 @@ data: {
         return sharedChangeEvents
             .filter { (recipientNavIdent, _) -> recipientNavIdent == navIdent || recipientNavIdent == "*" }
             .map { (_, changeEvent) ->
-                ServerSentEvent.builder<Any>()
-                    .id("${changeEvent.updatedAt}_${changeEvent.id}")
-                    .event(
-                        when (changeEvent.type) {
-                            NotificationChangeEvent.Type.READ -> Action.READ.lower
-                            NotificationChangeEvent.Type.UNREAD -> Action.UNREAD.lower
-                            NotificationChangeEvent.Type.DELETED -> Action.DELETE.lower
-                        }
-                    )
-                    .data(NotificationChanged(id = changeEvent.id))
-                    .build()
+                when (changeEvent.type) {
+                    NotificationChangeEvent.Type.READ -> {
+                        ServerSentEvent.builder<Any>()
+                            .id("${changeEvent.updatedAt}_${changeEvent.id}")
+                            .event(Action.READ.lower)
+                            .data(NotificationChanged(id = changeEvent.id!!))
+                            .build()
+                    }
+                    NotificationChangeEvent.Type.READ_MULTIPLE -> {
+                        ServerSentEvent.builder<Any>()
+                            .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
+                            .event(Action.READ_MULTIPLE.lower)
+                            .data(NotificationMultipleChanged(ids = changeEvent.ids))
+                            .build()
+                    }
+                    NotificationChangeEvent.Type.UNREAD -> {
+                        ServerSentEvent.builder<Any>()
+                            .id("${changeEvent.updatedAt}_${changeEvent.id}")
+                            .event(Action.UNREAD.lower)
+                            .data(NotificationChanged(id = changeEvent.id!!))
+                            .build()
+                    }
+                    NotificationChangeEvent.Type.UNREAD_MULTIPLE -> {
+                        ServerSentEvent.builder<Any>()
+                            .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
+                            .event(Action.UNREAD_MULTIPLE.lower)
+                            .data(NotificationMultipleChanged(ids = changeEvent.ids))
+                            .build()
+                    }
+                    NotificationChangeEvent.Type.DELETED -> {
+                        ServerSentEvent.builder<Any>()
+                            .id("${changeEvent.updatedAt}_${changeEvent.id}")
+                            .event(Action.DELETE.lower)
+                            .data(NotificationChanged(id = changeEvent.id!!))
+                            .build()
+                    }
+                    NotificationChangeEvent.Type.DELETED_MULTIPLE -> {
+                        ServerSentEvent.builder<Any>()
+                            .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
+                            .event(Action.DELETE_MULTIPLE.lower)
+                            .data(NotificationMultipleChanged(ids = changeEvent.ids))
+                            .build()
+                    }
+                }
             }
     }
 

@@ -67,10 +67,17 @@ data class NotificationChanged(
     val id: UUID,
 )
 
+data class NotificationMultipleChanged(
+    val ids: List<UUID>,
+)
+
 enum class Action(val lower: String) {
     CREATE("create"),
     CREATE_MULTIPLE("create_multiple"),
     READ("read"),
+    READ_MULTIPLE("read_multiple"),
     UNREAD("unread"),
+    UNREAD_MULTIPLE("unread_multiple"),
     DELETE("delete"),
+    DELETE_MULTIPLE("delete_multiple"),
 }
