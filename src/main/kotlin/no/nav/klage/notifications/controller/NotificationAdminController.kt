@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import no.nav.klage.notifications.config.SecurityConfiguration
 import no.nav.klage.notifications.dto.CreateSystemNotificationRequest
+import no.nav.klage.notifications.dto.TransferNotificationOwnershipRequest
 import no.nav.klage.notifications.dto.view.SystemNotificationResponse
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.security.token.support.core.api.ProtectedWithClaims
@@ -45,6 +46,22 @@ class NotificationAdminController(
     ): ResponseEntity<Void> {
         notificationService.deleteNotificationsByBehandlingId(behandlingId)
         return ResponseEntity.noContent().build()
+    }
+
+    @Operation(
+        summary = "Transfer notification ownership for a behandling",
+        description = "Transfers MELDING notifications to a new user (navIdent) and deletes LOST_ACCESS notifications for a specific behandlingId. " +
+                "SSE clients will be notified: old owner receives DELETE events, new owner receives CREATE events."
+    )
+    @ApiResponse(responseCode = "200", description = "Notification ownership transferred successfully")
+    @ApiResponse(responseCode = "404", description = "No notifications found for the behandlingId")
+    @PutMapping("/behandling/{behandlingId}/transfer-ownership")
+    fun transferNotificationOwnership(
+        @Parameter(description = "Behandling ID") @PathVariable behandlingId: UUID,
+        @RequestBody request: TransferNotificationOwnershipRequest
+    ): ResponseEntity<Void> {
+        notificationService.transferNotificationOwnership(behandlingId, request.newNavIdent)
+        return ResponseEntity.ok().build()
     }
 
     @Operation(

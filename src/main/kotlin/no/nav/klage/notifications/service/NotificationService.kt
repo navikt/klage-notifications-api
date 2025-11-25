@@ -476,6 +476,90 @@ class NotificationService(
         )
     }
 
+    fun transferNotificationOwnership(behandlingId: UUID, newNavIdent: String) {
+        logger.debug(
+            "Transferring notification ownership for behandlingId {} to navIdent {}",
+            behandlingId,
+            newNavIdent,
+        )
+
+        val notifications = notificationRepository.findAllByBehandlingId(behandlingId)
+
+        if (notifications.isEmpty()) {
+            logger.warn(
+                "No notifications found for behandlingId {}",
+                behandlingId,
+            )
+            return
+        }
+
+        val now = LocalDateTime.now()
+        val meldingNotifications = notifications.filterIsInstance<MeldingNotification>()
+        val lostAccessNotifications = notifications.filterIsInstance<LostAccessNotification>()
+
+        // Group MELDING notifications by old owner for bulk delete events. Should be at most one owner, but grouping for safety.
+        val notificationsByOldOwner = meldingNotifications.groupBy { it.navIdent }
+
+        // Transfer MELDING notifications to new owner
+        meldingNotifications.forEach { notification ->
+            notification.navIdent = newNavIdent
+            notification.updatedAt = now
+        }
+
+        // Send bulk DELETE events to old owners
+        notificationsByOldOwner.forEach { (oldNavIdent, ownerNotifications) ->
+            if (ownerNotifications.isNotEmpty()) {
+                val deleteEvent = NotificationChangeEvent(
+                    id = null,
+                    ids = ownerNotifications.map { it.id },
+                    navIdent = oldNavIdent,
+                    type = NotificationChangeEvent.Type.DELETED_MULTIPLE,
+                    updatedAt = now,
+                )
+                kafkaInternalEventService.publishInternalNotificationChangeEvent(deleteEvent)
+            }
+        }
+
+        // Send all transferred MELDING notifications to new owner (via internal Kafka) - bulk operation
+        if (meldingNotifications.isNotEmpty()) {
+            kafkaInternalEventService.publishInternalNotificationEvents(
+                notifications = meldingNotifications,
+            )
+        }
+
+        // Mark LOST_ACCESS notifications as deleted and send bulk delete events
+        if (lostAccessNotifications.isNotEmpty()) {
+            lostAccessNotifications.forEach { notification ->
+                notification.markedAsDeleted = true
+                notification.updatedAt = now
+            }
+
+            // Group by owner and send bulk delete events
+            val lostAccessByOwner = lostAccessNotifications.groupBy { it.navIdent }
+            lostAccessByOwner.forEach { (navIdent, ownerNotifications) ->
+                val deleteEvent = NotificationChangeEvent(
+                    id = null,
+                    ids = ownerNotifications.map { it.id },
+                    navIdent = navIdent,
+                    type = NotificationChangeEvent.Type.DELETED_MULTIPLE,
+                    updatedAt = now,
+                )
+                kafkaInternalEventService.publishInternalNotificationChangeEvent(deleteEvent)
+            }
+        }
+
+        // Record metrics
+        metricsService.recordMultipleNotificationsDeleted(lostAccessNotifications)
+
+        logger.debug(
+            "Transferred {} MELDING notifications to navIdent {} (all sent via SSE) and deleted {} LOST_ACCESS notifications for behandlingId {}",
+            meldingNotifications.size,
+            newNavIdent,
+            lostAccessNotifications.size,
+            behandlingId,
+        )
+    }
+
     fun validateNoUnreadNotificationsForBehandling(behandlingId: UUID) {
         logger.debug(
             "Validating no unread notifications for behandlingId {}",

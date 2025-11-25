@@ -1,8 +1,8 @@
 package no.nav.klage.notifications.kafka
 
-import no.nav.klage.notifications.domain.Notification
 import no.nav.klage.notifications.domain.SystemNotification
 import no.nav.klage.notifications.dto.CreateNotificationEvent
+import no.nav.klage.notifications.dto.InternalNotificationEvent
 import no.nav.klage.notifications.dto.NotificationChangeEvent
 import no.nav.klage.notifications.util.getLogger
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -46,13 +46,13 @@ class AivenKafkaClientCreator(
         )
     }
 
-    fun getNewKafkaNotificationInternalEventsReceiver(): KafkaReceiver<String, Notification> {
+    fun getNewKafkaNotificationInternalEventsReceiver(): KafkaReceiver<String, InternalNotificationEvent> {
         logger.debug("Creating Kafka receiver for topic: $notificationInternalEventsTopic")
         return defaultKafkaReceiver(
             topic = notificationInternalEventsTopic,
             groupId = "klage-notifications-api-internal-event-consumer-$uniqueIdPerInstance",
             clientId = "klage-notifications-api-internal-event-client-$uniqueIdPerInstance",
-            className = Notification::class.java.name
+            className = InternalNotificationEvent::class.java.name
         )
     }
 

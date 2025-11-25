@@ -10,6 +10,7 @@ import no.nav.klage.notifications.config.SecurityConfiguration
 import no.nav.klage.notifications.domain.MeldingNotification
 import no.nav.klage.notifications.domain.Notification
 import no.nav.klage.notifications.domain.SystemNotification
+import no.nav.klage.notifications.dto.InternalNotificationEvent
 import no.nav.klage.notifications.dto.NotificationChangeEvent
 import no.nav.klage.notifications.dto.view.*
 import no.nav.klage.notifications.dto.view.NotificationType.MESSAGE
@@ -305,16 +306,37 @@ data: {
     private fun getInternalNotificationEventPublisher(navIdent: String): Flux<ServerSentEvent<Any>> {
         return sharedInternalEvents
             .filter { (recipientNavIdent, _) -> recipientNavIdent == navIdent }
-            .map { (_, data) ->
-                val id = when (data) {
-                    is MessageNotification -> "${data.createdAt}_${data.id}"
-                    else -> TODO()
+            .map { (_, event) ->
+                if (event.notifications.size == 1) {
+                    // Single notification - send CREATE event
+                    val notification = event.notifications.first()
+                    val data = jsonToInternalNotificationEvent(notification)
+                    val id = when (data) {
+                        is MessageNotification -> "${data.createdAt}_${data.id}"
+                        else -> TODO()
+                    }
+                    ServerSentEvent.builder<Any>()
+                        .id(id)
+                        .event(Action.CREATE.lower)
+                        .data(data)
+                        .build()
+                } else {
+                    // Multiple notifications - send CREATE_MULTIPLE event
+                    val notificationData = event.notifications.map { notification ->
+                        jsonToInternalNotificationEvent(notification)
+                    }
+                    // Use first notification for SSE ID
+                    val firstNotification = notificationData.first()
+                    val id = when (firstNotification) {
+                        is MessageNotification -> "${firstNotification.createdAt}_${firstNotification.id}"
+                        else -> TODO()
+                    }
+                    ServerSentEvent.builder<Any>()
+                        .id(id)
+                        .event(Action.CREATE_MULTIPLE.lower)
+                        .data(notificationData)
+                        .build()
                 }
-                ServerSentEvent.builder<Any>()
-                    .id(id)
-                    .event(Action.CREATE.lower)
-                    .data(data)
-                    .build()
             }
     }
 
@@ -476,23 +498,43 @@ data: {
     }
 
     // Shared Kafka consumers - created once and shared by all clients
-    private val sharedInternalEvents: Flux<Pair<String, Any>> by lazy {
+    private val sharedInternalEvents: Flux<Pair<String, InternalNotificationEvent>> by lazy {
         aivenKafkaClientCreator.getNewKafkaNotificationInternalEventsReceiver().receive()
             .doOnNext { consumerRecord ->
                 logger.debug("Received internal notification event at offset {}: {}", consumerRecord.offset(), consumerRecord.key())
                 if (environment.activeProfiles.contains("dev-gcp")) {
                     logger.debug(
-                        "Received internal Kafka-message (notification): {}",
+                        "Received internal Kafka-message (notification event): {}",
                         consumerRecord.value()
                     )
                 }
             }
             .mapNotNull { consumerRecord ->
                 try {
-                    val data = jsonToInternalNotificationEvent(consumerRecord.value())
-                    // Acknowledge after successful processing
+                    val event = consumerRecord.value()
+
+                    if (event.notifications.isEmpty()) {
+                        logger.warn("Received internal notification event with empty notifications at offset {}", consumerRecord.offset())
+                        // Don't acknowledge to trigger reprocessing
+                        return@mapNotNull null
+                    }
+
+                    val navIdent = if (event.notifications.size > 1) {
+                        //verify that all notifications have the same navIdent
+                        val navIdent = event.notifications.first().navIdent
+                        if (!event.notifications.all { it.navIdent == navIdent }) {
+                            logger.warn("Received internal notification event with inconsistent navIdent at offset {}", consumerRecord.offset())
+                            // Don't acknowledge to trigger reprocessing
+                            return@mapNotNull null
+                        } else {
+                            navIdent
+                        }
+                    } else {
+                        event.notifications.first().navIdent
+                    }
+
                     consumerRecord.receiverOffset().acknowledge()
-                    Pair(consumerRecord.value().navIdent, data)
+                    Pair(navIdent, event)
                 } catch (e: Exception) {
                     logger.error("Error processing internal notification event at offset {}: ${e.message}", consumerRecord.offset(), e)
                     null // Don't acknowledge - message will be reprocessed
