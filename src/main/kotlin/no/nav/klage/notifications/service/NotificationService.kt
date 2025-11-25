@@ -21,6 +21,7 @@ class NotificationService(
     private val systemNotificationRepository: SystemNotificationRepository,
     private val systemNotificationReadStatusRepository: SystemNotificationReadStatusRepository,
     private val kafkaInternalEventService: KafkaInternalEventService,
+    private val metricsService: NotificationMetricsService,
 ) {
 
     companion object {
@@ -30,7 +31,10 @@ class NotificationService(
 
     @Transactional(readOnly = true)
     fun getNotificationsByNavIdent(navIdent: String): List<Notification> {
-        logger.debug("Fetching notifications for navIdent {}", navIdent)
+        logger.debug(
+            "Fetching notifications for navIdent {}",
+            navIdent,
+        )
         return notificationRepository.findByNavIdentAndMarkedAsDeletedOrderBySourceCreatedAtAsc(
             navIdent = navIdent,
             markedAsDeleted = false,
@@ -52,6 +56,9 @@ class NotificationService(
             notification.readAt = LocalDateTime.now()
             notification.updatedAt = LocalDateTime.now()
 
+            // Record metrics
+            metricsService.recordNotificationRead(notification)
+
             val notificationChangeEvent = NotificationChangeEvent(
                 id = notification.id,
                 ids = null,
@@ -61,11 +68,14 @@ class NotificationService(
             )
 
             kafkaInternalEventService.publishInternalNotificationChangeEvent(
-                notificationChangeEvent = notificationChangeEvent
+                notificationChangeEvent = notificationChangeEvent,
             )
         } else {
             // Try as system notification
-            markSystemNotificationAsRead(id, navIdent)
+            markSystemNotificationAsRead(
+                id = id,
+                navIdent = navIdent,
+            )
         }
     }
 
@@ -74,7 +84,10 @@ class NotificationService(
 
         val now = LocalDateTime.now()
 
-        val regularNotifications = notificationRepository.findByIdInAndNavIdent(notificationIdList, navIdent)
+        val regularNotifications = notificationRepository.findByIdInAndNavIdent(
+            ids = notificationIdList,
+            navIdent = navIdent,
+        )
         val regularNotificationIds = regularNotifications.map { it.id }.toSet()
 
         regularNotifications.forEach { notification ->
@@ -82,6 +95,9 @@ class NotificationService(
             notification.readAt = now
             notification.updatedAt = now
         }
+
+        // Record metrics for regular notifications
+        metricsService.recordMultipleNotificationsRead(regularNotifications)
 
         // Find IDs that weren't regular notifications - they might be system notifications
         val remainingIds = notificationIdList.filterNot { it in regularNotificationIds }
@@ -91,8 +107,8 @@ class NotificationService(
         // Check which ones are not already marked as read
         val existingReadStatuses = if (systemNotifications.isNotEmpty()) {
             systemNotificationReadStatusRepository.findBySystemNotificationIdInAndNavIdent(
-                systemNotifications.map { it.id },
-                navIdent
+                systemNotificationIds = systemNotifications.map { it.id },
+                navIdent = navIdent,
             )
         } else {
             emptyList()
@@ -114,7 +130,18 @@ class NotificationService(
         // Batch insert new read statuses
         if (systemNotificationReadStatuses.isNotEmpty()) {
             systemNotificationReadStatusRepository.saveAll(systemNotificationReadStatuses)
-            logger.debug("Marked {} system notifications as read for user {}", systemNotificationReadStatuses.size, navIdent)
+            logger.debug(
+                "Marked {} system notifications as read for user {}",
+                systemNotificationReadStatuses.size,
+                navIdent,
+            )
+
+            // Record metrics for system notifications
+            metricsService.recordMultipleSystemNotificationsRead(
+                notifications = systemNotifications.filter { it.id !in alreadyReadSystemNotificationIds },
+                readAt = now,
+                navIdent = navIdent,
+            )
         }
 
         // Validate that all requested IDs were found
@@ -125,7 +152,8 @@ class NotificationService(
         }
 
         // Publish a single READ_MULTIPLE event for all successfully updated notifications
-        val allUpdatedIds = regularNotifications.map { it.id } + systemNotificationReadStatuses.map { it.systemNotificationId }
+        val allUpdatedIds =
+            regularNotifications.map { it.id } + systemNotificationReadStatuses.map { it.systemNotificationId }
         if (allUpdatedIds.isNotEmpty()) {
             val notificationChangeEvent = NotificationChangeEvent(
                 ids = allUpdatedIds,
@@ -135,7 +163,7 @@ class NotificationService(
                 updatedAt = now,
             )
             kafkaInternalEventService.publishInternalNotificationChangeEvent(
-                notificationChangeEvent = notificationChangeEvent
+                notificationChangeEvent = notificationChangeEvent,
             )
         }
 
@@ -143,7 +171,7 @@ class NotificationService(
             "Marked {} regular and {} system notifications as read for user {}",
             regularNotifications.size,
             systemNotificationReadStatuses.size,
-            navIdent
+            navIdent,
         )
     }
 
@@ -162,6 +190,9 @@ class NotificationService(
             notification.readAt = null
             notification.updatedAt = LocalDateTime.now()
 
+            // Record metrics
+            metricsService.recordNotificationUnread(notification)
+
             val notificationChangeEvent = NotificationChangeEvent(
                 id = notification.id,
                 ids = null,
@@ -171,11 +202,14 @@ class NotificationService(
             )
 
             kafkaInternalEventService.publishInternalNotificationChangeEvent(
-                notificationChangeEvent = notificationChangeEvent
+                notificationChangeEvent = notificationChangeEvent,
             )
         } else {
             // Try as system notification
-            markSystemNotificationAsUnread(id, navIdent)
+            markSystemNotificationAsUnread(
+                id = id,
+                navIdent = navIdent,
+            )
         }
     }
 
@@ -185,7 +219,10 @@ class NotificationService(
         val now = LocalDateTime.now()
 
         // Fetch all regular notifications for this user in one query
-        val regularNotifications = notificationRepository.findByIdInAndNavIdent(notificationIdList, navIdent)
+        val regularNotifications = notificationRepository.findByIdInAndNavIdent(
+            ids = notificationIdList,
+            navIdent = navIdent,
+        )
         val regularNotificationIds = regularNotifications.map { it.id }.toSet()
 
         // Update all regular notifications at once
@@ -194,6 +231,9 @@ class NotificationService(
             notification.readAt = null
             notification.updatedAt = now
         }
+
+        // Record metrics for regular notifications
+        metricsService.recordMultipleNotificationsUnread(regularNotifications)
 
         // Find IDs that weren't regular notifications - they might be system notifications
         val remainingIds = notificationIdList.filterNot { it in regularNotificationIds }
@@ -204,7 +244,7 @@ class NotificationService(
         val existingReadStatuses = if (systemNotifications.isNotEmpty()) {
             systemNotificationReadStatusRepository.findBySystemNotificationIdInAndNavIdent(
                 systemNotifications.map { it.id },
-                navIdent
+                navIdent,
             )
         } else {
             emptyList()
@@ -213,7 +253,19 @@ class NotificationService(
         // Delete read statuses to mark them as unread
         if (existingReadStatuses.isNotEmpty()) {
             systemNotificationReadStatusRepository.deleteAll(existingReadStatuses)
-            logger.debug("Marked {} system notifications as unread for user {}", existingReadStatuses.size, navIdent)
+            logger.debug(
+                "Marked {} system notifications as unread for user {}",
+                existingReadStatuses.size,
+                navIdent,
+            )
+
+            // Record metrics for system notifications
+            val unreadSystemNotifications =
+                systemNotifications.filter { it.id in existingReadStatuses.map { rs -> rs.systemNotificationId } }
+            metricsService.recordMultipleSystemNotificationsUnread(
+                notifications = unreadSystemNotifications,
+                navIdent = navIdent,
+            )
         }
 
         // Validate that all requested IDs were found
@@ -234,7 +286,7 @@ class NotificationService(
                 updatedAt = now,
             )
             kafkaInternalEventService.publishInternalNotificationChangeEvent(
-                notificationChangeEvent = notificationChangeEvent
+                notificationChangeEvent = notificationChangeEvent,
             )
         }
 
@@ -242,7 +294,7 @@ class NotificationService(
             "Marked {} regular and {} system notifications as unread for user {}",
             regularNotifications.size,
             existingReadStatuses.size,
-            navIdent
+            navIdent,
         )
     }
 
@@ -251,7 +303,10 @@ class NotificationService(
 
         // Handle regular notifications
         val notifications =
-            notificationRepository.findByNavIdentAndRead(navIdent, false)
+            notificationRepository.findByNavIdentAndRead(
+                navIdent,
+                false,
+            )
 
         notifications.forEach { notification ->
             notification.read = true
@@ -259,12 +314,15 @@ class NotificationService(
             notification.updatedAt = now
         }
 
+        // Record metrics for regular notifications
+        metricsService.recordMultipleNotificationsRead(notifications)
+
         // Handle system notifications
         val allSystemNotifications = systemNotificationRepository.findByMarkedAsDeletedOrderByCreatedAtDesc(false)
         val unreadSystemNotifications = allSystemNotifications.filter { systemNotification ->
             !systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(
                 systemNotification.id,
-                navIdent
+                navIdent,
             )
         }
 
@@ -278,6 +336,13 @@ class NotificationService(
 
         if (systemNotificationReadStatuses.isNotEmpty()) {
             systemNotificationReadStatusRepository.saveAll(systemNotificationReadStatuses)
+
+            // Record metrics for system notifications
+            metricsService.recordMultipleSystemNotificationsRead(
+                notifications = unreadSystemNotifications,
+                readAt = now,
+                navIdent = navIdent,
+            )
         }
 
         // Publish a single READ_MULTIPLE event for all updated notifications
@@ -291,7 +356,7 @@ class NotificationService(
                 updatedAt = now,
             )
             kafkaInternalEventService.publishInternalNotificationChangeEvent(
-                notificationChangeEvent = notificationChangeEvent
+                notificationChangeEvent = notificationChangeEvent,
             )
         }
 
@@ -299,29 +364,32 @@ class NotificationService(
             "Marked {} regular and {} system notifications as read for user {}",
             notifications.size,
             systemNotificationReadStatuses.size,
-            navIdent
+            navIdent,
         )
     }
 
-    fun deleteNotification(id: UUID) {
-        val notification = notificationRepository.findById(id)
-            .orElseThrow { NotificationNotFoundException("Notification with id $id not found") }
-
-        notification.markedAsDeleted = true
-        notification.updatedAt = LocalDateTime.now()
-
-        val notificationChangeEvent = NotificationChangeEvent(
-            id = notification.id,
-            ids = null,
-            navIdent = notification.navIdent,
-            type = NotificationChangeEvent.Type.DELETED,
-            updatedAt = notification.updatedAt,
-        )
-
-        kafkaInternalEventService.publishInternalNotificationChangeEvent(
-            notificationChangeEvent = notificationChangeEvent
-        )
-    }
+//    fun deleteNotification(id: UUID) {
+//        val notification = notificationRepository.findById(id)
+//            .orElseThrow { NotificationNotFoundException("Notification with id $id not found") }
+//
+//        notification.markedAsDeleted = true
+//        notification.updatedAt = LocalDateTime.now()
+//
+//        // Record metrics
+//        metricsService.recordNotificationDeleted(notification)
+//
+//        val notificationChangeEvent = NotificationChangeEvent(
+//            id = notification.id,
+//            ids = null,
+//            navIdent = notification.navIdent,
+//            type = NotificationChangeEvent.Type.DELETED,
+//            updatedAt = notification.updatedAt,
+//        )
+//
+//        kafkaInternalEventService.publishInternalNotificationChangeEvent(
+//            notificationChangeEvent = notificationChangeEvent
+//        )
+//    }
 
     fun deleteMultipleSystemNotifications(notificationIdList: List<UUID>) {
         if (notificationIdList.isEmpty()) return
@@ -344,6 +412,9 @@ class NotificationService(
             systemNotification.updatedAt = now
         }
 
+        // Record metrics
+        metricsService.recordMultipleSystemNotificationsDeleted(systemNotifications)
+
         // Publish a single DELETED_MULTIPLE event to all users (navIdent = "*")
         val notificationChangeEvent = NotificationChangeEvent(
             ids = systemNotifications.map { it.id },
@@ -353,19 +424,28 @@ class NotificationService(
             updatedAt = now,
         )
         kafkaInternalEventService.publishInternalNotificationChangeEvent(
-            notificationChangeEvent = notificationChangeEvent
+            notificationChangeEvent = notificationChangeEvent,
         )
 
-        logger.debug("Marked {} system notifications as deleted", systemNotifications.size)
+        logger.debug(
+            "Marked {} system notifications as deleted",
+            systemNotifications.size,
+        )
     }
 
     fun deleteNotificationsByBehandlingId(behandlingId: UUID) {
-        logger.debug("Deleting all notifications for behandlingId {}", behandlingId)
+        logger.debug(
+            "Deleting all notifications for behandlingId {}",
+            behandlingId,
+        )
 
         val notifications = notificationRepository.findAllByBehandlingId(behandlingId)
 
         if (notifications.isEmpty()) {
-            logger.warn("No notifications found for behandlingId {}", behandlingId)
+            logger.warn(
+                "No notifications found for behandlingId {}",
+                behandlingId,
+            )
             return
         }
 
@@ -382,45 +462,64 @@ class NotificationService(
             )
 
             kafkaInternalEventService.publishInternalNotificationChangeEvent(
-                notificationChangeEvent = notificationChangeEvent
+                notificationChangeEvent = notificationChangeEvent,
             )
         }
 
-        logger.debug("Marked {} notifications as deleted for behandlingId {}", notifications.size, behandlingId)
+        // Record metrics for deleted notifications
+        metricsService.recordMultipleNotificationsDeleted(notifications)
+
+        logger.debug(
+            "Marked {} notifications as deleted for behandlingId {}",
+            notifications.size,
+            behandlingId,
+        )
     }
 
     fun validateNoUnreadNotificationsForBehandling(behandlingId: UUID) {
-        logger.debug("Validating no unread notifications for behandlingId {}", behandlingId)
+        logger.debug(
+            "Validating no unread notifications for behandlingId {}",
+            behandlingId,
+        )
 
         val unreadNotifications = notificationRepository.findByReadAndBehandlingIdAndNotMarkedAsDeleted(
             read = false,
-            behandlingId = behandlingId
+            behandlingId = behandlingId,
         )
 
         if (unreadNotifications.isNotEmpty()) {
             val message =
                 "Du må markere alle varsler knyttet til behandlingen som lest før du kan fullføre. Uleste varsler: ${unreadNotifications.size}."
             logger.warn(message)
-            throw UnreadNotificationsException(message, unreadNotifications.size)
+            throw UnreadNotificationsException(
+                message = message,
+                count = unreadNotifications.size,
+            )
         }
 
-        logger.debug("No unread notifications found for behandlingId {}", behandlingId)
+        logger.debug(
+            "No unread notifications found for behandlingId {}",
+            behandlingId,
+        )
     }
 
     fun deleteOldMarkedAsDeletedNotifications(daysOld: Int): Int {
         val cutoffDate = LocalDateTime.now().minusDays(daysOld.toLong())
-        logger.debug("Finding notifications marked as deleted before {}", cutoffDate)
+        logger.debug(
+            "Finding notifications marked as deleted before {}",
+            cutoffDate,
+        )
 
         // Find old regular notifications
         val oldNotifications = notificationRepository.findByMarkedAsDeletedAndUpdatedAtBefore(
             markedAsDeleted = true,
-            updatedAt = cutoffDate
+            updatedAt = cutoffDate,
         )
 
         // Find old system notifications
         val oldSystemNotifications = systemNotificationRepository.findByMarkedAsDeletedAndUpdatedAtBefore(
             markedAsDeleted = true,
-            updatedAt = cutoffDate
+            updatedAt = cutoffDate,
         )
 
         val totalCount = oldNotifications.size + oldSystemNotifications.size
@@ -430,13 +529,20 @@ class NotificationService(
             return 0
         }
 
-        logger.debug("Permanently deleting {} old notifications marked as deleted ({} regular, {} system)",
-            totalCount, oldNotifications.size, oldSystemNotifications.size)
+        logger.debug(
+            "Permanently deleting {} old notifications marked as deleted ({} regular, {} system)",
+            totalCount,
+            oldNotifications.size,
+            oldSystemNotifications.size,
+        )
 
         notificationRepository.deleteAll(oldNotifications)
         systemNotificationRepository.deleteAll(oldSystemNotifications)
 
-        logger.debug("Successfully deleted {} old notifications", totalCount)
+        logger.debug(
+            "Successfully deleted {} old notifications",
+            totalCount,
+        )
 
         return totalCount
     }
@@ -446,7 +552,7 @@ class NotificationService(
             logger.debug(
                 "Processing notification message with id {} of type {}",
                 kafkaMessageId,
-                createNotificationEvent.type
+                createNotificationEvent.type,
             )
 
             val notification = when (createNotificationEvent) {
@@ -469,10 +575,16 @@ class NotificationService(
                 notification = notification,
             )
 
-            logger.debug("Successfully processed notification message with kafkaMessageId {}", kafkaMessageId)
+            logger.debug(
+                "Successfully processed notification message with kafkaMessageId {}",
+                kafkaMessageId,
+            )
 
         } catch (e: Exception) {
-            logger.error("Error processing notification message with kafkaMessageId $kafkaMessageId: ${e.message}", e)
+            logger.error(
+                "Error processing notification message with kafkaMessageId $kafkaMessageId: ${e.message}",
+                e,
+            )
             throw e
         }
     }
@@ -499,12 +611,17 @@ class NotificationService(
             behandlingType = event.behandlingType,
         )
 
-        return meldingNotificationRepository.save(notification)
+        val saved = meldingNotificationRepository.save(notification)
+
+        // Record metrics
+        metricsService.recordNotificationCreated(saved)
+
+        return saved
     }
 
     fun createLostAccessNotification(
         request: CreateLostAccessNotificationRequest,
-        kafkaMessageId: UUID
+        kafkaMessageId: UUID,
     ): LostAccessNotification {
         val now = LocalDateTime.now()
         val notification = LostAccessNotification(
@@ -524,7 +641,12 @@ class NotificationService(
             behandlingType = request.behandlingType,
         )
 
-        return lostAccessNotificationRepository.save(notification)
+        val saved = lostAccessNotificationRepository.save(notification)
+
+        // Record metrics
+        metricsService.recordNotificationCreated(saved)
+
+        return saved
     }
 
     // SystemNotification methods
@@ -540,7 +662,13 @@ class NotificationService(
         )
 
         val saved = systemNotificationRepository.save(notification)
-        logger.debug("Created system notification with id {}", saved.id)
+        logger.debug(
+            "Created system notification with id {}",
+            saved.id,
+        )
+
+        // Record metrics
+        metricsService.recordSystemNotificationCreated(saved)
 
         // Publish to SSE via internal Kafka topic
         kafkaInternalEventService.publishSystemNotificationEvent(saved)
@@ -557,15 +685,19 @@ class NotificationService(
     fun isSystemNotificationReadByUser(systemNotificationId: UUID, navIdent: String): Boolean {
         return systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(
             systemNotificationId,
-            navIdent
+            navIdent,
         )
     }
 
     private fun markSystemNotificationAsRead(id: UUID, navIdent: String) {
-        systemNotificationRepository.findById(id)
+        val systemNotification = systemNotificationRepository.findById(id)
             .orElseThrow { NotificationNotFoundException("System notification with id $id not found") }
 
-        if (!systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(id, navIdent)) {
+        if (!systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(
+                id,
+                navIdent,
+            )
+        ) {
             val now = LocalDateTime.now()
             val readStatus = SystemNotificationReadStatus(
                 systemNotificationId = id,
@@ -573,7 +705,18 @@ class NotificationService(
                 readAt = now,
             )
             systemNotificationReadStatusRepository.save(readStatus)
-            logger.debug("Marked system notification {} as read for user {}", id, navIdent)
+            logger.debug(
+                "Marked system notification {} as read for user {}",
+                id,
+                navIdent,
+            )
+
+            // Record metrics
+            metricsService.recordSystemNotificationRead(
+                notification = systemNotification,
+                readAt = now,
+                navIdent = navIdent,
+            )
 
             // Publish change event for SSE clients
             val notificationChangeEvent = NotificationChangeEvent(
@@ -584,19 +727,36 @@ class NotificationService(
                 updatedAt = now,
             )
             kafkaInternalEventService.publishInternalNotificationChangeEvent(
-                notificationChangeEvent = notificationChangeEvent
+                notificationChangeEvent = notificationChangeEvent,
             )
         } else {
-            logger.debug("System notification {} is already marked as read for user {}", id, navIdent)
+            logger.debug(
+                "System notification {} is already marked as read for user {}",
+                id,
+                navIdent,
+            )
         }
     }
 
     private fun markSystemNotificationAsUnread(id: UUID, navIdent: String) {
-        systemNotificationRepository.findById(id)
+        val systemNotification = systemNotificationRepository.findById(id)
             .orElseThrow { NotificationNotFoundException("System notification with id $id not found") }
 
-        systemNotificationReadStatusRepository.deleteBySystemNotificationIdAndNavIdent(id, navIdent)
-        logger.debug("Marked system notification {} as unread for user {}", id, navIdent)
+        systemNotificationReadStatusRepository.deleteBySystemNotificationIdAndNavIdent(
+            id,
+            navIdent,
+        )
+        logger.debug(
+            "Marked system notification {} as unread for user {}",
+            id,
+            navIdent,
+        )
+
+        // Record metrics
+        metricsService.recordSystemNotificationUnread(
+            notification = systemNotification,
+            navIdent = navIdent,
+        )
 
         // Publish change event for SSE clients
         val notificationChangeEvent = NotificationChangeEvent(
@@ -607,7 +767,7 @@ class NotificationService(
             updatedAt = LocalDateTime.now(),
         )
         kafkaInternalEventService.publishInternalNotificationChangeEvent(
-            notificationChangeEvent = notificationChangeEvent
+            notificationChangeEvent = notificationChangeEvent,
         )
     }
 
@@ -618,7 +778,13 @@ class NotificationService(
         notification.markedAsDeleted = true
         notification.updatedAt = LocalDateTime.now()
         systemNotificationRepository.save(notification)
-        logger.debug("Marked system notification {} as deleted", id)
+        logger.debug(
+            "Marked system notification {} as deleted",
+            id,
+        )
+
+        // Record metrics
+        metricsService.recordSystemNotificationDeleted(notification)
 
         val notificationChangeEvent = NotificationChangeEvent(
             id = id,
@@ -628,7 +794,7 @@ class NotificationService(
             updatedAt = notification.updatedAt,
         )
         kafkaInternalEventService.publishInternalNotificationChangeEvent(
-            notificationChangeEvent = notificationChangeEvent
+            notificationChangeEvent = notificationChangeEvent,
         )
     }
 }
