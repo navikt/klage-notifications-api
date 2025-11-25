@@ -15,12 +15,15 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.util.*
 
-@Tag(name = "admin", description = "API for managing notifications")
+@Tag(
+    name = "admin",
+    description = "API for managing notifications",
+)
 @ProtectedWithClaims(issuer = SecurityConfiguration.ISSUER_AAD)
 @RestController
 @RequestMapping("/admin/notifications")
 class NotificationAdminController(
-    private val notificationService: NotificationService
+    private val notificationService: NotificationService,
 ) {
 
     /* Not in use */
@@ -37,12 +40,15 @@ class NotificationAdminController(
 
     @Operation(
         summary = "Delete all notifications for a behandling",
-        description = "Marks all notifications related to a specific behandlingId as deleted"
+        description = "Marks all notifications related to a specific behandlingId as deleted",
     )
-    @ApiResponse(responseCode = "200", description = "Notifications deleted successfully")
+    @ApiResponse(
+        responseCode = "200",
+        description = "Notifications deleted successfully",
+    )
     @DeleteMapping("/behandling/{behandlingId}")
     fun deleteNotificationsByBehandlingId(
-        @Parameter(description = "Behandling ID") @PathVariable behandlingId: UUID
+        @Parameter(description = "Behandling ID") @PathVariable behandlingId: UUID,
     ): ResponseEntity<Void> {
         notificationService.deleteNotificationsByBehandlingId(behandlingId)
         return ResponseEntity.noContent().build()
@@ -51,28 +57,43 @@ class NotificationAdminController(
     @Operation(
         summary = "Transfer notification ownership for a behandling",
         description = "Transfers MELDING notifications to a new user (navIdent) and deletes LOST_ACCESS notifications for a specific behandlingId. " +
-                "SSE clients will be notified: old owner receives DELETE events, new owner receives CREATE events."
+                "SSE clients will be notified: old owner receives DELETE events, new owner receives CREATE events.",
     )
-    @ApiResponse(responseCode = "200", description = "Notification ownership transferred successfully")
-    @ApiResponse(responseCode = "404", description = "No notifications found for the behandlingId")
+    @ApiResponse(
+        responseCode = "200",
+        description = "Notification ownership transferred successfully",
+    )
+    @ApiResponse(
+        responseCode = "404",
+        description = "No notifications found for the behandlingId",
+    )
     @PutMapping("/behandling/{behandlingId}/transfer-ownership")
     fun transferNotificationOwnership(
         @Parameter(description = "Behandling ID") @PathVariable behandlingId: UUID,
-        @RequestBody request: TransferNotificationOwnershipRequest
+        @RequestBody request: TransferNotificationOwnershipRequest,
     ): ResponseEntity<Void> {
-        notificationService.transferNotificationOwnership(behandlingId, request.newNavIdent)
+        notificationService.transferNotificationOwnership(
+            behandlingId,
+            request.newNavIdent,
+        )
         return ResponseEntity.ok().build()
     }
 
     @Operation(
         summary = "Validate no unread notifications for behandling",
-        description = "Validates that there are no unread notifications for a specific behandlingId. Returns 400 if unread notifications exist."
+        description = "Validates that there are no unread notifications for a specific behandlingId. Returns 400 if unread notifications exist.",
     )
-    @ApiResponse(responseCode = "200", description = "No unread notifications found")
-    @ApiResponse(responseCode = "400", description = "Unread notifications exist for this behandlingId")
+    @ApiResponse(
+        responseCode = "200",
+        description = "No unread notifications found",
+    )
+    @ApiResponse(
+        responseCode = "400",
+        description = "Unread notifications exist for this behandlingId",
+    )
     @GetMapping("/behandling/{behandlingId}/validate-no-unread")
     fun validateNoUnreadNotifications(
-        @Parameter(description = "Behandling ID") @PathVariable behandlingId: UUID
+        @Parameter(description = "Behandling ID") @PathVariable behandlingId: UUID,
     ): ResponseEntity<Void> {
         notificationService.validateNoUnreadNotificationsForBehandling(behandlingId)
         return ResponseEntity.ok().build()
@@ -80,12 +101,15 @@ class NotificationAdminController(
 
     @Operation(
         summary = "Create a system notification",
-        description = "Creates a system-wide notification that will be sent to all users via SSE"
+        description = "Creates a system-wide notification that will be sent to all users via SSE",
     )
-    @ApiResponse(responseCode = "201", description = "System notification created successfully")
+    @ApiResponse(
+        responseCode = "201",
+        description = "System notification created successfully",
+    )
     @PostMapping("/system")
     fun createSystemNotification(
-        @RequestBody request: CreateSystemNotificationRequest
+        @RequestBody request: CreateSystemNotificationRequest,
     ): ResponseEntity<SystemNotificationResponse> {
         val notification = notificationService.createSystemNotification(request)
         val response = SystemNotificationResponse(
@@ -101,13 +125,19 @@ class NotificationAdminController(
 
     @Operation(
         summary = "Delete a system notification",
-        description = "Marks a system notification as deleted, by ID"
+        description = "Marks a system notification as deleted, by ID",
     )
-    @ApiResponse(responseCode = "204", description = "System notification deleted successfully")
-    @ApiResponse(responseCode = "404", description = "System notification not found")
+    @ApiResponse(
+        responseCode = "204",
+        description = "System notification deleted successfully",
+    )
+    @ApiResponse(
+        responseCode = "404",
+        description = "System notification not found",
+    )
     @DeleteMapping("/system/{id}")
     fun deleteSystemNotification(
-        @Parameter(description = "System Notification ID") @PathVariable id: UUID
+        @Parameter(description = "System Notification ID") @PathVariable id: UUID,
     ): ResponseEntity<Void> {
         notificationService.deleteSystemNotification(id)
         return ResponseEntity.noContent().build()
@@ -115,13 +145,19 @@ class NotificationAdminController(
 
     @Operation(
         summary = "Delete multiple system notifications",
-        description = "Marks multiple system notifications as deleted by their IDs"
+        description = "Marks multiple system notifications as deleted by their IDs",
     )
-    @ApiResponse(responseCode = "204", description = "System notifications deleted successfully")
-    @ApiResponse(responseCode = "404", description = "One or more system notifications not found")
+    @ApiResponse(
+        responseCode = "204",
+        description = "System notifications deleted successfully",
+    )
+    @ApiResponse(
+        responseCode = "404",
+        description = "One or more system notifications not found",
+    )
     @DeleteMapping("/system")
     fun deleteMultipleSystemNotifications(
-        @Parameter(description = "List of system notification IDs to delete") @RequestBody notificationIdList: List<UUID>
+        @Parameter(description = "List of system notification IDs to delete") @RequestBody notificationIdList: List<UUID>,
     ): ResponseEntity<Void> {
         notificationService.deleteMultipleSystemNotifications(notificationIdList)
         return ResponseEntity.noContent().build()
@@ -129,9 +165,12 @@ class NotificationAdminController(
 
     @Operation(
         summary = "Get all system notifications",
-        description = "Returns all system notifications that are not marked as deleted"
+        description = "Returns all system notifications that are not marked as deleted",
     )
-    @ApiResponse(responseCode = "200", description = "System notifications retrieved successfully")
+    @ApiResponse(
+        responseCode = "200",
+        description = "System notifications retrieved successfully",
+    )
     @GetMapping("/system")
     fun getAllSystemNotifications(): ResponseEntity<List<SystemNotificationResponse>> {
         val systemNotifications = notificationService.getAllSystemNotifications()
