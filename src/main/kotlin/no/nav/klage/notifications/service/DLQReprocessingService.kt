@@ -64,7 +64,7 @@ class DLQReprocessingService(
 
             // Mark as successfully reprocessed
             deadLetterQueueService.markAsReprocessed(
-                dlqMessage.id,
+                id = dlqMessage.id,
                 success = true,
             )
 
@@ -87,7 +87,7 @@ class DLQReprocessingService(
 
             // Mark as failed reprocessing
             deadLetterQueueService.markAsReprocessed(
-                dlqMessage.id,
+                id = dlqMessage.id,
                 success = false,
                 errorMessage = "Reprocessing failed: ${e.message}",
             )
