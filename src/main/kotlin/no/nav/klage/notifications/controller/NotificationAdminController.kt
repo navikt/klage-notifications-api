@@ -22,16 +22,17 @@ class NotificationAdminController(
     private val notificationService: NotificationService
 ) {
 
-    @Operation(summary = "Delete a notification", description = "Marks a notification as deleted, by ID")
-    @ApiResponse(responseCode = "204", description = "Notification deleted successfully")
-    @ApiResponse(responseCode = "404", description = "Notification not found")
-    @DeleteMapping("/{id}")
-    fun deleteNotification(
-        @Parameter(description = "Notification ID") @PathVariable id: UUID
-    ): ResponseEntity<Void> {
-        notificationService.deleteNotification(id)
-        return ResponseEntity.noContent().build()
-    }
+    /* Not in use */
+//    @Operation(summary = "Delete a notification", description = "Marks a notification as deleted, by ID")
+//    @ApiResponse(responseCode = "204", description = "Notification deleted successfully")
+//    @ApiResponse(responseCode = "404", description = "Notification not found")
+//    @DeleteMapping("/{id}")
+//    fun deleteNotification(
+//        @Parameter(description = "Notification ID") @PathVariable id: UUID
+//    ): ResponseEntity<Void> {
+//        notificationService.deleteNotification(id)
+//        return ResponseEntity.noContent().build()
+//    }
 
     @Operation(
         summary = "Delete all notifications for a behandling",
