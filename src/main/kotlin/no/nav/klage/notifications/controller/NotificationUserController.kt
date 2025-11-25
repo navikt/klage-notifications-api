@@ -57,4 +57,14 @@ class NotificationUserController(
         val navIdent = tokenUtil.getIdent()
         notificationService.markMultipleAsRead(notificationIdList = notificationIdList, navIdent = navIdent)
     }
+
+    @Operation(summary = "Mark multiple notifications as unread", description = "Marks multiple notifications as unread for the current user")
+    @ApiResponse(responseCode = "200", description = "Notifications marked as unread successfully")
+    @PatchMapping("/unread-multiple")
+    fun markMultipleAsUnread(
+        @Parameter(description = "List of notification IDs to mark as unread") @RequestBody notificationIdList: List<UUID>
+    ) {
+        val navIdent = tokenUtil.getIdent()
+        notificationService.markMultipleAsUnread(notificationIdList = notificationIdList, navIdent = navIdent)
+    }
 }
