@@ -1,18 +1,29 @@
 package no.nav.klage.notifications.config
 
+import no.nav.klage.notifications.dto.CreateNotificationEvent
 import no.nav.klage.notifications.util.getLogger
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG
+import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.config.SslConfigs
+import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.kafka.annotation.EnableKafka
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
+import org.springframework.kafka.core.ConsumerFactory
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory
 import org.springframework.kafka.core.DefaultKafkaProducerFactory
 import org.springframework.kafka.core.KafkaTemplate
+import org.springframework.kafka.listener.ContainerProperties
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+import org.springframework.kafka.support.serializer.JacksonJsonDeserializer
 import org.springframework.kafka.support.serializer.JacksonJsonSerializer
 
+@EnableKafka
 @Configuration
 class AivenKafkaConfiguration(
     @Value($$"${KAFKA_BROKERS}")
@@ -47,6 +58,35 @@ class AivenKafkaConfiguration(
         ) + commonKafkaConfig
 
         return KafkaTemplate(DefaultKafkaProducerFactory(config))
+    }
+
+    //Consumer factory bean
+    @Bean
+    fun consumerFactory(commonKafkaConfig: Map<String, Any>): ConsumerFactory<String, CreateNotificationEvent> {
+        val config = mapOf(
+            ConsumerConfig.GROUP_ID_CONFIG to "klage-notifications-api-event-consumer",
+            ConsumerConfig.CLIENT_ID_CONFIG to "klage-notifications-api-event-client",
+            ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG to false,
+            ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
+            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to ErrorHandlingDeserializer::class.java,
+            ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS to JacksonJsonDeserializer::class.java.name,
+            JacksonJsonDeserializer.TRUSTED_PACKAGES to "*",
+            JacksonJsonDeserializer.VALUE_DEFAULT_TYPE to CreateNotificationEvent::class.java.name
+        ) + commonKafkaConfig
+
+        return DefaultKafkaConsumerFactory(config)
+    }
+
+    //Kafka listener container factory bean
+    @Bean
+    fun kafkaListenerContainerFactory(
+        consumerFactory: ConsumerFactory<String, CreateNotificationEvent>
+    ): ConcurrentKafkaListenerContainerFactory<String, CreateNotificationEvent> {
+        val factory = ConcurrentKafkaListenerContainerFactory<String, CreateNotificationEvent>()
+        factory.setConsumerFactory(consumerFactory)
+        factory.containerProperties.ackMode = ContainerProperties.AckMode.MANUAL
+        factory.setConcurrency(1) // Single consumer thread to maintain ordering
+        return factory
     }
 
     private fun securityConfig() = mapOf(

@@ -2,6 +2,7 @@ package no.nav.klage.notifications.service
 
 import no.nav.klage.notifications.domain.Notification
 import no.nav.klage.notifications.domain.SystemNotification
+import no.nav.klage.notifications.dto.InternalNotificationEvent
 import no.nav.klage.notifications.dto.NotificationChangeEvent
 import no.nav.klage.notifications.util.getLogger
 import org.springframework.beans.factory.annotation.Value
@@ -39,13 +40,41 @@ class KafkaInternalEventService(
         }
     }
 
+    fun publishInternalNotificationEvents(notifications: List<Notification>) {
+        runCatching {
+            logger.debug("Publishing {} internalNotificationEvents to Kafka for subscribers", notifications.size)
+
+            val event = InternalNotificationEvent(notifications)
+            val key = if (notifications.isNotEmpty()) {
+                "notification-bulk-${notifications.first().navIdent}"
+            } else {
+                notifications.first().id.toString()
+            }
+            aivenKafkaTemplate.send(
+                notificationInternalEventsTopic,
+                key,
+                event,
+            ).get()
+
+            logger.debug("Published {} internalNotificationEvents to Kafka for subscribers", notifications.size)
+        }.onFailure {
+            logger.error("Could not publish internalNotificationEvents to subscribers", it)
+        }
+    }
+
     fun publishInternalNotificationChangeEvent(notificationChangeEvent: NotificationChangeEvent) {
         runCatching {
             logger.debug("Publishing internalNotificationChangeEvent to Kafka for subscribers")
 
+            val key = if (!notificationChangeEvent.ids.isNullOrEmpty()) {
+                "notification-bulk-change-${notificationChangeEvent.navIdent}"
+            } else {
+                notificationChangeEvent.id!!.toString()
+            }
+
             aivenKafkaTemplate.send(
                 notificationInternalChangeEventsTopic,
-                notificationChangeEvent.id.toString(),
+                key,
                 notificationChangeEvent,
             ).get()
             logger.debug("Published internalNotificationChangeEvent to Kafka for subscribers")
