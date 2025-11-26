@@ -494,7 +494,9 @@ data: {
                     saksnummer = notification.saksnummer,
                 ),
             )
-        } else TODO()
+        } else {
+            logger.warn("Unknown notification type received in jsonToInternalNotificationEvent: ${notification::class.java}")
+        }
     }
 
     // Shared Kafka consumers - created once and shared by all clients
