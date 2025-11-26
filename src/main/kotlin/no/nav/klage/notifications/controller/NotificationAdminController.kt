@@ -68,7 +68,7 @@ class NotificationAdminController(
         responseCode = "404",
         description = "No notifications found for the behandlingId",
     )
-    @PutMapping("/behandling/{behandlingId}/transfer-ownership")
+    @PostMapping("/behandling/{behandlingId}/transfer-ownership")
     fun transferNotificationOwnership(
         @Parameter(description = "Behandling ID") @PathVariable behandlingId: UUID,
         @RequestBody request: TransferNotificationOwnershipRequest,
