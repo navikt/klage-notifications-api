@@ -588,15 +588,15 @@ class NotificationService(
     }
 
     fun getUnreadNotificationCountForBehandling(behandlingId: UUID): Int {
-        logger.debug("Getting unread notification count for behandlingId {}", behandlingId)
+        logger.debug("Getting unread MELDING notification count for behandlingId {}", behandlingId)
 
-        val unreadNotifications = notificationRepository.findByReadAndBehandlingIdAndNotMarkedAsDeleted(
-            read = false,
+        val count = meldingNotificationRepository.countByBehandlingIdAndReadAndMarkedAsDeleted(
             behandlingId = behandlingId,
-        )
+            read = false,
+            markedAsDeleted = false,
+        ).toInt()
 
-        val count = unreadNotifications.size
-        logger.debug("Found {} unread notifications for behandlingId {}", count, behandlingId)
+        logger.debug("Found {} unread MELDING notifications for behandlingId {}", count, behandlingId)
         return count
     }
 
