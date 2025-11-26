@@ -1,15 +1,14 @@
 package no.nav.klage.notifications.service
 
-import io.micrometer.core.instrument.MeterRegistry
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import no.nav.klage.kodeverk.Type
 import no.nav.klage.kodeverk.ytelse.Ytelse
 import no.nav.klage.notifications.domain.LostAccessNotification
 import no.nav.klage.notifications.domain.MeldingNotification
 import no.nav.klage.notifications.domain.NotificationSource
 import no.nav.klage.notifications.domain.SystemNotification
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDateTime
@@ -17,13 +16,39 @@ import java.util.*
 
 class NotificationMetricsServiceTest {
 
-    private lateinit var meterRegistry: MeterRegistry
+    private lateinit var meterRegistry: PrometheusMeterRegistry
     private lateinit var metricsService: NotificationMetricsService
 
     @BeforeEach
     fun setup() {
-        meterRegistry = SimpleMeterRegistry()
+        meterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
         metricsService = NotificationMetricsService(meterRegistry)
+    }
+
+    @Test
+    fun `test prometheus output format`() {
+        // Given
+        val notification = createMeldingNotification()
+
+        // When
+        metricsService.recordNotificationCreated(notification)
+        metricsService.recordNotificationCreated(notification)
+        metricsService.recordNotificationCreated(notification)
+
+        // Then - Get the actual Prometheus scrape output
+        val prometheusOutput = meterRegistry.scrape()
+
+        println("=== Prometheus Output ===")
+        println(prometheusOutput)
+        println("=== End of Prometheus Output ===")
+
+        // Verify the metric appears in Prometheus format
+        // Note: PrometheusMeterRegistry strips "_created" from counter names ending in "_total"
+        // So "klage_notifications_total" becomes "klage_notifications_total"
+        assertThat(prometheusOutput).contains("klage_notifications_total")
+        assertThat(prometheusOutput).contains("notification_type=\"MELDING\"")
+        assertThat(prometheusOutput).contains("source=\"KABAL\"")
+        assertThat(prometheusOutput).contains("3.0")
     }
 
     @Test
@@ -35,13 +60,13 @@ class NotificationMetricsServiceTest {
         metricsService.recordNotificationCreated(notification)
 
         // Then
-        val counter = meterRegistry.find("klage_notifications_created_total")
+        val counter = meterRegistry.find("klage_notifications_total")
             .tag("notification_type", "MELDING")
             .tag("source", "KABAL")
             .counter()
 
-        assertNotNull(counter)
-        assertEquals(1.0, counter!!.count())
+        assertThat(counter).isNotNull
+        assertThat(counter!!.count()).isEqualTo(1.0)
     }
 
     @Test
@@ -59,16 +84,16 @@ class NotificationMetricsServiceTest {
             .tag("source", "KABAL")
             .counter()
 
-        assertNotNull(readCounter)
-        assertEquals(1.0, readCounter!!.count())
+        assertThat(readCounter).isNotNull
+        assertThat(readCounter!!.count()).isEqualTo(1.0)
 
         val timer = meterRegistry.find("klage_notifications_time_to_read_seconds")
             .tag("notification_type", "MELDING")
             .tag("source", "KABAL")
             .timer()
 
-        assertNotNull(timer)
-        assertEquals(1L, timer!!.count())
+        assertThat(timer).isNotNull
+        assertThat(timer!!.count()).isEqualTo(1L)
     }
 
     @Test
@@ -85,8 +110,8 @@ class NotificationMetricsServiceTest {
             .tag("source", "KABAL")
             .counter()
 
-        assertNotNull(counter)
-        assertEquals(1.0, counter!!.count())
+        assertThat(counter).isNotNull
+        assertThat(counter!!.count()).isEqualTo(1.0)
     }
 
     @Test
@@ -103,8 +128,8 @@ class NotificationMetricsServiceTest {
             .tag("source", "KABAL")
             .counter()
 
-        assertNotNull(counter)
-        assertEquals(1.0, counter!!.count())
+        assertThat(counter).isNotNull
+        assertThat(counter!!.count()).isEqualTo(1.0)
     }
 
     @Test
@@ -116,13 +141,13 @@ class NotificationMetricsServiceTest {
         metricsService.recordSystemNotificationCreated(notification)
 
         // Then
-        val counter = meterRegistry.find("klage_notifications_created_total")
+        val counter = meterRegistry.find("klage_notifications_total")
             .tag("notification_type", "SYSTEM")
             .tag("source", "KABAL")
             .counter()
 
-        assertNotNull(counter)
-        assertEquals(1.0, counter!!.count())
+        assertThat(counter).isNotNull
+        assertThat(counter!!.count()).isEqualTo(1.0)
     }
 
     @Test
@@ -131,7 +156,7 @@ class NotificationMetricsServiceTest {
         val notifications = listOf(
             createMeldingNotification(),
             createMeldingNotification(),
-            createLostAccessNotification()
+            createLostAccessNotification(),
         )
         notifications.forEach { it.readAt = LocalDateTime.now() }
 
@@ -149,10 +174,10 @@ class NotificationMetricsServiceTest {
             .tag("source", "KABAL")
             .counters()
 
-        assertNotNull(meldingCounters)
-        assertNotNull(lostAccessCounters)
-        assertEquals(2.0, meldingCounters.sumOf { it.count() })
-        assertEquals(1.0, lostAccessCounters.sumOf { it.count() })
+        assertThat(meldingCounters).isNotNull
+        assertThat(lostAccessCounters).isNotNull
+        assertThat(meldingCounters.sumOf { it.count() }).isEqualTo(2.0)
+        assertThat(lostAccessCounters.sumOf { it.count() }).isEqualTo(1.0)
     }
 
     @Test
@@ -166,18 +191,18 @@ class NotificationMetricsServiceTest {
         metricsService.recordNotificationCreated(lostAccessNotification)
 
         // Then
-        val meldingCounters = meterRegistry.find("klage_notifications_created_total")
+        val meldingCounters = meterRegistry.find("klage_notifications_total")
             .tag("notification_type", "MELDING")
             .counters()
 
-        val lostAccessCounters = meterRegistry.find("klage_notifications_created_total")
+        val lostAccessCounters = meterRegistry.find("klage_notifications_total")
             .tag("notification_type", "LOST_ACCESS")
             .counters()
 
-        assertNotNull(meldingCounters)
-        assertNotNull(lostAccessCounters)
-        assertEquals(1.0, meldingCounters.sumOf { it.count() })
-        assertEquals(1.0, lostAccessCounters.sumOf { it.count() })
+        assertThat(meldingCounters).isNotNull
+        assertThat(lostAccessCounters).isNotNull
+        assertThat(meldingCounters.sumOf { it.count() }).isEqualTo(1.0)
+        assertThat(lostAccessCounters.sumOf { it.count() }).isEqualTo(1.0)
     }
 
     @Test
@@ -191,18 +216,18 @@ class NotificationMetricsServiceTest {
         metricsService.recordNotificationCreated(notification2)
 
         // Then
-        val kabalCounters = meterRegistry.find("klage_notifications_created_total")
+        val kabalCounters = meterRegistry.find("klage_notifications_total")
             .tag("source", "KABAL")
             .counters()
 
-        val oppgaveCounters = meterRegistry.find("klage_notifications_created_total")
+        val oppgaveCounters = meterRegistry.find("klage_notifications_total")
             .tag("source", "OPPGAVE")
             .counters()
 
-        assertNotNull(kabalCounters)
-        assertNotNull(oppgaveCounters)
-        assertEquals(1.0, kabalCounters.sumOf { it.count() })
-        assertEquals(1.0, oppgaveCounters.sumOf { it.count() })
+        assertThat(kabalCounters).isNotNull
+        assertThat(oppgaveCounters).isNotNull
+        assertThat(kabalCounters.sumOf { it.count() }).isEqualTo(1.0)
+        assertThat(oppgaveCounters.sumOf { it.count() }).isEqualTo(1.0)
     }
 
     // Helper methods to create test notifications

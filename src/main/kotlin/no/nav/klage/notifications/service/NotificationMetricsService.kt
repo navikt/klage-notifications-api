@@ -16,7 +16,9 @@ class NotificationMetricsService(
         private val logger = getLogger(javaClass.enclosingClass)
         private const val METRIC_PREFIX = "klage_notifications"
         // Metric names
-        private const val CREATED_METRIC = "${METRIC_PREFIX}_created_total"
+        //means created. "created" was stripped by prometheus, so no point in using it.
+        private const val CREATED_METRIC = "${METRIC_PREFIX}_total"
+
         private const val READ_METRIC = "${METRIC_PREFIX}_read_total"
         private const val UNREAD_METRIC = "${METRIC_PREFIX}_unread_total"
         private const val DELETED_METRIC = "${METRIC_PREFIX}_deleted_total"
