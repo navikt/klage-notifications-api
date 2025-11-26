@@ -14,8 +14,8 @@ jobs:
       pull-requests: write
       id-token: write
     steps:
-      - uses: actions/checkout@v5
-      - uses: navikt/digestabot@3233d68167c867ef8227c5dfde7a30f2a0e10af0
+      - uses: actions/checkout@v5 # Immutable release
+      - uses: navikt/digestabot@v1.0 # Immutable release
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           team: appsec
