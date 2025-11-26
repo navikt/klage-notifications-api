@@ -1,14 +1,26 @@
 package no.nav.klage.notifications.domain
 
+import com.fasterxml.jackson.annotation.JsonSubTypes
+import com.fasterxml.jackson.annotation.JsonTypeInfo
 import jakarta.persistence.*
 import java.time.LocalDateTime
 import java.util.*
 
+
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = JsonTypeInfo.As.PROPERTY,
+    property = "notificationType"
+)
+@JsonSubTypes(
+    JsonSubTypes.Type(value = MeldingNotification::class, name = "MELDING"),
+    JsonSubTypes.Type(value = LostAccessNotification::class, name = "LOST_ACCESS"),
+)
 @Entity
 @Table(name = "notifications", schema = "klage")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "notification_type")
-open class Notification(
+abstract class Notification(
     @Id
     open val id: UUID = UUID.randomUUID(),
 

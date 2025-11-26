@@ -1,5 +1,6 @@
 package no.nav.klage.notifications.domain
 
+import com.fasterxml.jackson.annotation.JsonTypeName
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
 import jakarta.persistence.DiscriminatorValue
@@ -11,6 +12,7 @@ import no.nav.klage.kodeverk.ytelse.YtelseConverter
 import java.time.LocalDateTime
 import java.util.*
 
+@JsonTypeName("MELDING")
 @Entity
 @DiscriminatorValue("MELDING")
 class MeldingNotification(
