@@ -23,7 +23,7 @@ class OpenApiConfig {
         return GroupedOpenApi.builder()
             .packagesToScan(NotificationUserController::class.java.packageName)
             .group("user")
-            .pathsToMatch("/user/**")
+            .pathsToMatch("/user/**", "/notifications/**")
             .build()
     }
 }
