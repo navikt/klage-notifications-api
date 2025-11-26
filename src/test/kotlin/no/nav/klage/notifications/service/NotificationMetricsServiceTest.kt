@@ -38,8 +38,6 @@ class NotificationMetricsServiceTest {
         val counter = meterRegistry.find("klage_notifications_created_total")
             .tag("notification_type", "MELDING")
             .tag("source", "KABAL")
-            .tag("navIdent", notification.navIdent)
-            .tag("behandlingId", notification.behandlingId.toString())
             .counter()
 
         assertNotNull(counter)
@@ -59,8 +57,6 @@ class NotificationMetricsServiceTest {
         val readCounter = meterRegistry.find("klage_notifications_read_total")
             .tag("notification_type", "MELDING")
             .tag("source", "KABAL")
-            .tag("navIdent", notification.navIdent)
-            .tag("behandlingId", notification.behandlingId.toString())
             .counter()
 
         assertNotNull(readCounter)
@@ -69,8 +65,6 @@ class NotificationMetricsServiceTest {
         val timer = meterRegistry.find("klage_notifications_time_to_read_seconds")
             .tag("notification_type", "MELDING")
             .tag("source", "KABAL")
-            .tag("navIdent", notification.navIdent)
-            .tag("behandlingId", notification.behandlingId.toString())
             .timer()
 
         assertNotNull(timer)
@@ -89,8 +83,6 @@ class NotificationMetricsServiceTest {
         val counter = meterRegistry.find("klage_notifications_unread_total")
             .tag("notification_type", "MELDING")
             .tag("source", "KABAL")
-            .tag("navIdent", notification.navIdent)
-            .tag("behandlingId", notification.behandlingId.toString())
             .counter()
 
         assertNotNull(counter)
@@ -109,8 +101,6 @@ class NotificationMetricsServiceTest {
         val counter = meterRegistry.find("klage_notifications_deleted_total")
             .tag("notification_type", "MELDING")
             .tag("source", "KABAL")
-            .tag("navIdent", notification.navIdent)
-            .tag("behandlingId", notification.behandlingId.toString())
             .counter()
 
         assertNotNull(counter)
@@ -129,8 +119,6 @@ class NotificationMetricsServiceTest {
         val counter = meterRegistry.find("klage_notifications_created_total")
             .tag("notification_type", "SYSTEM")
             .tag("source", "KABAL")
-            .tag("navIdent", "ALL")
-            .tag("behandlingId", "NONE")
             .counter()
 
         assertNotNull(counter)

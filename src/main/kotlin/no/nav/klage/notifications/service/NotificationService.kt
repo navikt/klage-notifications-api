@@ -140,7 +140,6 @@ class NotificationService(
             metricsService.recordMultipleSystemNotificationsRead(
                 notifications = systemNotifications.filter { it.id !in alreadyReadSystemNotificationIds },
                 readAt = now,
-                navIdent = navIdent,
             )
         }
 
@@ -264,7 +263,6 @@ class NotificationService(
                 systemNotifications.filter { it.id in existingReadStatuses.map { rs -> rs.systemNotificationId } }
             metricsService.recordMultipleSystemNotificationsUnread(
                 notifications = unreadSystemNotifications,
-                navIdent = navIdent,
             )
         }
 
@@ -341,7 +339,6 @@ class NotificationService(
             metricsService.recordMultipleSystemNotificationsRead(
                 notifications = unreadSystemNotifications,
                 readAt = now,
-                navIdent = navIdent,
             )
         }
 
@@ -812,7 +809,6 @@ class NotificationService(
             metricsService.recordSystemNotificationRead(
                 notification = systemNotification,
                 readAt = now,
-                navIdent = navIdent,
             )
 
             // Publish change event for SSE clients
@@ -852,7 +848,6 @@ class NotificationService(
         // Record metrics
         metricsService.recordSystemNotificationUnread(
             notification = systemNotification,
-            navIdent = navIdent,
         )
 
         // Publish change event for SSE clients
