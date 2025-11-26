@@ -25,21 +25,6 @@ class KafkaInternalEventService(
         private val logger = getLogger(javaClass.enclosingClass)
     }
 
-    fun publishInternalNotificationEvent(notification: Notification) {
-        runCatching {
-            logger.debug("Publishing internalNotificationEvent to Kafka for subscribers")
-
-            aivenKafkaTemplate.send(
-                notificationInternalEventsTopic,
-                notification.id.toString(),
-                notification,
-            ).get()
-            logger.debug("Published internalNotificationEvent to Kafka for subscribers")
-        }.onFailure {
-            logger.error("Could not publish internalNotificationEvent to subscribers", it)
-        }
-    }
-
     fun publishInternalNotificationEvents(notifications: List<Notification>) {
         runCatching {
             logger.debug("Publishing {} internalNotificationEvents to Kafka for subscribers", notifications.size)

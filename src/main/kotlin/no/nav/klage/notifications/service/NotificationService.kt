@@ -668,8 +668,8 @@ class NotificationService(
                 }
             }
 
-            kafkaInternalEventService.publishInternalNotificationEvent(
-                notification = notification,
+            kafkaInternalEventService.publishInternalNotificationEvents(
+                notifications = listOf(notification),
             )
 
             logger.debug(
