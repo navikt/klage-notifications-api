@@ -8,6 +8,7 @@ import no.nav.klage.notifications.config.SecurityConfiguration
 import no.nav.klage.notifications.dto.CreateSystemNotificationRequest
 import no.nav.klage.notifications.dto.TransferNotificationOwnershipRequest
 import no.nav.klage.notifications.dto.view.SystemNotificationResponse
+import no.nav.klage.notifications.dto.view.UnreadNotificationCountResponse
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.http.HttpStatus
@@ -97,6 +98,22 @@ class NotificationAdminController(
     ): ResponseEntity<Void> {
         notificationService.validateNoUnreadNotificationsForBehandling(behandlingId)
         return ResponseEntity.ok().build()
+    }
+
+    @Operation(
+        summary = "Get count of unread notifications for behandling",
+        description = "Returns the number of unread notifications for a specific behandlingId",
+    )
+    @ApiResponse(
+        responseCode = "200",
+        description = "Unread notification count retrieved successfully",
+    )
+    @GetMapping("/behandling/{behandlingId}/unread-count")
+    fun getUnreadNotificationCount(
+        @Parameter(description = "Behandling ID") @PathVariable behandlingId: UUID,
+    ): ResponseEntity<UnreadNotificationCountResponse> {
+        val count = notificationService.getUnreadNotificationCountForBehandling(behandlingId)
+        return ResponseEntity.ok(UnreadNotificationCountResponse(count))
     }
 
     @Operation(

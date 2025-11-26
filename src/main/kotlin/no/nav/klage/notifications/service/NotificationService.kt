@@ -587,6 +587,19 @@ class NotificationService(
         )
     }
 
+    fun getUnreadNotificationCountForBehandling(behandlingId: UUID): Int {
+        logger.debug("Getting unread notification count for behandlingId {}", behandlingId)
+
+        val unreadNotifications = notificationRepository.findByReadAndBehandlingIdAndNotMarkedAsDeleted(
+            read = false,
+            behandlingId = behandlingId,
+        )
+
+        val count = unreadNotifications.size
+        logger.debug("Found {} unread notifications for behandlingId {}", count, behandlingId)
+        return count
+    }
+
     fun deleteOldMarkedAsDeletedNotifications(daysOld: Int): Int {
         val cutoffDate = LocalDateTime.now().minusDays(daysOld.toLong())
         logger.debug(
