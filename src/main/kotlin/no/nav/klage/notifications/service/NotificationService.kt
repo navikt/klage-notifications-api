@@ -4,7 +4,6 @@ import no.nav.klage.notifications.domain.*
 import no.nav.klage.notifications.dto.*
 import no.nav.klage.notifications.exceptions.MissingAccessException
 import no.nav.klage.notifications.exceptions.NotificationNotFoundException
-import no.nav.klage.notifications.exceptions.UnreadNotificationsException
 import no.nav.klage.notifications.repository.*
 import no.nav.klage.notifications.util.getLogger
 import org.springframework.stereotype.Service
@@ -556,33 +555,6 @@ class NotificationService(
             meldingNotifications.size,
             newNavIdent,
             lostAccessNotifications.size,
-            behandlingId,
-        )
-    }
-
-    fun validateNoUnreadNotificationsForBehandling(behandlingId: UUID) {
-        logger.debug(
-            "Validating no unread notifications for behandlingId {}",
-            behandlingId,
-        )
-
-        val unreadNotifications = notificationRepository.findByReadAndBehandlingIdAndNotMarkedAsDeleted(
-            read = false,
-            behandlingId = behandlingId,
-        )
-
-        if (unreadNotifications.isNotEmpty()) {
-            val message =
-                "Du må markere alle varsler knyttet til behandlingen som lest før du kan fullføre. Uleste varsler: ${unreadNotifications.size}."
-            logger.warn(message)
-            throw UnreadNotificationsException(
-                message = message,
-                count = unreadNotifications.size,
-            )
-        }
-
-        logger.debug(
-            "No unread notifications found for behandlingId {}",
             behandlingId,
         )
     }

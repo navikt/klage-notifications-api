@@ -81,26 +81,6 @@ class NotificationAdminController(
     }
 
     @Operation(
-        summary = "Validate no unread notifications for behandling",
-        description = "Validates that there are no unread notifications for a specific behandlingId. Returns 400 if unread notifications exist.",
-    )
-    @ApiResponse(
-        responseCode = "200",
-        description = "No unread notifications found",
-    )
-    @ApiResponse(
-        responseCode = "400",
-        description = "Unread notifications exist for this behandlingId",
-    )
-    @GetMapping("/behandling/{behandlingId}/validate-no-unread")
-    fun validateNoUnreadNotifications(
-        @Parameter(description = "Behandling ID") @PathVariable behandlingId: UUID,
-    ): ResponseEntity<Void> {
-        notificationService.validateNoUnreadNotificationsForBehandling(behandlingId)
-        return ResponseEntity.ok().build()
-    }
-
-    @Operation(
         summary = "Get count of unread notifications for behandling",
         description = "Returns the number of unread notifications for a specific behandlingId",
     )
