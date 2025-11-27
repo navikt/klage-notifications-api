@@ -3,6 +3,7 @@ package no.nav.klage.notifications.service
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
+import jakarta.annotation.PostConstruct
 import no.nav.klage.notifications.domain.*
 import no.nav.klage.notifications.util.getLogger
 import org.springframework.stereotype.Service
@@ -30,6 +31,50 @@ class NotificationMetricsService(
         // Tag keys
         private const val TYPE_TAG = "notification_type"
         private const val SOURCE_TAG = "source"
+    }
+
+    @PostConstruct
+    fun initializeCounters() {
+        // Initialize all counter combinations so they start at 0
+        val notificationTypes = listOf(
+            NotificationType.MELDING.name,
+            NotificationType.LOST_ACCESS.name,
+            "SYSTEM"
+        )
+
+        NotificationSource.entries.forEach { source ->
+            notificationTypes.forEach { type ->
+                // Initialize created counter
+                Counter.builder(CREATED_METRIC)
+                    .tag(TYPE_TAG, type)
+                    .tag(SOURCE_TAG, source.name)
+                    .description("Total number of notifications created")
+                    .register(meterRegistry)
+
+                // Initialize read counter
+                Counter.builder(READ_METRIC)
+                    .tag(TYPE_TAG, type)
+                    .tag(SOURCE_TAG, source.name)
+                    .description("Total number of notifications marked as read")
+                    .register(meterRegistry)
+
+                // Initialize unread counter
+                Counter.builder(UNREAD_METRIC)
+                    .tag(TYPE_TAG, type)
+                    .tag(SOURCE_TAG, source.name)
+                    .description("Total number of notifications marked as unread")
+                    .register(meterRegistry)
+
+                // Initialize deleted counter
+                Counter.builder(DELETED_METRIC)
+                    .tag(TYPE_TAG, type)
+                    .tag(SOURCE_TAG, source.name)
+                    .description("Total number of notifications deleted")
+                    .register(meterRegistry)
+            }
+        }
+
+        logger.debug("Initialized all notification counters")
     }
 
     fun recordNotificationCreated(notification: Notification) {
