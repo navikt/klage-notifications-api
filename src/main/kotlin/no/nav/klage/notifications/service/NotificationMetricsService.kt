@@ -1,4 +1,5 @@
 package no.nav.klage.notifications.service
+
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
@@ -7,6 +8,7 @@ import no.nav.klage.notifications.util.getLogger
 import org.springframework.stereotype.Service
 import java.time.Duration
 import java.time.LocalDateTime
+
 @Service
 class NotificationMetricsService(
     private val meterRegistry: MeterRegistry
@@ -15,6 +17,7 @@ class NotificationMetricsService(
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
         private const val METRIC_PREFIX = "klage_notifications"
+
         // Metric names
         //means created. "created" was stripped by prometheus, so no point in using it.
         private const val CREATED_METRIC = "${METRIC_PREFIX}_total"
@@ -23,10 +26,12 @@ class NotificationMetricsService(
         private const val UNREAD_METRIC = "${METRIC_PREFIX}_unread_total"
         private const val DELETED_METRIC = "${METRIC_PREFIX}_deleted_total"
         private const val TIME_TO_READ_METRIC = "${METRIC_PREFIX}_time_to_read_seconds"
+
         // Tag keys
         private const val TYPE_TAG = "notification_type"
         private const val SOURCE_TAG = "source"
     }
+
     fun recordNotificationCreated(notification: Notification) {
         try {
             val type = getNotificationType(notification)
@@ -41,6 +46,7 @@ class NotificationMetricsService(
             logger.error("Failed to record notification created metric for notification ${notification.id}", e)
         }
     }
+
     fun recordSystemNotificationCreated(notification: SystemNotification) {
         try {
             val source = notification.source.name
@@ -54,6 +60,7 @@ class NotificationMetricsService(
             logger.error("Failed to record system notification created metric for notification ${notification.id}", e)
         }
     }
+
     fun recordNotificationRead(notification: Notification) {
         try {
             val type = getNotificationType(notification)
@@ -78,6 +85,7 @@ class NotificationMetricsService(
             logger.error("Failed to record notification read metric for notification ${notification.id}", e)
         }
     }
+
     fun recordSystemNotificationRead(notification: SystemNotification, readAt: LocalDateTime) {
         try {
             val source = notification.source.name
@@ -99,6 +107,7 @@ class NotificationMetricsService(
             logger.error("Failed to record system notification read metric for notification ${notification.id}", e)
         }
     }
+
     fun recordNotificationUnread(notification: Notification) {
         try {
             val type = getNotificationType(notification)
@@ -113,6 +122,7 @@ class NotificationMetricsService(
             logger.error("Failed to record notification unread metric for notification ${notification.id}", e)
         }
     }
+
     fun recordSystemNotificationUnread(notification: SystemNotification) {
         try {
             val source = notification.source.name
@@ -126,6 +136,7 @@ class NotificationMetricsService(
             logger.error("Failed to record system notification unread metric for notification ${notification.id}", e)
         }
     }
+
     fun recordNotificationDeleted(notification: Notification) {
         try {
             val type = getNotificationType(notification)
@@ -140,6 +151,7 @@ class NotificationMetricsService(
             logger.error("Failed to record notification deleted metric for notification ${notification.id}", e)
         }
     }
+
     fun recordSystemNotificationDeleted(notification: SystemNotification) {
         try {
             val source = notification.source.name
@@ -153,6 +165,7 @@ class NotificationMetricsService(
             logger.error("Failed to record system notification deleted metric for notification ${notification.id}", e)
         }
     }
+
     fun recordMultipleNotificationsRead(notifications: List<Notification>) {
         try {
             notifications.forEach { recordNotificationRead(it) }
@@ -160,6 +173,7 @@ class NotificationMetricsService(
             logger.error("Failed to record multiple notifications read metrics", e)
         }
     }
+
     fun recordMultipleSystemNotificationsRead(notifications: List<SystemNotification>, readAt: LocalDateTime) {
         try {
             notifications.forEach { recordSystemNotificationRead(it, readAt) }
@@ -167,6 +181,7 @@ class NotificationMetricsService(
             logger.error("Failed to record multiple system notifications read metrics", e)
         }
     }
+
     fun recordMultipleNotificationsUnread(notifications: List<Notification>) {
         try {
             notifications.forEach { recordNotificationUnread(it) }
@@ -174,6 +189,7 @@ class NotificationMetricsService(
             logger.error("Failed to record multiple notifications unread metrics", e)
         }
     }
+
     fun recordMultipleSystemNotificationsUnread(notifications: List<SystemNotification>) {
         try {
             notifications.forEach { recordSystemNotificationUnread(it) }
@@ -181,6 +197,7 @@ class NotificationMetricsService(
             logger.error("Failed to record multiple system notifications unread metrics", e)
         }
     }
+
     fun recordMultipleNotificationsDeleted(notifications: List<Notification>) {
         try {
             notifications.forEach { recordNotificationDeleted(it) }
@@ -188,6 +205,7 @@ class NotificationMetricsService(
             logger.error("Failed to record multiple notifications deleted metrics", e)
         }
     }
+
     fun recordMultipleSystemNotificationsDeleted(notifications: List<SystemNotification>) {
         try {
             notifications.forEach { recordSystemNotificationDeleted(it) }
@@ -195,6 +213,7 @@ class NotificationMetricsService(
             logger.error("Failed to record multiple system notifications deleted metrics", e)
         }
     }
+
     private fun getNotificationType(notification: Notification): String {
         return when (notification) {
             is MeldingNotification -> NotificationType.MELDING.name
