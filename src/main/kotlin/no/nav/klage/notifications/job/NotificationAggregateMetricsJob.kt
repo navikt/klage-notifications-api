@@ -1,16 +1,15 @@
 package no.nav.klage.notifications.job
 
-import no.nav.klage.notifications.client.LeaderElectionClient
+import no.nav.klage.notifications.service.LeaderElectionService
 import no.nav.klage.notifications.service.NotificationAggregateMetricsService
 import no.nav.klage.notifications.util.getLogger
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import java.net.InetAddress
 
 @Component
 class NotificationAggregateMetricsJob(
     private val notificationAggregateMetricsService: NotificationAggregateMetricsService,
-    private val leaderElectionClient: LeaderElectionClient,
+    private val leaderElectionService: LeaderElectionService,
 ) {
 
     companion object {
@@ -29,7 +28,7 @@ class NotificationAggregateMetricsJob(
      */
     @Scheduled(cron = "0 * * * * *")
     fun updateAggregateMetrics() {
-        if (leaderElectionClient.getLeaderHostname().name != InetAddress.getLocalHost().hostName) {
+        if (leaderElectionService.isLeader()) {
             logger.debug("Not the leader instance, skipping scheduled update of aggregate notification metrics")
             return
         } else {
