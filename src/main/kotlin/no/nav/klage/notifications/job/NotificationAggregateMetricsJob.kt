@@ -1,12 +1,16 @@
 package no.nav.klage.notifications.job
 
+import no.nav.klage.notifications.client.LeaderElectionClient
 import no.nav.klage.notifications.service.NotificationAggregateMetricsService
 import no.nav.klage.notifications.util.getLogger
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.net.InetAddress
 
 @Component
 class NotificationAggregateMetricsJob(
-    private val notificationAggregateMetricsService: NotificationAggregateMetricsService
+    private val notificationAggregateMetricsService: NotificationAggregateMetricsService,
+    private val leaderElectionClient: LeaderElectionClient,
 ) {
 
     companion object {
@@ -16,16 +20,23 @@ class NotificationAggregateMetricsJob(
 
     //Need leader election to enable scheduling in a clustered environment (or similar)
 
-//    /**
-//     * Scheduled job that calculates and updates aggregate notification metrics.
-//     * Runs every day at 3 AM.
-//     *
-//     * Cron format: second, minute, hour, day of month, month, day of week
-//     * "0 0 3 * * *" = At 3:00:00 AM every day
-//     */
-//    @Scheduled(cron = "0 0 3 * * *")
-//    fun updateAggregateMetrics() {
-//        logger.info("Starting scheduled update of aggregate notification metrics")
+    /**
+     * Scheduled job that calculates and updates aggregate notification metrics.
+     * Runs every day at 3 AM.
+     *
+     * Cron format: second, minute, hour, day of month, month, day of week
+     * "0 0 3 * * *" = At 3:00:00 AM every day
+     */
+    @Scheduled(cron = "0 * * * * *")
+    fun updateAggregateMetrics() {
+        if (leaderElectionClient.getLeaderHostname().name != InetAddress.getLocalHost().hostName) {
+            logger.debug("Not the leader instance, skipping scheduled update of aggregate notification metrics")
+            return
+        } else {
+            logger.debug("This is the leader instance, proceeding with scheduled update of aggregate notification metrics")
+        }
+
+        logger.debug("Starting scheduled update of aggregate notification metrics")
 //
 //        try {
 //            notificationAggregateMetricsService.updateAggregateMetrics()
@@ -33,7 +44,7 @@ class NotificationAggregateMetricsJob(
 //        } catch (e: Exception) {
 //            logger.error("Error during scheduled update of aggregate notification metrics", e)
 //        }
-//    }
+    }
 //
 //    /**
 //     * Also update metrics every 6 hours during the day for more frequent updates.

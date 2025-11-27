@@ -10,6 +10,7 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"
 spec:
   image: {{ image }}
+  leaderElection: true
   observability:
     autoInstrumentation:
       enabled: true

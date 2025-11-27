@@ -8,6 +8,11 @@ spring:
     hikari:
       maximum-pool-size: 15
 
+  http:
+    serviceclient:
+      leader-election:
+        base-url: ${ELECTOR_GET_URL}
+
   jpa:
     hibernate:
       ddl-auto: validate
