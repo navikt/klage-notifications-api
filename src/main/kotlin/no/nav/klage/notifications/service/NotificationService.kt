@@ -439,29 +439,33 @@ class NotificationService(
         val notifications = notificationRepository.findAllByBehandlingId(behandlingId)
 
         if (notifications.isEmpty()) {
-            logger.warn(
+            logger.debug(
                 "No notifications found for behandlingId {}",
                 behandlingId,
             )
             return
         }
 
+        val now = LocalDateTime.now()
+
+        // Mark all notifications as deleted
         notifications.forEach { notification ->
             notification.markedAsDeleted = true
-            notification.updatedAt = LocalDateTime.now()
-
-            val notificationChangeEvent = NotificationChangeEvent(
-                id = notification.id,
-                ids = null,
-                navIdent = notification.navIdent,
-                type = NotificationChangeEvent.Type.DELETED,
-                updatedAt = notification.updatedAt,
-            )
-
-            kafkaInternalEventService.publishInternalNotificationChangeEvent(
-                notificationChangeEvent = notificationChangeEvent,
-            )
+            notification.updatedAt = now
         }
+
+        // Create a single bulk change event for all deleted notifications
+        val notificationChangeEvent = NotificationChangeEvent(
+            id = null,
+            ids = notifications.map { it.id },
+            navIdent = notifications.first().navIdent,
+            type = NotificationChangeEvent.Type.DELETED,
+            updatedAt = now,
+        )
+
+        kafkaInternalEventService.publishInternalNotificationChangeEvent(
+            notificationChangeEvent = notificationChangeEvent,
+        )
 
         // Record metrics for deleted notifications
         metricsService.recordMultipleNotificationsDeleted(notifications)
@@ -483,7 +487,7 @@ class NotificationService(
         val notifications = notificationRepository.findAllByBehandlingId(behandlingId)
 
         if (notifications.isEmpty()) {
-            logger.warn(
+            logger.debug(
                 "No notifications found for behandlingId {}",
                 behandlingId,
             )
