@@ -20,7 +20,6 @@ class MeldingNotification(
     message: String,
     navIdent: String,
     read: Boolean,
-    source: NotificationSource,
     createdAt: LocalDateTime,
     updatedAt: LocalDateTime,
     readAt: LocalDateTime?,
@@ -55,7 +54,6 @@ class MeldingNotification(
     message = message,
     navIdent = navIdent,
     read = read,
-    source = source,
     createdAt = createdAt,
     updatedAt = updatedAt,
     readAt = readAt,
@@ -74,6 +72,6 @@ class MeldingNotification(
     }
 
     override fun toString(): String {
-        return "MeldingNotification(id=$id, message='$message', navIdent='$navIdent', read=$read, source=$source, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, behandlingId=$behandlingId, meldingId=$meldingId, actorNavIdent='$actorNavIdent', actorNavn='$actorNavn', saksnummer='$saksnummer', ytelse=$ytelse, behandlingType=$behandlingType, kafkaMessageId=$kafkaMessageId)"
+        return "MeldingNotification(id=$id, message='$message', navIdent='$navIdent', read=$read, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, behandlingId=$behandlingId, meldingId=$meldingId, actorNavIdent='$actorNavIdent', actorNavn='$actorNavn', saksnummer='$saksnummer', ytelse=$ytelse, behandlingType=$behandlingType, kafkaMessageId=$kafkaMessageId)"
     }
 }

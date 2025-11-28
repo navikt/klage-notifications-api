@@ -4,7 +4,6 @@ import no.nav.klage.kodeverk.Type
 import no.nav.klage.kodeverk.ytelse.Ytelse
 import no.nav.klage.notifications.db.PostgresIntegrationTestBase
 import no.nav.klage.notifications.domain.MeldingNotification
-import no.nav.klage.notifications.domain.NotificationSource
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -82,7 +81,6 @@ class NotificationRepositoryCleanupTest : PostgresIntegrationTestBase() {
             message = "Test notification",
             navIdent = "Z123456",
             read = false,
-            source = NotificationSource.KABAL,
             createdAt = updatedAt,
             updatedAt = updatedAt,
             readAt = null,

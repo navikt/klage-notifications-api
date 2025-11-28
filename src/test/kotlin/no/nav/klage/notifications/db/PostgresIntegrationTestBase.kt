@@ -2,8 +2,8 @@ package no.nav.klage.notifications.db
 
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
-import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.containers.wait.strategy.HostPortWaitStrategy
+import org.testcontainers.postgresql.PostgreSQLContainer
 
 abstract class PostgresIntegrationTestBase {
 

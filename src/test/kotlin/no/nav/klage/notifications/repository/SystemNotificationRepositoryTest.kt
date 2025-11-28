@@ -1,7 +1,6 @@
 package no.nav.klage.notifications.repository
 
 import no.nav.klage.notifications.db.PostgresIntegrationTestBase
-import no.nav.klage.notifications.domain.NotificationSource
 import no.nav.klage.notifications.domain.SystemNotification
 import no.nav.klage.notifications.domain.SystemNotificationReadStatus
 import org.assertj.core.api.Assertions.assertThat
@@ -40,7 +39,6 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
             id = UUID.randomUUID(),
             title = "System Maintenance",
             message = "The system will be down for maintenance on Saturday",
-            source = NotificationSource.KABAL,
             createdAt = now,
             updatedAt = now,
             markedAsDeleted = false
@@ -55,7 +53,6 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
         assertThat(found.get()).isEqualTo(saved)
         assertThat(found.get().title).isEqualTo("System Maintenance")
         assertThat(found.get().message).isEqualTo("The system will be down for maintenance on Saturday")
-        assertThat(found.get().source).isEqualTo(NotificationSource.KABAL)
         assertThat(found.get().markedAsDeleted).isFalse()
     }
 
@@ -68,7 +65,6 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
             SystemNotification(
                 title = "Active Notification",
                 message = "This is active",
-                source = NotificationSource.KABAL,
                 createdAt = now,
                 updatedAt = now,
                 markedAsDeleted = false
@@ -80,7 +76,6 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
             SystemNotification(
                 title = "Deleted Notification",
                 message = "This is deleted",
-                source = NotificationSource.KABAL,
                 createdAt = now.minusDays(1),
                 updatedAt = now,
                 markedAsDeleted = true
@@ -105,7 +100,6 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
             SystemNotification(
                 title = "Test Notification",
                 message = "Test message",
-                source = NotificationSource.KABAL,
                 createdAt = now,
                 updatedAt = now,
                 markedAsDeleted = false
@@ -355,7 +349,6 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
         val notification = SystemNotification(
             title = title,
             message = message,
-            source = NotificationSource.KABAL,
             createdAt = now,
             updatedAt = now,
             markedAsDeleted = false

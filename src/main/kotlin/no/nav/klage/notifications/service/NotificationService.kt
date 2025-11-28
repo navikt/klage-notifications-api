@@ -693,7 +693,6 @@ class NotificationService(
             message = event.message,
             navIdent = event.recipientNavIdent,
             read = false,
-            source = event.source,
             createdAt = now,
             updatedAt = now,
             readAt = null,
@@ -726,7 +725,6 @@ class NotificationService(
             message = request.message,
             navIdent = request.recipientNavIdent,
             read = false,
-            source = request.source,
             createdAt = now,
             updatedAt = now,
             readAt = null,
@@ -753,7 +751,6 @@ class NotificationService(
         val notification = SystemNotification(
             title = request.title,
             message = request.message,
-            source = request.source,
             createdAt = now,
             updatedAt = now,
             markedAsDeleted = false,

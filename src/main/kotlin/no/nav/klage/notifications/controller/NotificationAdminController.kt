@@ -8,6 +8,7 @@ import no.nav.klage.notifications.config.SecurityConfiguration
 import no.nav.klage.notifications.dto.CreateSystemNotificationRequest
 import no.nav.klage.notifications.dto.TransferNotificationOwnershipRequest
 import no.nav.klage.notifications.dto.view.SystemNotificationResponse
+import no.nav.klage.notifications.service.NotificationAggregateMetricsService
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.http.HttpStatus
@@ -24,6 +25,7 @@ import java.util.*
 @RequestMapping("/admin/notifications")
 class NotificationAdminController(
     private val notificationService: NotificationService,
+    private val notificationAggregateMetricsService: NotificationAggregateMetricsService
 ) {
 
     /* Not in use */
@@ -117,7 +119,6 @@ class NotificationAdminController(
             id = notification.id,
             title = notification.title,
             message = notification.message,
-            source = notification.source,
             createdAt = notification.createdAt,
             updatedAt = notification.updatedAt,
         )
@@ -180,11 +181,24 @@ class NotificationAdminController(
                 id = notification.id,
                 title = notification.title,
                 message = notification.message,
-                source = notification.source,
                 createdAt = notification.createdAt,
                 updatedAt = notification.updatedAt,
             )
         }
         return ResponseEntity.ok(response)
+    }
+
+    @Operation(
+        summary = "Trigger update of aggregate metrics",
+        description = "Triggers an update of aggregate notification metrics",
+    )
+    @ApiResponse(
+        responseCode = "200",
+        description = "Aggregate metrics update triggered successfully",
+    )
+    @GetMapping("/metrics/update-aggregate")
+    fun triggerUpdateAggregateMetrics(): ResponseEntity<Void> {
+        notificationAggregateMetricsService.updateAggregateMetrics()
+        return ResponseEntity.ok().build()
     }
 }

@@ -5,7 +5,6 @@ import no.nav.klage.kodeverk.ytelse.Ytelse
 import no.nav.klage.notifications.db.PostgresIntegrationTestBase
 import no.nav.klage.notifications.domain.LostAccessNotification
 import no.nav.klage.notifications.domain.MeldingNotification
-import no.nav.klage.notifications.domain.NotificationSource
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -250,7 +249,6 @@ class NotificationRepositoryValidationTest : PostgresIntegrationTestBase() {
             message = "Test notification",
             navIdent = "Z123456",
             read = read,
-            source = NotificationSource.KABAL,
             createdAt = updatedAt,
             updatedAt = updatedAt,
             readAt = if (read) updatedAt else null,
@@ -278,7 +276,6 @@ class NotificationRepositoryValidationTest : PostgresIntegrationTestBase() {
             message = "Lost access notification",
             navIdent = "Z123456",
             read = read,
-            source = NotificationSource.KABAL,
             createdAt = updatedAt,
             updatedAt = updatedAt,
             readAt = if (read) updatedAt else null,
@@ -292,4 +289,3 @@ class NotificationRepositoryValidationTest : PostgresIntegrationTestBase() {
         )
     }
 }
-
