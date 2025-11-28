@@ -108,15 +108,32 @@ class NotificationAggregateMetricsService(
      */
     fun updateAggregateMetrics() {
         try {
+            val startTime = System.currentTimeMillis()
             logger.debug("Starting calculation of aggregate notification metrics")
 
+            val fetchStartTime = System.currentTimeMillis()
             val allNotifications = notificationRepository.findAll()
+            val fetchDuration = System.currentTimeMillis() - fetchStartTime
+            logger.debug("Fetched {} notifications from repository in {} ms", allNotifications.size, fetchDuration)
 
+            val behandlingStartTime = System.currentTimeMillis()
             updateBehandlingMetrics(allNotifications = allNotifications)
-            updateUserMetrics(allNotifications = allNotifications)
-            updateUnreadMetrics(allNotifications = allNotifications)
+            val behandlingDuration = System.currentTimeMillis() - behandlingStartTime
+            logger.debug("Updated behandling metrics in {} ms", behandlingDuration)
 
-            logger.debug("Updated aggregate metrics for all notification types")
+            val userStartTime = System.currentTimeMillis()
+            updateUserMetrics(allNotifications = allNotifications)
+            val userDuration = System.currentTimeMillis() - userStartTime
+            logger.debug("Updated user metrics in {} ms", userDuration)
+
+            val unreadStartTime = System.currentTimeMillis()
+            updateUnreadMetrics(allNotifications = allNotifications)
+            val unreadDuration = System.currentTimeMillis() - unreadStartTime
+            logger.debug("Updated unread metrics in {} ms", unreadDuration)
+
+            val totalDuration = System.currentTimeMillis() - startTime
+            logger.debug("Updated aggregate metrics for all notification types in {} ms total (fetch: {} ms, behandling: {} ms, user: {} ms, unread: {} ms)",
+                totalDuration, fetchDuration, behandlingDuration, userDuration, unreadDuration)
         } catch (e: Exception) {
             logger.error("Failed to update aggregate notification metrics", e)
         }
