@@ -30,7 +30,6 @@ class NotificationMetricsService(
 
         // Tag keys
         private const val TYPE_TAG = "notification_type"
-        private const val SOURCE_TAG = "source"
     }
 
     @PostConstruct
@@ -42,36 +41,30 @@ class NotificationMetricsService(
             "SYSTEM"
         )
 
-        NotificationSource.entries.forEach { source ->
-            notificationTypes.forEach { type ->
-                // Initialize created counter
-                Counter.builder(CREATED_METRIC)
-                    .tag(TYPE_TAG, type)
-                    .tag(SOURCE_TAG, source.name)
-                    .description("Total number of notifications created")
-                    .register(meterRegistry)
+        notificationTypes.forEach { type ->
+            // Initialize created counter
+            Counter.builder(CREATED_METRIC)
+                .tag(TYPE_TAG, type)
+                .description("Total number of notifications created")
+                .register(meterRegistry)
 
-                // Initialize read counter
-                Counter.builder(READ_METRIC)
-                    .tag(TYPE_TAG, type)
-                    .tag(SOURCE_TAG, source.name)
-                    .description("Total number of notifications marked as read")
-                    .register(meterRegistry)
+            // Initialize read counter
+            Counter.builder(READ_METRIC)
+                .tag(TYPE_TAG, type)
+                .description("Total number of notifications marked as read")
+                .register(meterRegistry)
 
-                // Initialize unread counter
-                Counter.builder(UNREAD_METRIC)
-                    .tag(TYPE_TAG, type)
-                    .tag(SOURCE_TAG, source.name)
-                    .description("Total number of notifications marked as unread")
-                    .register(meterRegistry)
+            // Initialize unread counter
+            Counter.builder(UNREAD_METRIC)
+                .tag(TYPE_TAG, type)
+                .description("Total number of notifications marked as unread")
+                .register(meterRegistry)
 
-                // Initialize deleted counter
-                Counter.builder(DELETED_METRIC)
-                    .tag(TYPE_TAG, type)
-                    .tag(SOURCE_TAG, source.name)
-                    .description("Total number of notifications deleted")
-                    .register(meterRegistry)
-            }
+            // Initialize deleted counter
+            Counter.builder(DELETED_METRIC)
+                .tag(TYPE_TAG, type)
+                .description("Total number of notifications deleted")
+                .register(meterRegistry)
         }
 
         logger.debug("Initialized all notification counters")
@@ -80,10 +73,8 @@ class NotificationMetricsService(
     fun recordNotificationCreated(notification: Notification) {
         try {
             val type = getNotificationType(notification)
-            val source = notification.source.name
             Counter.builder(CREATED_METRIC)
                 .tag(TYPE_TAG, type)
-                .tag(SOURCE_TAG, source)
                 .description("Total number of notifications created")
                 .register(meterRegistry)
                 .increment()
@@ -94,10 +85,8 @@ class NotificationMetricsService(
 
     fun recordSystemNotificationCreated(notification: SystemNotification) {
         try {
-            val source = notification.source.name
             Counter.builder(CREATED_METRIC)
                 .tag(TYPE_TAG, "SYSTEM")
-                .tag(SOURCE_TAG, source)
                 .description("Total number of notifications created")
                 .register(meterRegistry)
                 .increment()
@@ -109,10 +98,8 @@ class NotificationMetricsService(
     fun recordNotificationRead(notification: Notification) {
         try {
             val type = getNotificationType(notification)
-            val source = notification.source.name
             Counter.builder(READ_METRIC)
                 .tag(TYPE_TAG, type)
-                .tag(SOURCE_TAG, source)
                 .description("Total number of notifications marked as read")
                 .register(meterRegistry)
                 .increment()
@@ -121,7 +108,6 @@ class NotificationMetricsService(
                 val timeToRead = Duration.between(notification.sourceCreatedAt, readAt)
                 Timer.builder(TIME_TO_READ_METRIC)
                     .tag(TYPE_TAG, type)
-                    .tag(SOURCE_TAG, source)
                     .description("Time taken for notifications to be read")
                     .register(meterRegistry)
                     .record(timeToRead)
@@ -133,10 +119,8 @@ class NotificationMetricsService(
 
     fun recordSystemNotificationRead(notification: SystemNotification, readAt: LocalDateTime) {
         try {
-            val source = notification.source.name
             Counter.builder(READ_METRIC)
                 .tag(TYPE_TAG, "SYSTEM")
-                .tag(SOURCE_TAG, source)
                 .description("Total number of notifications marked as read")
                 .register(meterRegistry)
                 .increment()
@@ -144,7 +128,6 @@ class NotificationMetricsService(
             val timeToRead = Duration.between(notification.createdAt, readAt)
             Timer.builder(TIME_TO_READ_METRIC)
                 .tag(TYPE_TAG, "SYSTEM")
-                .tag(SOURCE_TAG, source)
                 .description("Time taken for notifications to be read")
                 .register(meterRegistry)
                 .record(timeToRead)
@@ -156,10 +139,8 @@ class NotificationMetricsService(
     fun recordNotificationUnread(notification: Notification) {
         try {
             val type = getNotificationType(notification)
-            val source = notification.source.name
             Counter.builder(UNREAD_METRIC)
                 .tag(TYPE_TAG, type)
-                .tag(SOURCE_TAG, source)
                 .description("Total number of notifications marked as unread")
                 .register(meterRegistry)
                 .increment()
@@ -170,10 +151,8 @@ class NotificationMetricsService(
 
     fun recordSystemNotificationUnread(notification: SystemNotification) {
         try {
-            val source = notification.source.name
             Counter.builder(UNREAD_METRIC)
                 .tag(TYPE_TAG, "SYSTEM")
-                .tag(SOURCE_TAG, source)
                 .description("Total number of notifications marked as unread")
                 .register(meterRegistry)
                 .increment()
@@ -185,10 +164,8 @@ class NotificationMetricsService(
     fun recordNotificationDeleted(notification: Notification) {
         try {
             val type = getNotificationType(notification)
-            val source = notification.source.name
             Counter.builder(DELETED_METRIC)
                 .tag(TYPE_TAG, type)
-                .tag(SOURCE_TAG, source)
                 .description("Total number of notifications deleted")
                 .register(meterRegistry)
                 .increment()
@@ -199,10 +176,8 @@ class NotificationMetricsService(
 
     fun recordSystemNotificationDeleted(notification: SystemNotification) {
         try {
-            val source = notification.source.name
             Counter.builder(DELETED_METRIC)
                 .tag(TYPE_TAG, "SYSTEM")
-                .tag(SOURCE_TAG, source)
                 .description("Total number of notifications deleted")
                 .register(meterRegistry)
                 .increment()

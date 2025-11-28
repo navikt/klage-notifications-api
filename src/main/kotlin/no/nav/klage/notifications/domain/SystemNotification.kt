@@ -1,6 +1,9 @@
 package no.nav.klage.notifications.domain
 
-import jakarta.persistence.*
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.Id
+import jakarta.persistence.Table
 import java.time.LocalDateTime
 import java.util.*
 
@@ -16,9 +19,6 @@ class SystemNotification(
     @Column
     val message: String,
 
-    @Enumerated(EnumType.STRING)
-    @Column
-    val source: NotificationSource,
 
     @Column
     val createdAt: LocalDateTime,
@@ -40,6 +40,6 @@ class SystemNotification(
     }
 
     override fun toString(): String {
-        return "SystemNotification(id=$id, title='$title', message='$message', source=$source, createdAt=$createdAt, updatedAt=$updatedAt, markedAsDeleted=$markedAsDeleted)"
+        return "SystemNotification(id=$id, title='$title', message='$message', createdAt=$createdAt, updatedAt=$updatedAt, markedAsDeleted=$markedAsDeleted)"
     }
 }

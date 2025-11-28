@@ -117,7 +117,6 @@ class NotificationAdminController(
             id = notification.id,
             title = notification.title,
             message = notification.message,
-            source = notification.source,
             createdAt = notification.createdAt,
             updatedAt = notification.updatedAt,
         )
@@ -180,7 +179,6 @@ class NotificationAdminController(
                 id = notification.id,
                 title = notification.title,
                 message = notification.message,
-                source = notification.source,
                 createdAt = notification.createdAt,
                 updatedAt = notification.updatedAt,
             )

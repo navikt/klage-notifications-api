@@ -5,7 +5,6 @@ import no.nav.klage.kodeverk.ytelse.Ytelse
 import no.nav.klage.notifications.db.PostgresIntegrationTestBase
 import no.nav.klage.notifications.domain.LostAccessNotification
 import no.nav.klage.notifications.domain.MeldingNotification
-import no.nav.klage.notifications.domain.NotificationSource
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -44,7 +43,6 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
             message = "You have a new message in case $behandlingId",
             navIdent = navIdent,
             read = false,
-            source = NotificationSource.KABAL,
             createdAt = now,
             updatedAt = now,
             readAt = null,
@@ -86,7 +84,6 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
             message = "You no longer have access to case $behandlingId",
             navIdent = navIdent,
             read = false,
-            source = NotificationSource.KABAL,
             createdAt = now,
             updatedAt = now,
             readAt = null,
@@ -123,7 +120,6 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
             message = "New message for behandling",
             navIdent = "Z111111",
             read = false,
-            source = NotificationSource.KABAL,
             createdAt = now,
             updatedAt = now,
             readAt = null,
@@ -145,7 +141,6 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
             message = "Lost access to behandling",
             navIdent = "Z222222",
             read = false,
-            source = NotificationSource.KABAL,
             createdAt = now,
             updatedAt = now,
             readAt = null,
@@ -164,7 +159,6 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
             message = "Message for other behandling",
             navIdent = "Z333333",
             read = false,
-            source = NotificationSource.KABAL,
             createdAt = now,
             updatedAt = now,
             readAt = null,

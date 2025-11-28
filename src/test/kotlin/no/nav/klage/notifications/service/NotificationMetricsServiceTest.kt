@@ -6,7 +6,6 @@ import no.nav.klage.kodeverk.Type
 import no.nav.klage.kodeverk.ytelse.Ytelse
 import no.nav.klage.notifications.domain.LostAccessNotification
 import no.nav.klage.notifications.domain.MeldingNotification
-import no.nav.klage.notifications.domain.NotificationSource
 import no.nav.klage.notifications.domain.SystemNotification
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -47,7 +46,6 @@ class NotificationMetricsServiceTest {
         // So "klage_notifications_total" becomes "klage_notifications_total"
         assertThat(prometheusOutput).contains("klage_notifications_total")
         assertThat(prometheusOutput).contains("notification_type=\"MELDING\"")
-        assertThat(prometheusOutput).contains("source=\"KABAL\"")
         assertThat(prometheusOutput).contains("3.0")
     }
 
@@ -62,7 +60,6 @@ class NotificationMetricsServiceTest {
         // Then
         val counter = meterRegistry.find("klage_notifications_total")
             .tag("notification_type", "MELDING")
-            .tag("source", "KABAL")
             .counter()
 
         assertThat(counter).isNotNull
@@ -81,7 +78,6 @@ class NotificationMetricsServiceTest {
         // Then
         val readCounter = meterRegistry.find("klage_notifications_read_events_total")
             .tag("notification_type", "MELDING")
-            .tag("source", "KABAL")
             .counter()
 
         assertThat(readCounter).isNotNull
@@ -89,7 +85,6 @@ class NotificationMetricsServiceTest {
 
         val timer = meterRegistry.find("klage_notifications_time_to_read_seconds")
             .tag("notification_type", "MELDING")
-            .tag("source", "KABAL")
             .timer()
 
         assertThat(timer).isNotNull
@@ -107,7 +102,6 @@ class NotificationMetricsServiceTest {
         // Then
         val counter = meterRegistry.find("klage_notifications_unread_events_total")
             .tag("notification_type", "MELDING")
-            .tag("source", "KABAL")
             .counter()
 
         assertThat(counter).isNotNull
@@ -125,7 +119,6 @@ class NotificationMetricsServiceTest {
         // Then
         val counter = meterRegistry.find("klage_notifications_deleted_events_total")
             .tag("notification_type", "MELDING")
-            .tag("source", "KABAL")
             .counter()
 
         assertThat(counter).isNotNull
@@ -143,7 +136,6 @@ class NotificationMetricsServiceTest {
         // Then
         val counter = meterRegistry.find("klage_notifications_total")
             .tag("notification_type", "SYSTEM")
-            .tag("source", "KABAL")
             .counter()
 
         assertThat(counter).isNotNull
@@ -166,12 +158,10 @@ class NotificationMetricsServiceTest {
         // Then
         val meldingCounters = meterRegistry.find("klage_notifications_read_events_total")
             .tag("notification_type", "MELDING")
-            .tag("source", "KABAL")
             .counters()
 
         val lostAccessCounters = meterRegistry.find("klage_notifications_read_events_total")
             .tag("notification_type", "LOST_ACCESS")
-            .tag("source", "KABAL")
             .counters()
 
         assertThat(meldingCounters).isNotNull
@@ -205,41 +195,15 @@ class NotificationMetricsServiceTest {
         assertThat(lostAccessCounters.sumOf { it.count() }).isEqualTo(1.0)
     }
 
-    @Test
-    fun `test different sources are tracked separately`() {
-        // Given
-        val notification1 = createMeldingNotification(source = NotificationSource.KABAL)
-        val notification2 = createMeldingNotification(source = NotificationSource.OPPGAVE)
-
-        // When
-        metricsService.recordNotificationCreated(notification1)
-        metricsService.recordNotificationCreated(notification2)
-
-        // Then
-        val kabalCounters = meterRegistry.find("klage_notifications_total")
-            .tag("source", "KABAL")
-            .counters()
-
-        val oppgaveCounters = meterRegistry.find("klage_notifications_total")
-            .tag("source", "OPPGAVE")
-            .counters()
-
-        assertThat(kabalCounters).isNotNull
-        assertThat(oppgaveCounters).isNotNull
-        assertThat(kabalCounters.sumOf { it.count() }).isEqualTo(1.0)
-        assertThat(oppgaveCounters.sumOf { it.count() }).isEqualTo(1.0)
-    }
-
     // Helper methods to create test notifications
 
-    private fun createMeldingNotification(source: NotificationSource = NotificationSource.KABAL): MeldingNotification {
+    private fun createMeldingNotification(): MeldingNotification {
         val now = LocalDateTime.now()
         return MeldingNotification(
             id = UUID.randomUUID(),
             message = "Test message",
             navIdent = "Z999999",
             read = false,
-            source = source,
             createdAt = now,
             updatedAt = now,
             readAt = null,
@@ -256,14 +220,13 @@ class NotificationMetricsServiceTest {
         )
     }
 
-    private fun createLostAccessNotification(source: NotificationSource = NotificationSource.KABAL): LostAccessNotification {
+    private fun createLostAccessNotification(): LostAccessNotification {
         val now = LocalDateTime.now()
         return LostAccessNotification(
             id = UUID.randomUUID(),
             message = "Lost access message",
             navIdent = "Z999999",
             read = false,
-            source = source,
             createdAt = now,
             updatedAt = now,
             readAt = null,
@@ -277,13 +240,12 @@ class NotificationMetricsServiceTest {
         )
     }
 
-    private fun createSystemNotification(source: NotificationSource = NotificationSource.KABAL): SystemNotification {
+    private fun createSystemNotification(): SystemNotification {
         val now = LocalDateTime.now()
         return SystemNotification(
             id = UUID.randomUUID(),
             title = "System notification",
             message = "System message",
-            source = source,
             createdAt = now,
             updatedAt = now,
             markedAsDeleted = false,
