@@ -24,13 +24,15 @@ class NotificationAggregateMetricsService(
         private const val METRIC_PREFIX = "klage_notifications"
         
         // Aggregate metric names
-        private const val NOTIFICATIONS_PER_BEHANDLING_MIN = "${METRIC_PREFIX}_per_behandling_min"
-        private const val NOTIFICATIONS_PER_BEHANDLING_MAX = "${METRIC_PREFIX}_per_behandling_max"
-        private const val NOTIFICATIONS_PER_BEHANDLING_AVG = "${METRIC_PREFIX}_per_behandling_avg"
+        private const val NOTIFICATIONS_PER_BEHANDLING_MIN = "${METRIC_PREFIX}_per_behandling_min_gauge"
+        private const val NOTIFICATIONS_PER_BEHANDLING_MAX = "${METRIC_PREFIX}_per_behandling_max_gauge"
+        private const val NOTIFICATIONS_PER_BEHANDLING_AVG = "${METRIC_PREFIX}_per_behandling_avg_gauge"
         
-        private const val NOTIFICATIONS_PER_USER_MIN = "${METRIC_PREFIX}_per_user_min"
-        private const val NOTIFICATIONS_PER_USER_MAX = "${METRIC_PREFIX}_per_user_max"
-        private const val NOTIFICATIONS_PER_USER_AVG = "${METRIC_PREFIX}_per_user_avg"
+        private const val NOTIFICATIONS_PER_USER_MIN = "${METRIC_PREFIX}_per_user_min_gauge"
+        private const val NOTIFICATIONS_PER_USER_MAX = "${METRIC_PREFIX}_per_user_max_gauge"
+        private const val NOTIFICATIONS_PER_USER_AVG = "${METRIC_PREFIX}_per_user_avg_gauge"
+
+        private const val UNREAD_NOTIFICATIONS_COUNT = "${METRIC_PREFIX}_unread_total_gauge"
 
         private const val TYPE_TAG = "notification_type"
     }
@@ -43,6 +45,8 @@ class NotificationAggregateMetricsService(
     private val userMaxByType = mutableMapOf<NotificationType, Double>()
     private val userAvgByType = mutableMapOf<NotificationType, Double>()
 
+    private val unreadCountByType = mutableMapOf<NotificationType, Double>()
+
     @PostConstruct
     fun initializeGauges() {
         // Initialize maps with default values and register gauges for each notification type
@@ -54,6 +58,7 @@ class NotificationAggregateMetricsService(
             userMinByType[type] = 0.0
             userMaxByType[type] = 0.0
             userAvgByType[type] = 0.0
+            unreadCountByType[type] = 0.0
 
             // Register behandling gauges
             Gauge.builder(NOTIFICATIONS_PER_BEHANDLING_MIN, this) { behandlingMinByType[type] ?: 0.0 }
@@ -86,6 +91,12 @@ class NotificationAggregateMetricsService(
                 .tag(TYPE_TAG, type.name)
                 .description("Average number of ${type.name} notifications per user (navIdent)")
                 .register(meterRegistry)
+
+            // Register unread count gauge
+            Gauge.builder(UNREAD_NOTIFICATIONS_COUNT, this) { unreadCountByType[type] ?: 0.0 }
+                .tag(TYPE_TAG, type.name)
+                .description("Current number of unread ${type.name} notifications")
+                .register(meterRegistry)
         }
 
         logger.debug("Initialized notification aggregate metric gauges with notification_type dimension")
@@ -103,6 +114,7 @@ class NotificationAggregateMetricsService(
 
             updateBehandlingMetrics(allNotifications = allNotifications)
             updateUserMetrics(allNotifications = allNotifications)
+            updateUnreadMetrics(allNotifications = allNotifications)
 
             logger.debug("Updated aggregate metrics for all notification types")
         } catch (e: Exception) {
@@ -198,6 +210,33 @@ class NotificationAggregateMetricsService(
             }
         } catch (e: Exception) {
             logger.error("Failed to update user metrics", e)
+        }
+    }
+
+    private fun updateUnreadMetrics(allNotifications: List<Notification>) {
+        try {
+            // Count unread notifications by type
+            NotificationType.entries.forEach { type ->
+                val notificationsOfType = when (type) {
+                    NotificationType.MELDING -> allNotifications.filterIsInstance<MeldingNotification>()
+                    NotificationType.LOST_ACCESS -> allNotifications.filterIsInstance<LostAccessNotification>()
+                }
+
+                // Count unread and non-deleted notifications
+                val unreadCount = notificationsOfType
+                    .count { !it.read && !it.markedAsDeleted }
+                    .toDouble()
+
+                unreadCountByType[type] = unreadCount
+
+                logger.debug(
+                    "{} unread count: {}",
+                    type.name,
+                    unreadCount
+                )
+            }
+        } catch (e: Exception) {
+            logger.error("Failed to update unread metrics", e)
         }
     }
 }
