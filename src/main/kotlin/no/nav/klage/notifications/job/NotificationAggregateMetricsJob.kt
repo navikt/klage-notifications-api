@@ -19,15 +19,10 @@ class NotificationAggregateMetricsJob(
 
     /**
      * Scheduled job that calculates and updates aggregate notification metrics.
-     * Runs every 30 minutes.
+     * Runs every minute.
      */
-    @Scheduled(fixedRate = 30 * 60 * 1000)
+    @Scheduled(fixedRate = 1 * 60 * 1000)
     fun updateAggregateMetrics() {
-        if (!leaderElectionService.isLeader()) {
-            logger.debug("Not the leader instance, skipping scheduled update of aggregate notification metrics")
-            return
-        }
-
         logger.debug("Starting scheduled update of aggregate notification metrics")
 
         try {
