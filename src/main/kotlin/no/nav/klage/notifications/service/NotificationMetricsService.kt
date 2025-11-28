@@ -23,9 +23,9 @@ class NotificationMetricsService(
         //means created. "created" was stripped by prometheus, so no point in using it.
         private const val CREATED_METRIC = "${METRIC_PREFIX}_total"
 
-        private const val READ_METRIC = "${METRIC_PREFIX}_read_total"
-        private const val UNREAD_METRIC = "${METRIC_PREFIX}_unread_total"
-        private const val DELETED_METRIC = "${METRIC_PREFIX}_deleted_total"
+        private const val READ_METRIC = "${METRIC_PREFIX}_read_events_total"
+        private const val UNREAD_METRIC = "${METRIC_PREFIX}_unread_events_total"
+        private const val DELETED_METRIC = "${METRIC_PREFIX}_deleted_events_total"
         private const val TIME_TO_READ_METRIC = "${METRIC_PREFIX}_time_to_read_seconds"
 
         // Tag keys

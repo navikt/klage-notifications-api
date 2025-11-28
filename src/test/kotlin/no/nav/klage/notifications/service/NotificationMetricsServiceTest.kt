@@ -79,7 +79,7 @@ class NotificationMetricsServiceTest {
         metricsService.recordNotificationRead(notification)
 
         // Then
-        val readCounter = meterRegistry.find("klage_notifications_read_total")
+        val readCounter = meterRegistry.find("klage_notifications_read_events_total")
             .tag("notification_type", "MELDING")
             .tag("source", "KABAL")
             .counter()
@@ -105,7 +105,7 @@ class NotificationMetricsServiceTest {
         metricsService.recordNotificationUnread(notification)
 
         // Then
-        val counter = meterRegistry.find("klage_notifications_unread_total")
+        val counter = meterRegistry.find("klage_notifications_unread_events_total")
             .tag("notification_type", "MELDING")
             .tag("source", "KABAL")
             .counter()
@@ -123,7 +123,7 @@ class NotificationMetricsServiceTest {
         metricsService.recordNotificationDeleted(notification)
 
         // Then
-        val counter = meterRegistry.find("klage_notifications_deleted_total")
+        val counter = meterRegistry.find("klage_notifications_deleted_events_total")
             .tag("notification_type", "MELDING")
             .tag("source", "KABAL")
             .counter()
@@ -164,12 +164,12 @@ class NotificationMetricsServiceTest {
         metricsService.recordMultipleNotificationsRead(notifications)
 
         // Then
-        val meldingCounters = meterRegistry.find("klage_notifications_read_total")
+        val meldingCounters = meterRegistry.find("klage_notifications_read_events_total")
             .tag("notification_type", "MELDING")
             .tag("source", "KABAL")
             .counters()
 
-        val lostAccessCounters = meterRegistry.find("klage_notifications_read_total")
+        val lostAccessCounters = meterRegistry.find("klage_notifications_read_events_total")
             .tag("notification_type", "LOST_ACCESS")
             .tag("source", "KABAL")
             .counters()
