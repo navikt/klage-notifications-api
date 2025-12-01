@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val testContainersVersion = "1.21.3"
+val testContainersVersion = "2.0.2"
 val klageKodeverkVersion = "1.12.12"
 val springMockkVersion = "4.0.2"
 val mockkVersion = "1.14.6"
@@ -66,8 +66,8 @@ dependencies {
     }
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.testcontainers:testcontainers:${testContainersVersion}")
-    testImplementation("org.testcontainers:junit-jupiter:${testContainersVersion}")
-    testImplementation("org.testcontainers:postgresql:${testContainersVersion}")
+    testImplementation("org.testcontainers:testcontainers-junit-jupiter:${testContainersVersion}")
+    testImplementation("org.testcontainers:testcontainers-postgresql:${testContainersVersion}")
     testImplementation("io.mockk:mockk:${mockkVersion}")
     testImplementation("com.ninja-squad:springmockk:${springMockkVersion}")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

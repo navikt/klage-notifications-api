@@ -33,9 +33,6 @@ abstract class Notification(
     @Column
     open var read: Boolean,
 
-    @Enumerated(EnumType.STRING)
-    @Column
-    open var source: NotificationSource,
 
     @Column
     open val createdAt: LocalDateTime,
@@ -66,6 +63,6 @@ abstract class Notification(
     }
 
     override fun toString(): String {
-        return "${this::class.simpleName}(id=$id, message='$message', navIdent='$navIdent', read=$read, source=$source, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, sourceCreatedAt=$sourceCreatedAt)"
+        return "${this::class.simpleName}(id=$id, message='$message', navIdent='$navIdent', read=$read, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, sourceCreatedAt=$sourceCreatedAt)"
     }
 }

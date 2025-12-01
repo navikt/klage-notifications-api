@@ -20,7 +20,6 @@ class LostAccessNotification(
     message: String,
     navIdent: String,
     read: Boolean,
-    source: NotificationSource,
     createdAt: LocalDateTime,
     updatedAt: LocalDateTime,
     readAt: LocalDateTime?,
@@ -46,7 +45,6 @@ class LostAccessNotification(
     message = message,
     navIdent = navIdent,
     read = read,
-    source = source,
     createdAt = createdAt,
     updatedAt = updatedAt,
     readAt = readAt,
@@ -65,6 +63,6 @@ class LostAccessNotification(
     }
 
     override fun toString(): String {
-        return "LostAccessNotification(id=$id, message='$message', navIdent='$navIdent', read=$read, source=$source, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, behandlingId=$behandlingId, saksnummer='$saksnummer', ytelse=$ytelse, behandlingType=$behandlingType, kafkaMessageId=$kafkaMessageId)"
+        return "LostAccessNotification(id=$id, message='$message', navIdent='$navIdent', read=$read, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, behandlingId=$behandlingId, saksnummer='$saksnummer', ytelse=$ytelse, behandlingType=$behandlingType, kafkaMessageId=$kafkaMessageId)"
     }
 }
