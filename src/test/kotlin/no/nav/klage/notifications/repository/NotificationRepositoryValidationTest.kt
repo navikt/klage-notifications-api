@@ -76,20 +76,40 @@ class NotificationRepositoryValidationTest : PostgresIntegrationTestBase() {
         val behandlingId = UUID.randomUUID()
         val now = LocalDateTime.now()
 
-        // Create an unread LostAccessNotification
-        val unreadLostAccess = createLostAccessNotification(
-            behandlingId = behandlingId,
+        // Create an unread LostAccessNotification for user 1
+        val unreadLostAccess = LostAccessNotification(
+            id = UUID.randomUUID(),
+            message = "Lost access notification",
+            navIdent = "Z123456",
             read = false,
+            createdAt = now,
+            updatedAt = now,
+            readAt = null,
             markedAsDeleted = false,
-            updatedAt = now
+            kafkaMessageId = UUID.randomUUID(),
+            sourceCreatedAt = now.minusDays(1),
+            behandlingId = behandlingId,
+            saksnummer = "202312345",
+            ytelse = Ytelse.SYK_SYK,
+            behandlingType = Type.ANKE
         )
 
-        // Create a read LostAccessNotification (should NOT be found)
-        val readLostAccess = createLostAccessNotification(
-            behandlingId = behandlingId,
+        // Create a read LostAccessNotification for user 2 (different navIdent to avoid unique constraint violation)
+        val readLostAccess = LostAccessNotification(
+            id = UUID.randomUUID(),
+            message = "Lost access notification",
+            navIdent = "Z789012",  // Different navIdent
             read = true,
+            createdAt = now,
+            updatedAt = now,
+            readAt = now,
             markedAsDeleted = false,
-            updatedAt = now
+            kafkaMessageId = UUID.randomUUID(),
+            sourceCreatedAt = now.minusDays(1),
+            behandlingId = behandlingId,
+            saksnummer = "202312345",
+            ytelse = Ytelse.SYK_SYK,
+            behandlingType = Type.ANKE
         )
 
         lostAccessNotificationRepository.save(unreadLostAccess)

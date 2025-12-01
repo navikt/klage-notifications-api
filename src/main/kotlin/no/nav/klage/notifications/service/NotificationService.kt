@@ -653,6 +653,33 @@ class NotificationService(
                 createNotificationEvent.type,
             )
 
+            // Check for existing notification based on type-specific idempotency rules
+            val existingNotification = when (createNotificationEvent) {
+                is CreateMeldingNotificationEvent -> {
+                    meldingNotificationRepository.findByMeldingIdAndMarkedAsDeleted(
+                        meldingId = createNotificationEvent.meldingId,
+                        markedAsDeleted = false
+                    )
+                }
+
+                is CreateLostAccessNotificationRequest -> {
+                    lostAccessNotificationRepository.findByBehandlingIdAndNavIdentAndMarkedAsDeleted(
+                        behandlingId = createNotificationEvent.behandlingId,
+                        navIdent = createNotificationEvent.recipientNavIdent,
+                        markedAsDeleted = false
+                    )
+                }
+            }
+
+            if (existingNotification != null) {
+                logger.debug(
+                    "Notification already exists (idempotent check): type={}, id={}",
+                    createNotificationEvent.type,
+                    existingNotification.id,
+                )
+                return
+            }
+
             val notification = when (createNotificationEvent) {
                 is CreateMeldingNotificationEvent -> {
                     createMeldingNotification(

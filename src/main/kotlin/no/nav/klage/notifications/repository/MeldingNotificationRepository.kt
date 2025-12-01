@@ -12,4 +12,9 @@ interface MeldingNotificationRepository : JpaRepository<MeldingNotification, UUI
         read: Boolean,
         markedAsDeleted: Boolean
     ): Long
+
+    fun findByMeldingIdAndMarkedAsDeleted(
+        meldingId: UUID,
+        markedAsDeleted: Boolean = false
+    ): MeldingNotification?
 }
