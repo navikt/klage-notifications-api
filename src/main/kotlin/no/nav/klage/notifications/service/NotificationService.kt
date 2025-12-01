@@ -804,6 +804,11 @@ class NotificationService(
     }
 
     @Transactional(readOnly = true)
+    fun getAllLostAccessNotifications(): List<LostAccessNotification> {
+        return lostAccessNotificationRepository.findByMarkedAsDeleted(false)
+    }
+
+    @Transactional(readOnly = true)
     fun isSystemNotificationReadByUser(systemNotificationId: UUID, navIdent: String): Boolean {
         return systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(
             systemNotificationId,

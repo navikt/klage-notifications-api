@@ -12,4 +12,6 @@ interface LostAccessNotificationRepository : JpaRepository<LostAccessNotificatio
         navIdent: String,
         markedAsDeleted: Boolean = false
     ): LostAccessNotification?
+
+    fun findByMarkedAsDeleted(markedAsDeleted: Boolean = false): List<LostAccessNotification>
 }
