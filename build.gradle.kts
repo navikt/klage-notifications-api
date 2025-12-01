@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val testContainersVersion = "2.0.2"
-val klageKodeverkVersion = "1.12.12"
+val klageKodeverkVersion = "1.12.13"
 val springMockkVersion = "4.0.2"
 val mockkVersion = "1.14.6"
 val tokenValidationVersion = "6.0.0"
