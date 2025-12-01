@@ -22,14 +22,14 @@ data class BehandlingInfo(
     val saksnummer: String,
 )
 
-abstract class Notification(
+abstract class NotificationView(
     open val type: NotificationType,
     open val id: UUID,
     open val read: Boolean,
     open val createdAt: LocalDateTime,
 )
 
-data class MessageNotification(
+data class MessageNotificationView(
     override val type: NotificationType,
     override val id: UUID,
     override val read: Boolean,
@@ -37,7 +37,7 @@ data class MessageNotification(
     val message: Message,
     val actor: NavEmployee,
     val behandling: BehandlingInfo,
-): Notification(
+): NotificationView(
     type = type,
     id = id,
     read = read,
@@ -49,6 +49,20 @@ data class MessageNotification(
     )
 }
 
+data class LostAccessNotificationView(
+    override val type: NotificationType,
+    override val id: UUID,
+    override val read: Boolean,
+    override val createdAt: LocalDateTime,
+    val message: String,
+    val behandling: BehandlingInfo,
+): NotificationView(
+    type = type,
+    id = id,
+    read = read,
+    createdAt = createdAt,
+)
+
 data class SystemNotificationView(
     override val type: NotificationType,
     override val id: UUID,
@@ -56,7 +70,7 @@ data class SystemNotificationView(
     override val createdAt: LocalDateTime,
     val title: String,
     val message: String,
-): Notification(
+): NotificationView(
     type = type,
     id = id,
     read = read,

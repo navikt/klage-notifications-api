@@ -7,14 +7,14 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import no.nav.klage.notifications.config.SecurityConfiguration
+import no.nav.klage.notifications.domain.LostAccessNotification
 import no.nav.klage.notifications.domain.MeldingNotification
 import no.nav.klage.notifications.domain.Notification
 import no.nav.klage.notifications.domain.SystemNotification
 import no.nav.klage.notifications.dto.InternalNotificationEvent
 import no.nav.klage.notifications.dto.NotificationChangeEvent
 import no.nav.klage.notifications.dto.view.*
-import no.nav.klage.notifications.dto.view.NotificationType.MESSAGE
-import no.nav.klage.notifications.dto.view.NotificationType.SYSTEM
+import no.nav.klage.notifications.dto.view.NotificationType.*
 import no.nav.klage.notifications.kafka.AivenKafkaClientCreator
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.klage.notifications.util.TokenUtil
@@ -63,7 +63,7 @@ Server-Sent Events (SSE) endpoint that streams notification events in real-time.
 **Notification Types in 'create' and 'create_multiple' events:**
 - MESSAGE - Message notifications with actor, behandling info, and content
 - SYSTEM - System-wide notifications sent to all users (title, message)
-- LOST_ACCESS - Access lost notifications (to be implemented)
+- LOST_ACCESS - Access lost notifications for a behandling (message and behandling info)
 
 **Note on SYSTEM notifications:**
 - Sent to ALL connected users (not filtered by navIdent)
@@ -289,14 +289,14 @@ data: {
         val regularNotificationData = notificationsByNavIdent.map { dbToInternalNotificationEvent(notification = it) }
         val systemNotificationData = systemNotifications.map { systemNotificationToView(it, navIdent) }
         val allNotifications = (regularNotificationData + systemNotificationData)
-            .sortedByDescending { (it as no.nav.klage.notifications.dto.view.Notification).createdAt }
+            .sortedByDescending { (it as NotificationView).createdAt }
 
         // Use the first notification (most recent) for the SSE ID
-        val firstNotification = allNotifications.first() as no.nav.klage.notifications.dto.view.Notification
+        val firstNotificationView = allNotifications.first() as NotificationView
 
         return Flux.just(
             ServerSentEvent.builder<Any>()
-                .id("${firstNotification.createdAt}_${firstNotification.id}")
+                .id("${firstNotificationView.createdAt}_${firstNotificationView.id}")
                 .event(Action.CREATE_MULTIPLE.lower)
                 .data(allNotifications)
                 .build()
@@ -311,10 +311,7 @@ data: {
                     // Single notification - send CREATE event
                     val notification = event.notifications.first()
                     val data = jsonToInternalNotificationEvent(notification)
-                    val id = when (data) {
-                        is MessageNotification -> "${data.createdAt}_${data.id}"
-                        else -> TODO()
-                    }
+                    val id = "${data.createdAt}_${data.id}"
                     ServerSentEvent.builder<Any>()
                         .id(id)
                         .event(Action.CREATE.lower)
@@ -327,10 +324,7 @@ data: {
                     }
                     // Use first notification for SSE ID
                     val firstNotification = notificationData.first()
-                    val id = when (firstNotification) {
-                        is MessageNotification -> "${firstNotification.createdAt}_${firstNotification.id}"
-                        else -> TODO()
-                    }
+                    val id = "${firstNotification.createdAt}_${firstNotification.id}"
                     ServerSentEvent.builder<Any>()
                         .id(id)
                         .event(Action.CREATE_MULTIPLE.lower)
@@ -444,12 +438,12 @@ data: {
     private fun dbToInternalNotificationEvent(notification: Notification): Any {
         return when (notification) {
             is MeldingNotification -> {
-                MessageNotification(
+                MessageNotificationView(
                     type = MESSAGE,
                     id = notification.id,
                     read = notification.read,
                     createdAt = notification.sourceCreatedAt,
-                    message = MessageNotification.Message(
+                    message = MessageNotificationView.Message(
                         id = notification.meldingId,
                         content = notification.message,
                     ),
@@ -466,36 +460,72 @@ data: {
                 )
             }
 
+            is LostAccessNotification -> {
+                LostAccessNotificationView(
+                    type = LOST_ACCESS,
+                    id = notification.id,
+                    read = notification.read,
+                    createdAt = notification.sourceCreatedAt,
+                    message = notification.message,
+                    behandling = BehandlingInfo(
+                        id = notification.behandlingId,
+                        typeId = notification.behandlingType.id,
+                        ytelseId = notification.ytelse.id,
+                        saksnummer = notification.saksnummer,
+                    )
+                )
+            }
+
             else -> {
-                TODO()
+                error("Unknown notification type received in dbToInternalNotificationEvent: ${notification::class.java}")
             }
         }
     }
 
-    private fun jsonToInternalNotificationEvent(notification: Notification): Any {
-        return if (notification is MeldingNotification) {
-            MessageNotification(
-                type = MESSAGE,
-                id = notification.id,
-                read = notification.read,
-                createdAt = notification.sourceCreatedAt,
-                message = MessageNotification.Message(
-                    id = notification.meldingId,
-                    content = notification.message,
-                ),
-                actor = NavEmployee(
-                    navIdent = notification.actorNavIdent,
-                    navn = notification.actorNavn,
-                ),
-                behandling = BehandlingInfo(
-                    id = notification.behandlingId,
-                    typeId = notification.behandlingType.id,
-                    ytelseId = notification.ytelse.id,
-                    saksnummer = notification.saksnummer,
-                ),
-            )
-        } else {
-            logger.warn("Unknown notification type received in jsonToInternalNotificationEvent: ${notification::class.java}")
+    private fun jsonToInternalNotificationEvent(notification: Notification): NotificationView {
+        return when (notification) {
+            is MeldingNotification -> {
+                MessageNotificationView(
+                    type = MESSAGE,
+                    id = notification.id,
+                    read = notification.read,
+                    createdAt = notification.sourceCreatedAt,
+                    message = MessageNotificationView.Message(
+                        id = notification.meldingId,
+                        content = notification.message,
+                    ),
+                    actor = NavEmployee(
+                        navIdent = notification.actorNavIdent,
+                        navn = notification.actorNavn,
+                    ),
+                    behandling = BehandlingInfo(
+                        id = notification.behandlingId,
+                        typeId = notification.behandlingType.id,
+                        ytelseId = notification.ytelse.id,
+                        saksnummer = notification.saksnummer,
+                    ),
+                )
+            }
+
+            is LostAccessNotification -> {
+                LostAccessNotificationView(
+                    type = LOST_ACCESS,
+                    id = notification.id,
+                    read = notification.read,
+                    createdAt = notification.sourceCreatedAt,
+                    message = notification.message,
+                    behandling = BehandlingInfo(
+                        id = notification.behandlingId,
+                        typeId = notification.behandlingType.id,
+                        ytelseId = notification.ytelse.id,
+                        saksnummer = notification.saksnummer,
+                    )
+                )
+            }
+
+            else -> {
+                error("Unknown notification type received in jsonToInternalNotificationEvent: ${notification::class.java}")
+            }
         }
     }
 
