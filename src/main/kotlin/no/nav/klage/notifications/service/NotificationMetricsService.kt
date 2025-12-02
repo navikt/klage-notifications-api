@@ -57,6 +57,7 @@ class NotificationMetricsService(
         val notificationTypes = listOf(
             NotificationType.MELDING.name,
             NotificationType.LOST_ACCESS.name,
+            NotificationType.GAINED_ACCESS.name,
             "SYSTEM"
         )
 
