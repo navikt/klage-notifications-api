@@ -14,6 +14,7 @@ import java.util.*
 @JsonSubTypes(
     JsonSubTypes.Type(value = CreateMeldingNotificationEvent::class, name = "MELDING"),
     JsonSubTypes.Type(value = CreateLostAccessNotificationRequest::class, name = "LOST_ACCESS"),
+    JsonSubTypes.Type(value = CreateGainedAccessNotificationRequest::class, name = "GAINED_ACCESS"),
 )
 @JsonIgnoreProperties(ignoreUnknown = true)
 sealed class CreateNotificationEvent(
@@ -49,6 +50,27 @@ data class CreateMeldingNotificationEvent(
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CreateLostAccessNotificationRequest(
+    override val type: NotificationType,
+    override val message: String,
+    override val recipientNavIdent: String,
+    override val actorNavIdent: String,
+    override val actorNavn: String,
+    override val sourceCreatedAt: LocalDateTime,
+    val behandlingId: UUID,
+    val behandlingType: Type,
+    val saksnummer: String,
+    val ytelse: Ytelse,
+) : CreateNotificationEvent(
+    type = type,
+    message = message,
+    recipientNavIdent = recipientNavIdent,
+    sourceCreatedAt = sourceCreatedAt,
+    actorNavIdent = actorNavIdent,
+    actorNavn = actorNavn,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class CreateGainedAccessNotificationRequest(
     override val type: NotificationType,
     override val message: String,
     override val recipientNavIdent: String,

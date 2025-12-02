@@ -18,6 +18,7 @@ class NotificationService(
     private val notificationRepository: NotificationRepository,
     private val meldingNotificationRepository: MeldingNotificationRepository,
     private val lostAccessNotificationRepository: LostAccessNotificationRepository,
+    private val gainedAccessNotificationRepository: GainedAccessNotificationRepository,
     private val systemNotificationRepository: SystemNotificationRepository,
     private val systemNotificationReadStatusRepository: SystemNotificationReadStatusRepository,
     private val kafkaInternalEventService: KafkaInternalEventService,
@@ -653,6 +654,41 @@ class NotificationService(
                 createNotificationEvent.type,
             )
 
+            // Check for existing notification based on type-specific idempotency rules
+            val existingNotification = when (createNotificationEvent) {
+                is CreateMeldingNotificationEvent -> {
+                    meldingNotificationRepository.findByMeldingIdAndMarkedAsDeleted(
+                        meldingId = createNotificationEvent.meldingId,
+                        markedAsDeleted = false
+                    )
+                }
+
+                is CreateLostAccessNotificationRequest -> {
+                    lostAccessNotificationRepository.findByBehandlingIdAndNavIdentAndMarkedAsDeleted(
+                        behandlingId = createNotificationEvent.behandlingId,
+                        navIdent = createNotificationEvent.recipientNavIdent,
+                        markedAsDeleted = false
+                    )
+                }
+
+                is CreateGainedAccessNotificationRequest -> {
+                    gainedAccessNotificationRepository.findByBehandlingIdAndNavIdentAndMarkedAsDeleted(
+                        behandlingId = createNotificationEvent.behandlingId,
+                        navIdent = createNotificationEvent.recipientNavIdent,
+                        markedAsDeleted = false
+                    )
+                }
+            }
+
+            if (existingNotification != null) {
+                logger.debug(
+                    "Notification already exists (idempotent check): type={}, id={}",
+                    createNotificationEvent.type,
+                    existingNotification.id,
+                )
+                return
+            }
+
             val notification = when (createNotificationEvent) {
                 is CreateMeldingNotificationEvent -> {
                     createMeldingNotification(
@@ -663,6 +699,13 @@ class NotificationService(
 
                 is CreateLostAccessNotificationRequest -> {
                     createLostAccessNotification(
+                        request = createNotificationEvent,
+                        kafkaMessageId = kafkaMessageId,
+                    )
+                }
+
+                is CreateGainedAccessNotificationRequest -> {
+                    createGainedAccessNotification(
                         request = createNotificationEvent,
                         kafkaMessageId = kafkaMessageId,
                     )
@@ -745,6 +788,35 @@ class NotificationService(
         return saved
     }
 
+    fun createGainedAccessNotification(
+        request: CreateGainedAccessNotificationRequest,
+        kafkaMessageId: UUID,
+    ): GainedAccessNotification {
+        val now = LocalDateTime.now()
+        val notification = GainedAccessNotification(
+            message = request.message,
+            navIdent = request.recipientNavIdent,
+            read = false,
+            createdAt = now,
+            updatedAt = now,
+            readAt = null,
+            markedAsDeleted = false,
+            kafkaMessageId = kafkaMessageId,
+            sourceCreatedAt = request.sourceCreatedAt,
+            behandlingId = request.behandlingId,
+            saksnummer = request.saksnummer,
+            ytelse = request.ytelse,
+            behandlingType = request.behandlingType,
+        )
+
+        val saved = gainedAccessNotificationRepository.save(notification)
+
+        // Record metrics
+        metricsService.recordNotificationCreated(saved)
+
+        return saved
+    }
+
     // SystemNotification methods
     fun createSystemNotification(request: CreateSystemNotificationRequest): SystemNotification {
         val now = LocalDateTime.now()
@@ -774,6 +846,11 @@ class NotificationService(
     @Transactional(readOnly = true)
     fun getAllSystemNotifications(): List<SystemNotification> {
         return systemNotificationRepository.findByMarkedAsDeletedOrderByCreatedAtDesc(false)
+    }
+
+    @Transactional(readOnly = true)
+    fun getAllLostAccessNotifications(): List<LostAccessNotification> {
+        return lostAccessNotificationRepository.findByMarkedAsDeleted(false)
     }
 
     @Transactional(readOnly = true)
@@ -891,3 +968,4 @@ class NotificationService(
         )
     }
 }
+

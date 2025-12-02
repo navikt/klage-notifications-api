@@ -3,6 +3,7 @@ package no.nav.klage.notifications.repository
 import no.nav.klage.kodeverk.Type
 import no.nav.klage.kodeverk.ytelse.Ytelse
 import no.nav.klage.notifications.db.PostgresIntegrationTestBase
+import no.nav.klage.notifications.domain.GainedAccessNotification
 import no.nav.klage.notifications.domain.LostAccessNotification
 import no.nav.klage.notifications.domain.MeldingNotification
 import org.assertj.core.api.Assertions.assertThat
@@ -30,6 +31,9 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
 
     @Autowired
     lateinit var lostAccessNotificationRepository: LostAccessNotificationRepository
+
+    @Autowired
+    lateinit var gainedAccessNotificationRepository: GainedAccessNotificationRepository
 
     @Test
     fun `persist meldingNotification works`() {
@@ -101,6 +105,41 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
         testEntityManager.clear()
 
         val found = lostAccessNotificationRepository.findById(saved.id)
+        assertThat(found).isPresent
+        assertThat(found.get()).isEqualTo(saved)
+        assertThat(found.get().behandlingId).isEqualTo(behandlingId)
+        assertThat(found.get().behandlingType).isEqualTo(Type.ANKE)
+        assertThat(found.get().navIdent).isEqualTo(navIdent)
+    }
+
+    @Test
+    fun `persist gainedAccessNotification works`() {
+        val behandlingId = UUID.randomUUID()
+        val navIdent = "Z123456"
+        val now = LocalDateTime.now()
+
+        val gainedAccessNotification = GainedAccessNotification(
+            id = UUID.randomUUID(),
+            message = "You now have access to case $behandlingId",
+            navIdent = navIdent,
+            read = false,
+            createdAt = now,
+            updatedAt = now,
+            readAt = null,
+            markedAsDeleted = false,
+            kafkaMessageId = UUID.randomUUID(),
+            sourceCreatedAt = now.minusDays(3),
+            behandlingId = behandlingId,
+            saksnummer = "202398765",
+            ytelse = Ytelse.SYK_SYK,
+            behandlingType = Type.ANKE
+        )
+
+        val saved = gainedAccessNotificationRepository.save(gainedAccessNotification)
+        testEntityManager.flush()
+        testEntityManager.clear()
+
+        val found = gainedAccessNotificationRepository.findById(saved.id)
         assertThat(found).isPresent
         assertThat(found.get()).isEqualTo(saved)
         assertThat(found.get().behandlingId).isEqualTo(behandlingId)

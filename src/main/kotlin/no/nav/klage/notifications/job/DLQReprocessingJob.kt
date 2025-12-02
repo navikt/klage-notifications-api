@@ -1,5 +1,6 @@
 package no.nav.klage.notifications.job
 
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock
 import no.nav.klage.notifications.service.DLQReprocessingService
 import no.nav.klage.notifications.util.getLogger
 import org.springframework.scheduling.annotation.Scheduled
@@ -19,7 +20,8 @@ class DLQReprocessingJob(
      * Scheduled job that checks for DLQ messages marked for reprocessing.
      * Runs every 5 minutes.
      */
-    @Scheduled(fixedDelay = 300_000) // 5 minutes = 300,000 milliseconds
+    @Scheduled(cron = "0 0/5 * * * ?")
+    @SchedulerLock(name = "reprocessMarkedMessages")
     fun reprocessMarkedMessages() {
         logger.debug("Starting DLQ reprocessing job")
 

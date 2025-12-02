@@ -21,6 +21,7 @@ class NotificationCleanupJob(
      */
     //Keeping data until further notice.
 //    @Scheduled(cron = "0 0 9,14 ? * MON-FRI")
+//    @SchedulerLock(name = "cleanupOldDeletedNotifications")
 //    fun cleanupOldDeletedNotifications() {
 //        logger.debug("Starting cleanup of old deleted notifications (older than {} days)", DAYS_BEFORE_DELETION)
 //

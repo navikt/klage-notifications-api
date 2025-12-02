@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import no.nav.klage.notifications.config.SecurityConfiguration
 import no.nav.klage.notifications.dto.CreateSystemNotificationRequest
 import no.nav.klage.notifications.dto.TransferNotificationOwnershipRequest
+import no.nav.klage.notifications.dto.view.LostAccessNotificationResponse
 import no.nav.klage.notifications.dto.view.SystemNotificationResponse
 import no.nav.klage.notifications.service.NotificationAggregateMetricsService
 import no.nav.klage.notifications.service.NotificationService
@@ -183,6 +184,26 @@ class NotificationAdminController(
                 message = notification.message,
                 createdAt = notification.createdAt,
                 updatedAt = notification.updatedAt,
+            )
+        }
+        return ResponseEntity.ok(response)
+    }
+
+    @Operation(
+        summary = "Get all lost access notifications",
+        description = "Returns all non-deleted LOST_ACCESS notifications with behandlingId and navIdent",
+    )
+    @ApiResponse(
+        responseCode = "200",
+        description = "Lost access notifications retrieved successfully",
+    )
+    @GetMapping("/lost-access")
+    fun getAllLostAccessNotifications(): ResponseEntity<List<LostAccessNotificationResponse>> {
+        val lostAccessNotifications = notificationService.getAllLostAccessNotifications()
+        val response = lostAccessNotifications.map { notification ->
+            LostAccessNotificationResponse(
+                behandlingId = notification.behandlingId,
+                navIdent = notification.navIdent,
             )
         }
         return ResponseEntity.ok(response)
