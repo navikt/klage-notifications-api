@@ -20,7 +20,7 @@ class NotificationMetricsService(
         private const val METRIC_PREFIX = "klage_notifications"
 
         // Metric names
-        //means created. "created" was stripped by prometheus, so no point in using it.
+        //means created. "created" was stripped by prometheus, so no point in using it in the name.
         private const val CREATED_METRIC = "${METRIC_PREFIX}_total_counter"
 
         private const val READ_METRIC = "${METRIC_PREFIX}_read_events_total_counter"
