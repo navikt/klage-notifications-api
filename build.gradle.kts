@@ -9,6 +9,7 @@ val tokenValidationVersion = "6.0.0"
 val logstashVersion = "9.0"
 val reactorKafkaVersion = "1.3.25"
 val springDocVersion = "3.0.0"
+val shedlockVersion = "6.10.0"
 
 plugins {
     val kotlinVersion = "2.2.21"
@@ -56,6 +57,8 @@ dependencies {
     implementation("no.nav.security:token-validation-spring:${tokenValidationVersion}")
     implementation("no.nav.security:token-client-spring:${tokenValidationVersion}")
     implementation("io.micrometer:micrometer-registry-prometheus")
+    implementation("net.javacrumbs.shedlock:shedlock-spring:${shedlockVersion}")
+    implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:${shedlockVersion}")
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(group = "org.junit.vintage")
         exclude(group = "org.mockito")
