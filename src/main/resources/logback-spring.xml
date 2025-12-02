@@ -2,6 +2,7 @@
 <configuration>
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
+    <turboFilter class="no.nav.klage.notifications.config.SseBrokenPipeLogFilter" />
     <turboFilter class="no.nav.klage.notifications.config.InternalLogFilter" />
 
     <springProfile name="local">
