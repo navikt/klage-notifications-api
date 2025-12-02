@@ -3,10 +3,7 @@ package no.nav.klage.notifications.service
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.MeterRegistry
 import jakarta.annotation.PostConstruct
-import no.nav.klage.notifications.domain.LostAccessNotification
-import no.nav.klage.notifications.domain.MeldingNotification
-import no.nav.klage.notifications.domain.Notification
-import no.nav.klage.notifications.domain.NotificationType
+import no.nav.klage.notifications.domain.*
 import no.nav.klage.notifications.repository.NotificationRepository
 import no.nav.klage.notifications.util.getLogger
 import org.springframework.stereotype.Service
@@ -146,6 +143,7 @@ class NotificationAggregateMetricsService(
                 val notificationsOfType = when (type) {
                     NotificationType.MELDING -> allNotifications.filterIsInstance<MeldingNotification>()
                     NotificationType.LOST_ACCESS -> allNotifications.filterIsInstance<LostAccessNotification>()
+                    NotificationType.GAINED_ACCESS -> allNotifications.filterIsInstance<GainedAccessNotification>()
                 }
 
                 // Filter only non-deleted notifications
@@ -157,6 +155,7 @@ class NotificationAggregateMetricsService(
                         when (it) {
                             is MeldingNotification -> it.behandlingId
                             is LostAccessNotification -> it.behandlingId
+                            is GainedAccessNotification -> it.behandlingId
                             else -> null
                         }
                     }
@@ -195,6 +194,7 @@ class NotificationAggregateMetricsService(
                 val notificationsOfType = when (type) {
                     NotificationType.MELDING -> allNotifications.filterIsInstance<MeldingNotification>()
                     NotificationType.LOST_ACCESS -> allNotifications.filterIsInstance<LostAccessNotification>()
+                    NotificationType.GAINED_ACCESS -> allNotifications.filterIsInstance<GainedAccessNotification>()
                 }
 
                 // Filter only non-deleted notifications
@@ -237,6 +237,7 @@ class NotificationAggregateMetricsService(
                 val notificationsOfType = when (type) {
                     NotificationType.MELDING -> allNotifications.filterIsInstance<MeldingNotification>()
                     NotificationType.LOST_ACCESS -> allNotifications.filterIsInstance<LostAccessNotification>()
+                    NotificationType.GAINED_ACCESS -> allNotifications.filterIsInstance<GainedAccessNotification>()
                 }
 
                 // Count unread and non-deleted notifications

@@ -6,8 +6,8 @@ import java.util.*
 enum class NotificationType {
     SYSTEM,
     LOST_ACCESS,
+    GAINED_ACCESS,
     MESSAGE,
-    JOURNALPOST,
 }
 
 data class NavEmployee(
@@ -50,6 +50,20 @@ data class MessageNotificationView(
 }
 
 data class LostAccessNotificationView(
+    override val type: NotificationType,
+    override val id: UUID,
+    override val read: Boolean,
+    override val createdAt: LocalDateTime,
+    val message: String,
+    val behandling: BehandlingInfo,
+): NotificationView(
+    type = type,
+    id = id,
+    read = read,
+    createdAt = createdAt,
+)
+
+data class GainedAccessNotificationView(
     override val type: NotificationType,
     override val id: UUID,
     override val read: Boolean,

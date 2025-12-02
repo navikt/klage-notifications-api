@@ -15,6 +15,7 @@ import java.util.*
 @JsonSubTypes(
     JsonSubTypes.Type(value = MeldingNotification::class, name = "MELDING"),
     JsonSubTypes.Type(value = LostAccessNotification::class, name = "LOST_ACCESS"),
+    JsonSubTypes.Type(value = GainedAccessNotification::class, name = "GAINED_ACCESS"),
 )
 @Entity
 @Table(name = "notifications", schema = "klage")
@@ -32,7 +33,6 @@ abstract class Notification(
 
     @Column
     open var read: Boolean,
-
 
     @Column
     open val createdAt: LocalDateTime,

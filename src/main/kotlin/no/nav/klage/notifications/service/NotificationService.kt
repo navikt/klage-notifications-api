@@ -18,6 +18,7 @@ class NotificationService(
     private val notificationRepository: NotificationRepository,
     private val meldingNotificationRepository: MeldingNotificationRepository,
     private val lostAccessNotificationRepository: LostAccessNotificationRepository,
+    private val gainedAccessNotificationRepository: GainedAccessNotificationRepository,
     private val systemNotificationRepository: SystemNotificationRepository,
     private val systemNotificationReadStatusRepository: SystemNotificationReadStatusRepository,
     private val kafkaInternalEventService: KafkaInternalEventService,
@@ -669,6 +670,14 @@ class NotificationService(
                         markedAsDeleted = false
                     )
                 }
+
+                is CreateGainedAccessNotificationRequest -> {
+                    gainedAccessNotificationRepository.findByBehandlingIdAndNavIdentAndMarkedAsDeleted(
+                        behandlingId = createNotificationEvent.behandlingId,
+                        navIdent = createNotificationEvent.recipientNavIdent,
+                        markedAsDeleted = false
+                    )
+                }
             }
 
             if (existingNotification != null) {
@@ -690,6 +699,13 @@ class NotificationService(
 
                 is CreateLostAccessNotificationRequest -> {
                     createLostAccessNotification(
+                        request = createNotificationEvent,
+                        kafkaMessageId = kafkaMessageId,
+                    )
+                }
+
+                is CreateGainedAccessNotificationRequest -> {
+                    createGainedAccessNotification(
                         request = createNotificationEvent,
                         kafkaMessageId = kafkaMessageId,
                     )
@@ -765,6 +781,35 @@ class NotificationService(
         )
 
         val saved = lostAccessNotificationRepository.save(notification)
+
+        // Record metrics
+        metricsService.recordNotificationCreated(saved)
+
+        return saved
+    }
+
+    fun createGainedAccessNotification(
+        request: CreateGainedAccessNotificationRequest,
+        kafkaMessageId: UUID,
+    ): GainedAccessNotification {
+        val now = LocalDateTime.now()
+        val notification = GainedAccessNotification(
+            message = request.message,
+            navIdent = request.recipientNavIdent,
+            read = false,
+            createdAt = now,
+            updatedAt = now,
+            readAt = null,
+            markedAsDeleted = false,
+            kafkaMessageId = kafkaMessageId,
+            sourceCreatedAt = request.sourceCreatedAt,
+            behandlingId = request.behandlingId,
+            saksnummer = request.saksnummer,
+            ytelse = request.ytelse,
+            behandlingType = request.behandlingType,
+        )
+
+        val saved = gainedAccessNotificationRepository.save(notification)
 
         // Record metrics
         metricsService.recordNotificationCreated(saved)
@@ -923,3 +968,4 @@ class NotificationService(
         )
     }
 }
+
