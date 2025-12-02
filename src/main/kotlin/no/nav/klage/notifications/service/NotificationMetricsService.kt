@@ -30,6 +30,25 @@ class NotificationMetricsService(
 
         // Tag keys
         private const val TYPE_TAG = "notification_type"
+
+        // Custom histogram buckets for time to read (in seconds)
+        private val TIME_TO_READ_BUCKETS = doubleArrayOf(
+            30.0,                  // 30 seconds
+            60.0,                  // 1 minute
+            180.0,                 // 3 minutes
+            600.0,                 // 10 minutes
+            1200.0,                // 20 minutes
+            3600.0,                // 1 hour
+            10800.0,               // 3 hours
+            28800.0,               // 8 hours
+            86400.0,               // 1 day
+            259200.0,              // 3 days
+            604800.0,              // 1 week
+            1209600.0,             // 2 weeks
+            2419200.0,             // 4 weeks
+            4838400.0              // 8 weeks
+            // +Inf is automatically added by Micrometer
+        )
     }
 
     @PostConstruct
@@ -65,9 +84,16 @@ class NotificationMetricsService(
                 .tag(TYPE_TAG, type)
                 .description("Total number of notifications deleted")
                 .register(meterRegistry)
+
+            // Initialize time to read timer
+            Timer.builder(TIME_TO_READ_METRIC)
+                .tag(TYPE_TAG, type)
+                .description("Time taken for notifications to be read")
+                .serviceLevelObjectives(*TIME_TO_READ_BUCKETS.map { Duration.ofSeconds(it.toLong()) }.toTypedArray())
+                .register(meterRegistry)
         }
 
-        logger.debug("Initialized all notification counters")
+        logger.debug("Initialized all notification counters and timers")
     }
 
     fun recordNotificationCreated(notification: Notification) {
@@ -109,6 +135,7 @@ class NotificationMetricsService(
                 Timer.builder(TIME_TO_READ_METRIC)
                     .tag(TYPE_TAG, type)
                     .description("Time taken for notifications to be read")
+                    .serviceLevelObjectives(*TIME_TO_READ_BUCKETS.map { Duration.ofSeconds(it.toLong()) }.toTypedArray())
                     .register(meterRegistry)
                     .record(timeToRead)
             }
@@ -129,6 +156,7 @@ class NotificationMetricsService(
             Timer.builder(TIME_TO_READ_METRIC)
                 .tag(TYPE_TAG, "SYSTEM")
                 .description("Time taken for notifications to be read")
+                .serviceLevelObjectives(*TIME_TO_READ_BUCKETS.map { Duration.ofSeconds(it.toLong()) }.toTypedArray())
                 .register(meterRegistry)
                 .record(timeToRead)
         } catch (e: Exception) {
