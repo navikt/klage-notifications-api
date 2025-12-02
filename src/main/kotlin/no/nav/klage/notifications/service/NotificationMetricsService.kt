@@ -267,6 +267,7 @@ class NotificationMetricsService(
         return when (notification) {
             is MeldingNotification -> NotificationType.MELDING.name
             is LostAccessNotification -> NotificationType.LOST_ACCESS.name
+            is GainedAccessNotification -> NotificationType.GAINED_ACCESS.name
             else -> error("Unknown notification type")
         }
     }
