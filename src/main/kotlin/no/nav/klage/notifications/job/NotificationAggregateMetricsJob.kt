@@ -1,11 +1,11 @@
 package no.nav.klage.notifications.job
 
-import net.javacrumbs.shedlock.spring.annotation.SchedulerLock
 import no.nav.klage.notifications.service.LeaderElectionService
 import no.nav.klage.notifications.service.NotificationAggregateMetricsService
 import no.nav.klage.notifications.util.getLogger
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.util.concurrent.TimeUnit
 
 @Component
 class NotificationAggregateMetricsJob(
@@ -22,8 +22,7 @@ class NotificationAggregateMetricsJob(
      * Scheduled job that calculates and updates aggregate notification metrics.
      * Runs every second minute.
      */
-    @Scheduled(cron = "0 0/2 * * * ?")
-    @SchedulerLock(name = "updateAggregateMetrics")
+    @Scheduled(timeUnit = TimeUnit.MINUTES, fixedDelay = 2, initialDelay = 1)
     fun updateAggregateMetrics() {
         logger.debug("Starting scheduled update of aggregate notification metrics")
 
