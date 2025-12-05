@@ -69,4 +69,22 @@ interface NotificationRepository : JpaRepository<Notification, UUID> {
         GROUP BY n.navIdent
     """)
     fun countNotificationsByNavIdent(): List<Long>
+
+    /**
+     * Find the latest access notification (LOST_ACCESS or GAINED_ACCESS) for a given behandlingId and navIdent.
+     * Used to determine if a new access notification should be allowed based on the previous one.
+     */
+    @Query("""
+        SELECT n FROM Notification n 
+        WHERE n.navIdent = :navIdent
+        AND n.markedAsDeleted = false
+        AND ((TYPE(n) = LostAccessNotification AND TREAT(n AS LostAccessNotification).behandlingId = :behandlingId)
+        OR (TYPE(n) = GainedAccessNotification AND TREAT(n AS GainedAccessNotification).behandlingId = :behandlingId))
+        ORDER BY n.createdAt DESC
+        LIMIT 1
+    """)
+    fun findLatestAccessNotificationByBehandlingIdAndNavIdent(
+        behandlingId: UUID,
+        navIdent: String,
+    ): Notification?
 }

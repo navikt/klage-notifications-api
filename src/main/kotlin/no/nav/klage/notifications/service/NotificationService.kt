@@ -498,6 +498,7 @@ class NotificationService(
         val now = LocalDateTime.now()
         val meldingNotifications = notifications.filterIsInstance<MeldingNotification>()
         val lostAccessNotifications = notifications.filterIsInstance<LostAccessNotification>()
+        val gainedAccessNotifications = notifications.filterIsInstance<GainedAccessNotification>()
 
         // Group MELDING notifications by old owner for bulk delete events. Should be at most one owner, but grouping for safety.
         val notificationsByOldOwner = meldingNotifications.groupBy { it.navIdent }
@@ -550,14 +551,36 @@ class NotificationService(
             }
         }
 
+        // Mark GAINED_ACCESS notifications as deleted and send bulk delete events
+        if (gainedAccessNotifications.isNotEmpty()) {
+            gainedAccessNotifications.forEach { notification ->
+                notification.markedAsDeleted = true
+                notification.updatedAt = now
+            }
+
+            // Group by owner and send bulk delete events
+            val gainedAccessByOwner = gainedAccessNotifications.groupBy { it.navIdent }
+            gainedAccessByOwner.forEach { (navIdent, ownerNotifications) ->
+                val deleteEvent = NotificationChangeEvent(
+                    id = null,
+                    ids = ownerNotifications.map { it.id },
+                    navIdent = navIdent,
+                    type = NotificationChangeEvent.Type.DELETED_MULTIPLE,
+                    updatedAt = now,
+                )
+                kafkaInternalEventService.publishInternalNotificationChangeEvent(deleteEvent)
+            }
+        }
+
         // Record metrics
-        metricsService.recordMultipleNotificationsDeleted(lostAccessNotifications)
+        metricsService.recordMultipleNotificationsDeleted(lostAccessNotifications + gainedAccessNotifications)
 
         logger.debug(
-            "Transferred {} MELDING notifications to navIdent {} (all sent via SSE) and deleted {} LOST_ACCESS notifications for behandlingId {}",
+            "Transferred {} MELDING notifications to navIdent {} (all sent via SSE) and deleted {} LOST_ACCESS and {} GAINED_ACCESS notifications for behandlingId {}",
             meldingNotifications.size,
             newNavIdent,
             lostAccessNotifications.size,
+            gainedAccessNotifications.size,
             behandlingId,
         )
     }
@@ -655,38 +678,108 @@ class NotificationService(
             )
 
             // Check for existing notification based on type-specific idempotency rules
-            val existingNotification = when (createNotificationEvent) {
+            when (createNotificationEvent) {
                 is CreateMeldingNotificationEvent -> {
-                    meldingNotificationRepository.findByMeldingIdAndMarkedAsDeleted(
+                    val existingNotification = meldingNotificationRepository.findByMeldingIdAndMarkedAsDeleted(
                         meldingId = createNotificationEvent.meldingId,
                         markedAsDeleted = false
                     )
+                    if (existingNotification != null) {
+                        logger.debug(
+                            "Notification already exists (idempotent check): type={}, id={}",
+                            createNotificationEvent.type,
+                            existingNotification.id,
+                        )
+                        return
+                    }
                 }
 
                 is CreateLostAccessNotificationRequest -> {
-                    lostAccessNotificationRepository.findByBehandlingIdAndNavIdentAndMarkedAsDeleted(
+                    val latestAccessNotification = notificationRepository.findLatestAccessNotificationByBehandlingIdAndNavIdent(
                         behandlingId = createNotificationEvent.behandlingId,
                         navIdent = createNotificationEvent.recipientNavIdent,
-                        markedAsDeleted = false
                     )
+                    // LOST_ACCESS is allowed if there's no previous notification, or if the latest one was GAINED_ACCESS
+                    when (latestAccessNotification) {
+                        null -> {
+                            // No previous access notification, allow creation
+                            logger.debug(
+                                "No previous access notification found, allowing creation of LOST_ACCESS: behandlingId={}, navIdent={}",
+                                createNotificationEvent.behandlingId,
+                                createNotificationEvent.recipientNavIdent,
+                            )
+                        }
+                        is LostAccessNotification -> {
+                            // Latest was LOST_ACCESS, do not allow duplicate
+                            logger.debug(
+                                "Latest access notification is LOST_ACCESS, not allowed: behandlingId={}, navIdent={}, id={}",
+                                createNotificationEvent.behandlingId,
+                                createNotificationEvent.recipientNavIdent,
+                                latestAccessNotification.id,
+                            )
+                            return
+                        }
+                        is GainedAccessNotification -> {
+                            // Latest was GAINED_ACCESS, allow creation of LOST_ACCESS
+                            logger.debug(
+                                "Latest access notification is GAINED_ACCESS, allowing creation of LOST_ACCESS: behandlingId={}, navIdent={}",
+                                createNotificationEvent.behandlingId,
+                                createNotificationEvent.recipientNavIdent,
+                            )
+                        }
+                        else -> {
+                            logger.warn(
+                                "Unexpected notification type found: {}",
+                                latestAccessNotification::class.simpleName,
+                            )
+                            return
+                        }
+                    }
                 }
 
                 is CreateGainedAccessNotificationRequest -> {
-                    gainedAccessNotificationRepository.findByBehandlingIdAndNavIdentAndMarkedAsDeleted(
+                    // GAINED_ACCESS is only allowed if the latest notification was LOST_ACCESS
+                    val latestAccessNotification = notificationRepository.findLatestAccessNotificationByBehandlingIdAndNavIdent(
                         behandlingId = createNotificationEvent.behandlingId,
                         navIdent = createNotificationEvent.recipientNavIdent,
-                        markedAsDeleted = false
                     )
+                    when (latestAccessNotification) {
+                        null -> {
+                            // No previous access notification, GAINED_ACCESS not allowed
+                            logger.debug(
+                                "No previous access notification found, GAINED_ACCESS not allowed: behandlingId={}, navIdent={}",
+                                createNotificationEvent.behandlingId,
+                                createNotificationEvent.recipientNavIdent,
+                            )
+                            return
+                        }
+                        is GainedAccessNotification -> {
+                            // Latest was GAINED_ACCESS, do not allow duplicate
+                            logger.debug(
+                                "Latest access notification is GAINED_ACCESS, not allowed: behandlingId={}, navIdent={}, id={}",
+                                createNotificationEvent.behandlingId,
+                                createNotificationEvent.recipientNavIdent,
+                                latestAccessNotification.id,
+                            )
+                            return
+                        }
+                        is LostAccessNotification -> {
+                            // Latest was LOST_ACCESS, allow creation of GAINED_ACCESS
+                            logger.debug(
+                                "Latest access notification is LOST_ACCESS, allowing creation of GAINED_ACCESS: behandlingId={}, navIdent={}",
+                                createNotificationEvent.behandlingId,
+                                createNotificationEvent.recipientNavIdent,
+                            )
+                        }
+                        else -> {
+                            logger.warn(
+                                "Unexpected notification type found: {}",
+                                latestAccessNotification::class.simpleName,
+                            )
+                            return
+                        }
+                    }
                 }
-            }
-
-            if (existingNotification != null) {
-                logger.debug(
-                    "Notification already exists (idempotent check): type={}, id={}",
-                    createNotificationEvent.type,
-                    existingNotification.id,
-                )
-                return
             }
 
             val notification = when (createNotificationEvent) {
@@ -850,7 +943,17 @@ class NotificationService(
 
     @Transactional(readOnly = true)
     fun getAllLostAccessNotifications(): List<LostAccessNotification> {
-        return lostAccessNotificationRepository.findByMarkedAsDeleted(false)
+        val lostAccessNotifications = lostAccessNotificationRepository.findByMarkedAsDeleted(false)
+
+        // Filter to only include notifications where LOST_ACCESS is the latest access notification
+        // for that behandlingId/navIdent combination
+        return lostAccessNotifications.filter { lostAccess ->
+            val latestAccessNotification = notificationRepository.findLatestAccessNotificationByBehandlingIdAndNavIdent(
+                behandlingId = lostAccess.behandlingId,
+                navIdent = lostAccess.navIdent,
+            )
+            latestAccessNotification is LostAccessNotification && latestAccessNotification.id == lostAccess.id
+        }
     }
 
     @Transactional(readOnly = true)

@@ -6,12 +6,4 @@ import org.springframework.stereotype.Repository
 import java.util.*
 
 @Repository
-interface GainedAccessNotificationRepository : JpaRepository<GainedAccessNotification, UUID> {
-    fun findByBehandlingIdAndNavIdentAndMarkedAsDeleted(
-        behandlingId: UUID,
-        navIdent: String,
-        markedAsDeleted: Boolean = false
-    ): GainedAccessNotification?
-
-    fun findByMarkedAsDeleted(markedAsDeleted: Boolean = false): List<GainedAccessNotification>
-}
+interface GainedAccessNotificationRepository : JpaRepository<GainedAccessNotification, UUID>
