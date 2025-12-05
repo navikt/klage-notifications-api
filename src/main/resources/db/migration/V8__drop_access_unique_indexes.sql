@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS klage.idx_notifications_lost_access_unique;
+DROP INDEX IF EXISTS klage.idx_notifications_gained_access_unique;

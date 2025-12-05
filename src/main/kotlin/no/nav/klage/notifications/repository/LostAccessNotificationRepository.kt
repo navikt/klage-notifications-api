@@ -7,11 +7,5 @@ import java.util.*
 
 @Repository
 interface LostAccessNotificationRepository : JpaRepository<LostAccessNotification, UUID> {
-    fun findByBehandlingIdAndNavIdentAndMarkedAsDeleted(
-        behandlingId: UUID,
-        navIdent: String,
-        markedAsDeleted: Boolean = false
-    ): LostAccessNotification?
-
     fun findByMarkedAsDeleted(markedAsDeleted: Boolean = false): List<LostAccessNotification>
 }
