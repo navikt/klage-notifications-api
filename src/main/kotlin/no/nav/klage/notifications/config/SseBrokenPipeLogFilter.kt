@@ -51,13 +51,24 @@ class SseBrokenPipeLogFilter : TurboFilter() {
         }
 
         if (level == Level.WARN &&
-            logger?.name == "org.eclipse.jetty.ee10.servlet.ServletChannel" &&
+            logger?.name == "org.eclipse.jetty.ee11.servlet.ServletChannel" &&
             throwable != null &&
             throwable.javaClass.name == "jakarta.servlet.ServletException" &&
             throwable.message?.contains("Request processing failed") == true &&
             format?.contains("events") == true
         ) {
             ourLogger.debug("Suppressing warning log message. This is probably due to lost client during async/SSE operations.")
+            return FilterReply.DENY
+        }
+
+        // Suppress JwtTokenUnauthorizedException from ServletChannel during SSE events
+        if (level == Level.WARN &&
+            logger?.name == "org.eclipse.jetty.ee11.servlet.ServletChannel" &&
+            throwable != null &&
+            throwable.javaClass.name == "jakarta.servlet.ServletException" &&
+            throwable.message?.contains("JwtTokenUnauthorizedException") == true
+        ) {
+            ourLogger.debug("Suppressing warning log message for JwtTokenUnauthorizedException. This is probably due to lost client during async/SSE operations.")
             return FilterReply.DENY
         }
 
