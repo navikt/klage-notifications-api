@@ -1,0 +1,16 @@
+name: Deploy release to prod
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  deploy-prod:
+    permissions:
+      contents: read
+      id-token: write
+    uses: navikt/klage-workflows/.github/workflows/deploy-prod.yml@main
+    secrets: inherit
+    with:
+      nav-cluster: 'prod-gcp'

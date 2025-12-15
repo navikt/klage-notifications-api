@@ -1,0 +1,15 @@
+name: CodeQL
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '00 18 * * SUN'
+
+jobs:
+  run-codeql:
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: navikt/klage-workflows/.github/workflows/codeql.yml@main
+    secrets: inherit

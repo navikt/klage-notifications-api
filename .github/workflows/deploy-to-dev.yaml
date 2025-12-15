@@ -37,7 +37,7 @@ jobs:
         env:
           ORG_GRADLE_PROJECT_githubUser: x-access-token
           ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Build & push Docker image
         uses: nais/docker-build-push@v0
         id: docker-build-push
@@ -54,7 +54,7 @@ jobs:
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }} # required, but is defined as an organization variable
           build_args: |
             VERSION=${CI}
-      
+
       - name: Post failures to Slack
         if: failure()
         run: |
@@ -63,7 +63,7 @@ jobs:
           MESSAGE: "Bygg feilet"
           CHANNEL: "#klage-notifications"
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
-  
+
   deploy_to_dev:
     name: Deploy
     needs: build
@@ -74,14 +74,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         name: Checkout code
-      
+
       - name: Deploy to dev
         uses: nais/deploy/actions/deploy@v2
         env:
           TEAM: klage
           CLUSTER: dev-gcp
-          VARS: deploy/dev.yaml
-          RESOURCE: deploy/nais.yaml
+          VARS: nais/dev-config.yaml
+          RESOURCE: nais/nais.yaml
           VAR: image=${{ needs.build.outputs.image }}
           IMAGE: ${{ needs.build.outputs.image }}
 
