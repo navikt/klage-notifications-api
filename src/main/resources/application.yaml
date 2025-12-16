@@ -5,8 +5,6 @@ spring:
   datasource:
     url: ${NAIS_DATABASE_KLAGE_NOTIFICATIONS_API_KLAGE_NOTIFICATIONS_API_JDBC_URL}
     driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 15
 
   jpa:
     hibernate:

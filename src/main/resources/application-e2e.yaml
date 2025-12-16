@@ -4,6 +4,8 @@ spring:
 
   datasource:
     url: ${NAIS_DATABASE_KLAGE_NOTIFICATIONS_API_E2E_KLAGE_NOTIFICATIONS_API_E2E_JDBC_URL}
+    hikari:
+      maximum-pool-size: 5
 
   flyway:
     clean-disabled: false
