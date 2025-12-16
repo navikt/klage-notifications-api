@@ -384,7 +384,6 @@ class NotificationAggregateMetricsServiceTest {
 
     @Test
     fun `prometheus output contains all gauge metrics`() {
-        // Given
         val notifications = listOf(
             createMeldingNotification(read = false),
             createMeldingNotification(read = false),
@@ -394,10 +393,8 @@ class NotificationAggregateMetricsServiceTest {
         every { notificationRepository.findAll() } returns notifications
         service.initializeGauges()
 
-        // When
         service.updateAggregateMetrics()
 
-        // Then
         val prometheusOutput = meterRegistry.scrape()
 
         println("=== Prometheus Aggregate Metrics Output ===")
