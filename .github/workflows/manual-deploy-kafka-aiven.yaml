@@ -18,6 +18,7 @@ jobs:
     strategy:
       matrix:
         topic: [klage-notification-events.v1, klage-notification-internal-events.v1, klage-notification-internal-change-events.v1, klage-notification-internal-system-events.v1]
+        environment: [dev, neon, argon, e2e, prod]
         include:
           - environment: dev
             cluster: dev-gcp
