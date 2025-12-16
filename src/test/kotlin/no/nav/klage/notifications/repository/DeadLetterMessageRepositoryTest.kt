@@ -17,7 +17,6 @@ class DeadLetterMessageRepositoryTest : PostgresIntegrationTestBase() {
 
     @Test
     fun `test save and find dead letter message`() {
-        // Given
         val deadLetterMessage = DeadLetterMessage(
             topic = "test-topic",
             messageKey = "test-key",
@@ -35,10 +34,9 @@ class DeadLetterMessageRepositoryTest : PostgresIntegrationTestBase() {
             reprocess = false,
             reprocessedAt = null,
         )
-        // When
         val saved = deadLetterMessageRepository.save(deadLetterMessage)
         val found = deadLetterMessageRepository.findById(saved.id)
-        // Then
+
         assertThat(found).isPresent
         assertThat(found.get().topic).isEqualTo("test-topic")
         assertThat(found.get().messageKey).isEqualTo("test-key")
