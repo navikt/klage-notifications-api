@@ -1,4 +1,4 @@
-name: Build, deploy dev, draft main
+name: Build, deploy dev, deploy prod
 
 on:
   push:
