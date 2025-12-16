@@ -1,7 +1,7 @@
 apiVersion: "nais.io/v1alpha1"
 kind: "Application"
 metadata:
-  name: ${{applicationName}}
+  name: {{applicationName}}
   namespace: klage
   labels:
     team: klage
@@ -17,7 +17,7 @@ spec:
       runtime: java
   gcp:
     sqlInstances:
-      - name: ${{applicationName}}
+      - name: {{applicationName}}
         type: {{db_type}}
         maintenance:
           day: 1
@@ -29,7 +29,7 @@ spec:
         autoBackupHour: 2
         cascadingDelete: false
         databases:
-          - name: ${{applicationName}}
+          - name: {{applicationName}}
   azure:
     application:
       enabled: true
