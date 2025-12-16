@@ -1,3 +1,4 @@
+topicName: klage-notification-internal-events.v1
 pool: nav-dev
 config:
   cleanupPolicy: delete
@@ -6,3 +7,7 @@ config:
   replication: 3
   retentionBytes: -1
   retentionHours: 8
+acl:
+  - team: klage
+    application: klage-notifications-api
+    access: readwrite

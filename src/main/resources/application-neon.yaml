@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: klage-notifications-api-neon
+
+  datasource:
+    url: ${NAIS_DATABASE_KLAGE_NOTIFICATIONS_API_NEON_KLAGE_NOTIFICATIONS_API_NEON_JDBC_URL}
+
+  flyway:
+    clean-disabled: false
+
+springdoc:
+  swagger-ui:
+    enabled: true
+  api-docs:
+    enabled: true
+
+server:
+  port: 8080
+
+NOTIFICATION_EVENTS_TOPIC: klage.klage-notification-events-neon.v1
+NOTIFICATION_INTERNAL_EVENTS_TOPIC: klage.klage-notification-internal-events-neon.v1
+NOTIFICATION_INTERNAL_CHANGE_EVENTS_TOPIC: klage.klage-notification-internal-change-events-neon.v1
+NOTIFICATION_INTERNAL_SYSTEM_EVENTS_TOPIC: klage.klage-notification-internal-system-events-neon.v1

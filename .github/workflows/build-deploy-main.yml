@@ -7,6 +7,8 @@ on:
     paths-ignore:
       - 'kafka-aiven/**'
       - '.github/dependabot.yml'
+#  For testing
+  workflow_dispatch:
 
 jobs:
   build:
@@ -17,5 +19,3 @@ jobs:
       id-token: write
     uses: navikt/klage-workflows/.github/workflows/build-deploy-main.yml@main
     secrets: inherit
-    with:
-      nav-cluster: 'dev-gcp'

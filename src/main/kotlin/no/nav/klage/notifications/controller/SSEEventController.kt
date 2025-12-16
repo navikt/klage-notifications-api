@@ -608,7 +608,7 @@ data: {
         aivenKafkaClientCreator.getNewKafkaNotificationInternalEventsReceiver().receive()
             .doOnNext { consumerRecord ->
                 logger.debug("Received internal notification event at offset {}: {}", consumerRecord.offset(), consumerRecord.key())
-                if (environment.activeProfiles.contains("dev-gcp")) {
+                if (!environment.activeProfiles.contains("prod")) {
                     logger.debug(
                         "Received internal Kafka-message (notification event): {}",
                         consumerRecord.value()
@@ -653,7 +653,7 @@ data: {
         aivenKafkaClientCreator.getNewKafkaNotificationInternalSystemEventsReceiver().receive()
             .doOnNext { consumerRecord ->
                 logger.debug("Received system notification event at offset {}: {}", consumerRecord.offset(), consumerRecord.key())
-                if (environment.activeProfiles.contains("dev-gcp")) {
+                if (!environment.activeProfiles.contains("prod")) {
                     logger.debug(
                         "Received internal Kafka-message (system notification): {}",
                         consumerRecord.value()
@@ -676,7 +676,7 @@ data: {
     private val sharedChangeEvents: Flux<Pair<String, NotificationChangeEvent>> by lazy {
         aivenKafkaClientCreator.getNewKafkaNotificationInternalChangeEventsReceiver().receive()
             .doOnNext { consumerRecord ->
-                if (environment.activeProfiles.contains("dev-gcp")) {
+                if (!environment.activeProfiles.contains("prod")) {
                     logger.debug(
                         "Received internal Kafka-message (notification change) at offset {}: {}",
                         consumerRecord.offset(),

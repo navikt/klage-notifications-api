@@ -1,6 +1,6 @@
 spring:
   application:
-    name: notifications
+    name: klage-notifications-api
 
   datasource:
     url: ${NAIS_DATABASE_KLAGE_NOTIFICATIONS_API_KLAGE_NOTIFICATIONS_API_JDBC_URL}

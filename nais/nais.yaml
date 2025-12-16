@@ -1,7 +1,7 @@
 apiVersion: "nais.io/v1alpha1"
 kind: "Application"
 metadata:
-  name: klage-notifications-api
+  name: ${{applicationName}}
   namespace: klage
   labels:
     team: klage
@@ -9,7 +9,7 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-body-size: "1M"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"
 spec:
-  image: {{ image }}
+  image: {{image}}
   leaderElection: true
   observability:
     autoInstrumentation:
@@ -17,20 +17,19 @@ spec:
       runtime: java
   gcp:
     sqlInstances:
-      - name: klage-notifications-api
-        type: {{ db_type }}
+      - name: ${{applicationName}}
+        type: {{db_type}}
         maintenance:
           day: 1
           hour: 4
-        tier: {{ db_tier }}
+        tier: {{db_tier}}
+        highAvailability: {{db_ha}}
         diskType: SSD
-        highAvailability: {{ db_ha }}
-        diskSize: {{ db_size }}
         diskAutoresize: true
         autoBackupHour: 2
         cascadingDelete: false
         databases:
-          - name: klage-notifications-api
+          - name: ${{applicationName}}
   azure:
     application:
       enabled: true

@@ -17,15 +17,25 @@ jobs:
       id-token: write
     strategy:
       matrix:
-        cluster: [dev,prod]
         topic: [klage-notification-events.v1, klage-notification-internal-events.v1, klage-notification-internal-change-events.v1, klage-notification-internal-system-events.v1]
+        include:
+          - environment: dev
+            cluster: dev-gcp
+          - environment: neon
+            cluster: dev-gcp
+          - environment: argon
+            cluster: dev-gcp
+          - environment: e2e
+            cluster: dev-gcp
+          - environment: prod
+            cluster: prod-gcp
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      - name: deploy kafka-topic ${{ matrix.topic }} to ${{ matrix.cluster }}
+        uses: actions/checkout@v5
+      - name: deploy kafka-topic ${{ matrix.topic }} to ${{ matrix.environment }}
         uses: nais/deploy/actions/deploy@v2
         env:
-          CLUSTER: ${{ matrix.cluster }}-gcp
+          CLUSTER: ${{ matrix.cluster }}
           RESOURCE: kafka-aiven/${{ matrix.topic }}/topic.yaml
-          VARS: kafka-aiven/${{ matrix.topic }}/${{ matrix.cluster }}-vars.yaml
+          VARS: kafka-aiven/${{ matrix.topic }}/${{ matrix.environment }}-vars.yaml
           PRINT_PAYLOAD: true

@@ -1,13 +1,13 @@
-topicName: klage-notification-internal-system-events.v1
-pool: nav-prod
+topicName: klage-notification-internal-change-events-e2e.v1
+pool: nav-dev
 config:
   cleanupPolicy: delete
   minimumInSyncReplicas: 1
   partitions: 1
   replication: 3
   retentionBytes: -1
-  retentionHours: 24
+  retentionHours: 8
 acl:
   - team: klage
-    application: klage-notifications-api
+    application: klage-notifications-api-e2e
     access: readwrite

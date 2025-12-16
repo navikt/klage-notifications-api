@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: klage-notifications-api
+
+  datasource:
+    url: ${NAIS_DATABASE_KLAGE_NOTIFICATIONS_API_KLAGE_NOTIFICATIONS_API_JDBC_URL}
+
+  flyway:
+    clean-disabled: false
+
+springdoc:
+  swagger-ui:
+    enabled: true
+  api-docs:
+    enabled: true

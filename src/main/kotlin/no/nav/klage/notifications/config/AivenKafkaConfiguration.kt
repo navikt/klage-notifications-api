@@ -34,6 +34,8 @@ class AivenKafkaConfiguration(
     private val kafkaCredstorePassword: String,
     @Value($$"${KAFKA_KEYSTORE_PATH}")
     private val kafkaKeystorePath: String,
+    @Value($$"${spring.profiles.active:local}")
+    private val springProfile: String,
 ) {
 
     companion object {
@@ -51,7 +53,7 @@ class AivenKafkaConfiguration(
     @Bean
     fun aivenKafkaTemplate(commonKafkaConfig: Map<String, Any>): KafkaTemplate<String, Any> {
         val config = mapOf(
-            ProducerConfig.CLIENT_ID_CONFIG to "klage-notification-api-producer",
+            ProducerConfig.CLIENT_ID_CONFIG to "klage-notifications-api-$springProfile-producer",
             ProducerConfig.ACKS_CONFIG to "1",
             ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
             ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to JacksonJsonSerializer::class.java
@@ -64,8 +66,8 @@ class AivenKafkaConfiguration(
     @Bean
     fun consumerFactory(commonKafkaConfig: Map<String, Any>): ConsumerFactory<String, CreateNotificationEvent> {
         val config = mapOf(
-            ConsumerConfig.GROUP_ID_CONFIG to "klage-notifications-api-event-consumer",
-            ConsumerConfig.CLIENT_ID_CONFIG to "klage-notifications-api-event-client",
+            ConsumerConfig.GROUP_ID_CONFIG to "klage-notifications-api-$springProfile-consumer",
+            ConsumerConfig.CLIENT_ID_CONFIG to "klage-notifications-api-$springProfile-client",
             ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG to false,
             ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
             ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to ErrorHandlingDeserializer::class.java,

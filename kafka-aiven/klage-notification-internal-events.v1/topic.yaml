@@ -1,7 +1,7 @@
 apiVersion: kafka.nais.io/v1
 kind: Topic
 metadata:
-  name: klage-notification-internal-events.v1
+  name: ${{topicName}}
   annotations:
     kafka.nais.io/removeDataWhenResourceIsDeleted: "true"
   namespace: klage
@@ -15,8 +15,10 @@ spec:
   {{/each}}
   acl:
     - team: klage
-      application: klage-notifications-api
-      access: readwrite
-    - team: klage
       application: klage-kafka-manager
       access: read
+  {{#each acl}}
+    - team: {{team}}
+      application: {{application}}
+      access: {{access}}
+  {{/each}}

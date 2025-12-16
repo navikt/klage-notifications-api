@@ -1,13 +1,13 @@
-applicationName: klage-notifications-api
+applicationName: klage-notifications-api-neon
 ingresses:
-  - https://klage-notifications-api.intern.dev.nav.no
-  - https://klage-notifications-api.ansatt.dev.nav.no
+  - https://klage-notifications-api-neon.intern.dev.nav.no
+  - https://klage-notifications-api-neon.ansatt.dev.nav.no
 externalHosts:
   - host: login.microsoftonline.com
 inboundApplications:
-  - application: kabal-frontend
-  - application: kabal-api
-springProfile: dev
+  - application: kabal-frontend-neon
+  - application: kabal-api-neon
+springProfile: neon
 tenant: trygdeetaten.no
 db_tier: db-f1-micro
 db_ha: false

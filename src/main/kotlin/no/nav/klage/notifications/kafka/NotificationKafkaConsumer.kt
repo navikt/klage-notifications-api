@@ -67,7 +67,7 @@ class NotificationKafkaConsumer(
         )
 
         try {
-            if (environment.activeProfiles.contains("dev-gcp")) {
+            if (!environment.activeProfiles.contains("prod")) {
                 logger.debug(
                     "Received Kafka-message (for persisting notification events) at offset {}: {} (attempt {}/{})",
                     consumerRecord.offset(),
