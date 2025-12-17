@@ -242,5 +242,4 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
         // Verify that the other behandling's notification is not included
         assertThat(foundNotifications).noneMatch { it.id == otherMeldingNotification.id }
     }
-
 }
