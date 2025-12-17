@@ -27,6 +27,6 @@ jobs:
     uses: navikt/klage-workflows/.github/workflows/deploy-nais-app-with-custom-checkout.yml@main
     secrets: inherit
     with:
-      build-tag: ${{(contains(fromJson('["tag", "branch"]'), github.ref_type) && !contains(fromJson('["main", "master"]'), github.ref_name)) && github.ref_name || inputs.ref_name}}
+      build-tag: ${{(contains(fromJson('["tag", "branch"]'), github.ref_type) && !contains(fromJson('["main"]'), github.ref_name)) && github.ref_name || inputs.ref_name}}
       nav-cluster: ${{inputs.environment == 'prod' && 'prod-gcp' || 'dev-gcp'}}
       nav-environment: ${{inputs.environment}}
