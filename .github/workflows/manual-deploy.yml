@@ -18,7 +18,7 @@ on:
           - e2e
           - prod
       ref_name:
-        description: 'Image tag (https://console.cloud.google.com/artifacts/docker/nais-management-233d/europe-north1/klage/klage-notifications-api)'
+        description: 'Image tag (matching Git tag) from previous release.'
         required: true
         type: string
 
