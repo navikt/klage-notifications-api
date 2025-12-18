@@ -1,4 +1,4 @@
-name: CodeQL
+name: Weekly CodeQL
 
 on:
   workflow_dispatch:
