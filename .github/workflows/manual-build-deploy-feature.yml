@@ -1,5 +1,8 @@
 name: Build and deploy feature a dev environment
 
+# run-name kan kun referere til github og inputs kontekstene
+run-name: Manual build and deploy of ${{(contains(fromJson('["tag", "branch"]'), github.ref_type) && !contains(fromJson('["main"]'), github.ref_name)) && github.ref_name || inputs.ref_name}} to ${{inputs.nav-environment}}
+
 on:
   workflow_dispatch:
     inputs:
@@ -9,10 +12,15 @@ on:
         default: main
         type: string
       nav-environment:
-        description: "Dev environment to deploy to (dev, neon, argon)"
-        required: false
-        default: dev
-        type: string
+        description: "Dev environment to deploy to"
+        required: true
+        default: neon
+        type: choice
+        options:
+          - neon
+          - argon
+          - dev
+          - e2e
 
 jobs:
   build:

@@ -1,23 +1,27 @@
 name: Manual deployment to environment
+
 # run-name kan kun referere til github og inputs kontekstene
 run-name: Manual deploy of ${{(contains(fromJson('["tag", "branch"]'), github.ref_type) && !contains(fromJson('["main"]'), github.ref_name)) && github.ref_name || inputs.ref_name}} to ${{inputs.environment}}
 
 on:
   workflow_dispatch:
     inputs:
-      environment:
+      nav-environment:
         description: 'Environment'
         required: true
-        default: 'dev'
+        default: dev
         type: choice
         options:
           - dev
+          - neon
+          - argon
+          - e2e
           - prod
       ref_name:
         description: 'Git ref_name. branch or tag'
         required: true
         type: string
-        default: 'Replace with tag or branch'
+        default: main
 
 jobs:
   deploy-env:
@@ -29,4 +33,4 @@ jobs:
     with:
       build-tag: ${{(contains(fromJson('["tag", "branch"]'), github.ref_type) && !contains(fromJson('["main"]'), github.ref_name)) && github.ref_name || inputs.ref_name}}
       nav-cluster: ${{inputs.environment == 'prod' && 'prod-gcp' || 'dev-gcp'}}
-      nav-environment: ${{inputs.environment}}
+      nav-environment: ${{inputs.nav-environment}}
