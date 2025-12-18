@@ -1,13 +1,13 @@
 name: Manual deployment to environment
 
 # run-name kan kun referere til github og inputs kontekstene
-run-name: Manual deploy of ${{(contains(fromJson('["tag", "branch"]'), github.ref_type) && !contains(fromJson('["main"]'), github.ref_name)) && github.ref_name || inputs.ref_name}} to ${{inputs.environment}}
+run-name: Manual deploy of ${{(contains(fromJson('["tag", "branch"]'), github.ref_type) && !contains(fromJson('["main"]'), github.ref_name)) && github.ref_name || inputs.ref_name}} to ${{inputs.nav-environment}}
 
 on:
   workflow_dispatch:
     inputs:
       nav-environment:
-        description: 'Environment'
+        description: 'Nav environment'
         required: true
         default: dev
         type: choice
@@ -18,10 +18,9 @@ on:
           - e2e
           - prod
       ref_name:
-        description: 'Git ref_name. branch or tag'
+        description: 'Image tag (https://console.cloud.google.com/artifacts/docker/nais-management-233d/europe-north1/klage/klage-notifications-api)'
         required: true
         type: string
-        default: main
 
 jobs:
   deploy-env:
