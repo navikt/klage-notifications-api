@@ -27,7 +27,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    uses: navikt/klage-workflows/.github/workflows/deploy-nais-app-with-custom-checkout.yml@main
+    uses: navikt/klage-workflows/.github/workflows/deploy-nais-app-with-custom-checkout.yaml@main
     secrets: inherit
     with:
       build-tag: ${{(contains(fromJson('["tag", "branch"]'), github.ref_type) && !contains(fromJson('["main"]'), github.ref_name)) && github.ref_name || inputs.ref_name}}

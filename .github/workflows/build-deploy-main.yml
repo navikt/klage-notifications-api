@@ -6,7 +6,7 @@ on:
       - main
     paths-ignore:
       - 'kafka-aiven/**'
-      - '.github/dependabot.yml'
+      - '.github/dependabot.yaml'
 
 jobs:
   build:
@@ -15,7 +15,7 @@ jobs:
       packages: write
       pull-requests: write
       id-token: write
-    uses: navikt/klage-workflows/.github/workflows/build-deploy-main.yml@main
+    uses: navikt/klage-workflows/.github/workflows/build-deploy-main.yaml@main
     with:
       e2e-tests: 'kabal'
     secrets: inherit
