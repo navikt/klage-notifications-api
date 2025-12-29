@@ -45,7 +45,7 @@ spec:
     pool: {{kafka_pool}}
   port: 8080
   startup:
-    failureThreshold: 10
+    failureThreshold: 5
     initialDelay: 10
     path: /internal/health
     periodSeconds: 10
@@ -54,16 +54,18 @@ spec:
     path: /internal/health
     timeout: 3
     periodSeconds: 5
-    failureThreshold: 10
+    failureThreshold: 3
   readiness:
     path: /internal/health
     timeout: 3
+    periodSeconds: 5
+    failureThreshold: 3
   resources:
     limits:
-      memory: 2Gi
+      memory: 1500Mi
     requests:
-      cpu: 100m
-      memory: 2Gi
+      cpu: 40m
+      memory: 1300Mi
   ingresses:
   {{#each ingresses as |ingress|}}
     - {{ingress}}
@@ -71,7 +73,7 @@ spec:
   replicas:
     min: {{replicasMin}}
     max: {{replicasMax}}
-    cpuThresholdPercentage: 80
+    cpuThresholdPercentage: 90
   prometheus:
     enabled: true
     path: /internal/prometheus
