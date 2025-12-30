@@ -6,11 +6,6 @@ run-name: Manual build and deploy of ${{(contains(fromJson('["tag", "branch"]'),
 on:
   workflow_dispatch:
     inputs:
-      build-tag:
-        description: "Git ref (branch, tag or commit) of the code to build"
-        required: false
-        default: main
-        type: string
       e2e-tests:
         type: string
         default: 'kabal'
@@ -25,6 +20,5 @@ jobs:
     uses: navikt/klage-workflows/.github/workflows/build-deploy-feature.yaml@main
     secrets: inherit
     with:
-      build-tag: ${{ inputs.build-tag }}
       nav-environment: dev
       e2e-tests: ${{ inputs.e2e-tests }}
