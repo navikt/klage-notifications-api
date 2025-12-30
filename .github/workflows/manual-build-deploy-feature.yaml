@@ -20,5 +20,4 @@ jobs:
     uses: navikt/klage-workflows/.github/workflows/build-deploy-feature.yaml@main
     secrets: inherit
     with:
-      nav-environment: dev
       e2e-tests: ${{ inputs.e2e-tests }}
