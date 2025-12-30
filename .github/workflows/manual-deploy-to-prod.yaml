@@ -1,8 +1,5 @@
-name: Manual deployment of main to prod
+name: Manual deploy of main to prod
 # main needs to have been deployed previously
-
-# run-name kan kun referere til github og inputs kontekstene
-run-name: Manual deploy of ${{(contains(fromJson('["tag", "branch"]'), github.ref_type) && !contains(fromJson('["main"]'), github.ref_name)) && github.ref_name || inputs.ref_name}} to ${{inputs.nav-environment}}
 
 on:
   workflow_dispatch:
