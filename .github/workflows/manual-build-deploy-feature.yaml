@@ -1,7 +1,6 @@
-name: Manual build and deploy in a dev environment
+name: Manual build and deploy in dev
 
-# run-name kan kun referere til github og inputs kontekstene
-run-name: Manual build and deploy of ${{(contains(fromJson('["tag", "branch"]'), github.ref_type) && !contains(fromJson('["main"]'), github.ref_name)) && github.ref_name || inputs.ref_name}} to ${{inputs.nav-environment}}
+run-name: Manual build and deploy of ${{ github.ref_name }} to dev
 
 on:
   workflow_dispatch:
