@@ -1,4 +1,3 @@
-applicationName: klage-notifications-api
 ingresses:
   - https://klage-notifications-api.intern.dev.nav.no
   - https://klage-notifications-api.ansatt.dev.nav.no

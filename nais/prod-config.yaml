@@ -1,4 +1,3 @@
-applicationName: klage-notifications-api
 ingresses:
   - https://klage-notifications-api.intern.nav.no
 externalHosts:

@@ -18,18 +18,7 @@ jobs:
     strategy:
       matrix:
         topic: [klage-notification-events.v1, klage-notification-internal-events.v1, klage-notification-internal-change-events.v1, klage-notification-internal-system-events.v1]
-        environment: [dev, neon, argon, e2e, prod]
-        include:
-          - environment: dev
-            cluster: dev-gcp
-          - environment: neon
-            cluster: dev-gcp
-          - environment: argon
-            cluster: dev-gcp
-          - environment: e2e
-            cluster: dev-gcp
-          - environment: prod
-            cluster: prod-gcp
+        environment: [dev, prod]
     steps:
       - name: Checkout code
         uses: actions/checkout@v5

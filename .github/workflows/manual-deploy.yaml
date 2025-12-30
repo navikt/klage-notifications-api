@@ -1,4 +1,4 @@
-name: Manual deployment to environment
+name: Manual deployment of previous release to dev
 
 # run-name kan kun referere til github og inputs kontekstene
 run-name: Manual deploy of ${{(contains(fromJson('["tag", "branch"]'), github.ref_type) && !contains(fromJson('["main"]'), github.ref_name)) && github.ref_name || inputs.ref_name}} to ${{inputs.nav-environment}}
@@ -6,17 +6,6 @@ run-name: Manual deploy of ${{(contains(fromJson('["tag", "branch"]'), github.re
 on:
   workflow_dispatch:
     inputs:
-      nav-environment:
-        description: 'Nav environment'
-        required: true
-        default: dev
-        type: choice
-        options:
-          - dev
-          - neon
-          - argon
-          - e2e
-          - prod
       ref_name:
         description: 'Image tag (matching Git tag) from previous release.'
         required: true
@@ -24,12 +13,14 @@ on:
 
 jobs:
   deploy-env:
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
-    uses: navikt/klage-workflows/.github/workflows/deploy-nais-app-with-custom-checkout.yaml@main
-    secrets: inherit
-    with:
-      build-tag: ${{(contains(fromJson('["tag", "branch"]'), github.ref_type) && !contains(fromJson('["main"]'), github.ref_name)) && github.ref_name || inputs.ref_name}}
-      nav-cluster: ${{inputs.environment == 'prod' && 'prod-gcp' || 'dev-gcp'}}
-      nav-environment: ${{inputs.nav-environment}}
+    steps:
+      - name: Deploy to environment
+        uses: navikt/klage-workflows/deploy-nais-app-with-custom-checkout@main
+        with:
+          build-tag: ${{(contains(fromJson('["tag", "branch"]'), github.ref_type) && !contains(fromJson('["main"]'), github.ref_name)) && github.ref_name || inputs.ref_name}}
+          nav-cluster: dev-gcp
+          nav-environment: dev
