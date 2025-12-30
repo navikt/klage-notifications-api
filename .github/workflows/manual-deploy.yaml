@@ -19,7 +19,7 @@ jobs:
       id-token: write
     steps:
       - name: Deploy to environment
-        uses: navikt/klage-workflows/deploy-nais-app-with-custom-checkout@main
+        uses: navikt/klage-workflows/.github/actions/deploy-nais-app-with-custom-checkout@main
         with:
           build-tag: ${{(contains(fromJson('["tag", "branch"]'), github.ref_type) && !contains(fromJson('["main"]'), github.ref_name)) && github.ref_name || inputs.ref_name}}
           nav-cluster: dev-gcp
