@@ -25,7 +25,7 @@ jobs:
       - name: deploy kafka-topic ${{ matrix.topic }} to ${{ matrix.environment }}
         uses: nais/deploy/actions/deploy@v2
         env:
-          CLUSTER: ${{ matrix.cluster }}
+          CLUSTER: ${{ matrix.environment }}-gcp
           RESOURCE: kafka-aiven/${{ matrix.topic }}/topic.yaml
           VARS: kafka-aiven/${{ matrix.topic }}/${{ matrix.environment }}-vars.yaml
           PRINT_PAYLOAD: true

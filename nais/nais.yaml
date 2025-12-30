@@ -17,7 +17,7 @@ spec:
       runtime: java
   gcp:
     sqlInstances:
-      - name: {{applicationName}}
+      - name: klage-notifications-api
         type: {{db_type}}
         maintenance:
           day: 1
@@ -29,7 +29,7 @@ spec:
         autoBackupHour: 2
         cascadingDelete: false
         databases:
-          - name: {{applicationName}}
+          - name: klage-notifications-api
   azure:
     application:
       enabled: true
