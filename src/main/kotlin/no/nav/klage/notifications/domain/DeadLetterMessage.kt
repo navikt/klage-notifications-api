@@ -13,49 +13,49 @@ data class DeadLetterMessage(
     @Id
     val id: UUID = UUID.randomUUID(),
 
-    @Column
+    @Column(name = "topic", nullable = false)
     val topic: String,
 
-    @Column
+    @Column(name = "message_key")
     val messageKey: String?,
 
-    @Column
+    @Column(name = "message_value", nullable = false)
     val messageValue: String,
 
-    @Column(name = "kafka_offset")
+    @Column(name = "kafka_offset", nullable = false)
     val kafkaOffset: Long,
 
-    @Column
+    @Column(name = "partition", nullable = false)
     val partition: Int,
 
-    @Column
+    @Column(name = "error_message")
     var errorMessage: String?,
 
-    @Column
+    @Column(name = "stack_trace")
     val stackTrace: String?,
 
-    @Column
+    @Column(name = "attempt_count", nullable = false)
     val attemptCount: Int,
 
-    @Column
+    @Column(name = "first_attempt_at", nullable = false)
     val firstAttemptAt: LocalDateTime,
 
-    @Column
+    @Column(name = "last_attempt_at", nullable = false)
     val lastAttemptAt: LocalDateTime,
 
-    @Column
+    @Column(name = "created_at", nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
-    @Column
+    @Column(name = "processed_at")
     var processedAt: LocalDateTime?,
 
-    @Column
+    @Column(name = "processed", nullable = false)
     var processed: Boolean,
 
-    @Column
+    @Column(name = "reprocess", nullable = false)
     var reprocess: Boolean,
 
-    @Column
+    @Column(name = "reprocessed_at")
     var reprocessedAt: LocalDateTime?,
 ) {
     override fun equals(other: Any?): Boolean {
@@ -72,4 +72,3 @@ data class DeadLetterMessage(
         return "DeadLetterMessage(id=$id, topic='$topic', messageKey=$messageKey, kafkaOffset=$kafkaOffset, partition=$partition, attemptCount=$attemptCount, processed=$processed, reprocess=$reprocess)"
     }
 }
-

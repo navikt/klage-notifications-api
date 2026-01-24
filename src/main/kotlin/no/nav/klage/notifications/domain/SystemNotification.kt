@@ -13,20 +13,19 @@ class SystemNotification(
     @Id
     val id: UUID = UUID.randomUUID(),
 
-    @Column
+    @Column(name = "title", nullable = false)
     val title: String,
 
-    @Column
+    @Column(name = "message", nullable = false)
     val message: String,
 
-
-    @Column
+    @Column(name = "created_at", nullable = false)
     val createdAt: LocalDateTime,
 
-    @Column
+    @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime,
 
-    @Column
+    @Column(name = "marked_as_deleted", nullable = false)
     var markedAsDeleted: Boolean = false,
 ) {
     override fun equals(other: Any?): Boolean {

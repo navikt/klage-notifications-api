@@ -27,17 +27,17 @@ class LostAccessNotification(
     kafkaMessageId: UUID?,
     sourceCreatedAt: LocalDateTime,
 
-    @Column
+    @Column(name = "behandling_id", nullable = false)
     val behandlingId: UUID,
 
-    @Column
+    @Column(name = "saksnummer", nullable = false)
     val saksnummer: String,
 
-    @Column(name = "ytelse_id")
+    @Column(name = "ytelse_id", nullable = false)
     @Convert(converter = YtelseConverter::class)
     val ytelse: Ytelse,
 
-    @Column(name = "behandling_type_id")
+    @Column(name = "behandling_type_id", nullable = false)
     @Convert(converter = TypeConverter::class)
     val behandlingType: Type,
 ) : Notification(

@@ -25,31 +25,31 @@ abstract class Notification(
     @Id
     open val id: UUID = UUID.randomUUID(),
 
-    @Column
+    @Column(name = "message", nullable = false)
     open var message: String,
 
-    @Column
+    @Column(name = "nav_ident", nullable = false)
     open var navIdent: String,
 
-    @Column
+    @Column(name = "read", nullable = false)
     open var read: Boolean,
 
-    @Column
+    @Column(name = "created_at", nullable = false)
     open val createdAt: LocalDateTime,
 
-    @Column
+    @Column(name = "updated_at", nullable = false)
     open var updatedAt: LocalDateTime,
 
-    @Column
+    @Column(name = "read_at")
     open var readAt: LocalDateTime?,
 
-    @Column
+    @Column(name = "marked_as_deleted", nullable = false)
     open var markedAsDeleted: Boolean,
 
-    @Column
+    @Column(name = "kafka_message_id")
     open val kafkaMessageId: UUID?,
 
-    @Column
+    @Column(name = "source_created_at", nullable = false)
     open val sourceCreatedAt: LocalDateTime,
 ) {
     override fun equals(other: Any?): Boolean {

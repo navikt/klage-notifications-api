@@ -13,13 +13,13 @@ class SystemNotificationReadStatus(
     @Id
     val id: UUID = UUID.randomUUID(),
 
-    @Column(name = "system_notification_id")
+    @Column(name = "system_notification_id", nullable = false)
     val systemNotificationId: UUID,
 
-    @Column(name = "nav_ident")
+    @Column(name = "nav_ident", nullable = false)
     val navIdent: String,
 
-    @Column(name = "read_at")
+    @Column(name = "read_at", nullable = false)
     val readAt: LocalDateTime,
 ) {
     override fun equals(other: Any?): Boolean {
