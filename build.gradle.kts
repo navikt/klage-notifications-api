@@ -5,11 +5,11 @@ val testContainersVersion = "2.0.3"
 val klageKodeverkVersion = "1.12.16"
 val springMockkVersion = "5.0.1"
 val mockkVersion = "1.14.9"
-val tokenValidationVersion = "6.0.0"
+val tokenValidationVersion = "6.0.2"
 val logstashVersion = "9.0"
 val reactorKafkaVersion = "1.3.25"
 val springDocVersion = "3.0.1"
-val shedlockVersion = "7.5.0"
+val shedlockVersion = "7.6.0"
 
 plugins {
     val kotlinVersion = "2.3.0"
