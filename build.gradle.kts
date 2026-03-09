@@ -10,6 +10,7 @@ val logstashVersion = "9.0"
 val reactorKafkaVersion = "1.3.25"
 val springDocVersion = "3.0.1"
 val shedlockVersion = "7.6.0"
+val otelVersion = "1.59.0"
 
 plugins {
     val kotlinVersion = "2.3.10"
@@ -70,6 +71,7 @@ dependencies {
     implementation("no.nav.security:token-validation-spring:${tokenValidationVersion}")
     implementation("no.nav.security:token-client-spring:${tokenValidationVersion}")
     implementation("io.micrometer:micrometer-registry-prometheus")
+    implementation("io.opentelemetry:opentelemetry-api:${otelVersion}")
     implementation("net.javacrumbs.shedlock:shedlock-spring:${shedlockVersion}")
     implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:${shedlockVersion}")
     testImplementation("org.springframework.boot:spring-boot-starter-test") {

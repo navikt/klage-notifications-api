@@ -15,6 +15,7 @@ import no.nav.klage.notifications.dto.view.NotificationType.*
 import no.nav.klage.notifications.kafka.AivenKafkaClientCreator
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.klage.notifications.util.TokenUtil
+import no.nav.klage.notifications.util.currentTraceparent
 import no.nav.klage.notifications.util.getLogger
 import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.core.env.Environment
@@ -379,7 +380,7 @@ data: {
     private fun getSystemNotificationEventPublisher(navIdent: String): Flux<ServerSentEvent<Any>> {
         return sharedSystemNotificationEvents
             .map { systemNotification ->
-                val data = systemNotificationToView(systemNotification, navIdent)
+                val data = systemNotificationToView(systemNotification = systemNotification, navIdent = navIdent)
                 ServerSentEvent.builder<Any>()
                     .id("${systemNotification.createdAt}_${systemNotification.id}")
                     .event(Action.CREATE.lower)
@@ -397,42 +398,42 @@ data: {
                         ServerSentEvent.builder<Any>()
                             .id("${changeEvent.updatedAt}_${changeEvent.id}")
                             .event(Action.READ.lower)
-                            .data(NotificationChanged(id = changeEvent.id!!))
+                            .data(NotificationChanged(id = changeEvent.id!!, traceparent = currentTraceparent()))
                             .build()
                     }
                     NotificationChangeEvent.Type.READ_MULTIPLE -> {
                         ServerSentEvent.builder<Any>()
                             .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
                             .event(Action.READ_MULTIPLE.lower)
-                            .data(NotificationMultipleChanged(ids = changeEvent.ids))
+                            .data(NotificationMultipleChanged(ids = changeEvent.ids, traceparent = currentTraceparent()))
                             .build()
                     }
                     NotificationChangeEvent.Type.UNREAD -> {
                         ServerSentEvent.builder<Any>()
                             .id("${changeEvent.updatedAt}_${changeEvent.id}")
                             .event(Action.UNREAD.lower)
-                            .data(NotificationChanged(id = changeEvent.id!!))
+                            .data(NotificationChanged(id = changeEvent.id!!, traceparent = currentTraceparent()))
                             .build()
                     }
                     NotificationChangeEvent.Type.UNREAD_MULTIPLE -> {
                         ServerSentEvent.builder<Any>()
                             .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
                             .event(Action.UNREAD_MULTIPLE.lower)
-                            .data(NotificationMultipleChanged(ids = changeEvent.ids))
+                            .data(NotificationMultipleChanged(ids = changeEvent.ids, traceparent = currentTraceparent()))
                             .build()
                     }
                     NotificationChangeEvent.Type.DELETED -> {
                         ServerSentEvent.builder<Any>()
                             .id("${changeEvent.updatedAt}_${changeEvent.id}")
                             .event(Action.DELETE.lower)
-                            .data(NotificationChanged(id = changeEvent.id!!))
+                            .data(NotificationChanged(id = changeEvent.id!!, traceparent = currentTraceparent()))
                             .build()
                     }
                     NotificationChangeEvent.Type.DELETED_MULTIPLE -> {
                         ServerSentEvent.builder<Any>()
                             .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
                             .event(Action.DELETE_MULTIPLE.lower)
-                            .data(NotificationMultipleChanged(ids = changeEvent.ids))
+                            .data(NotificationMultipleChanged(ids = changeEvent.ids, traceparent = currentTraceparent()))
                             .build()
                     }
                 }
@@ -474,6 +475,7 @@ data: {
             createdAt = systemNotification.createdAt,
             title = systemNotification.title,
             message = systemNotification.message,
+            traceparent = currentTraceparent(),
         )
     }
 
@@ -498,7 +500,8 @@ data: {
                         typeId = notification.behandlingType.id,
                         ytelseId = notification.ytelse.id,
                         saksnummer = notification.saksnummer,
-                    )
+                    ),
+                    traceparent = currentTraceparent(),
                 )
             }
 
@@ -514,7 +517,8 @@ data: {
                         typeId = notification.behandlingType.id,
                         ytelseId = notification.ytelse.id,
                         saksnummer = notification.saksnummer,
-                    )
+                    ),
+                    traceparent = currentTraceparent(),
                 )
             }
 
@@ -530,7 +534,8 @@ data: {
                         typeId = notification.behandlingType.id,
                         ytelseId = notification.ytelse.id,
                         saksnummer = notification.saksnummer,
-                    )
+                    ),
+                    traceparent = currentTraceparent(),
                 )
             }
 
@@ -562,6 +567,7 @@ data: {
                         ytelseId = notification.ytelse.id,
                         saksnummer = notification.saksnummer,
                     ),
+                    traceparent = currentTraceparent(),
                 )
             }
 
@@ -577,7 +583,8 @@ data: {
                         typeId = notification.behandlingType.id,
                         ytelseId = notification.ytelse.id,
                         saksnummer = notification.saksnummer,
-                    )
+                    ),
+                    traceparent = currentTraceparent(),
                 )
             }
 
@@ -593,7 +600,8 @@ data: {
                         typeId = notification.behandlingType.id,
                         ytelseId = notification.ytelse.id,
                         saksnummer = notification.saksnummer,
-                    )
+                    ),
+                    traceparent = currentTraceparent(),
                 )
             }
 
