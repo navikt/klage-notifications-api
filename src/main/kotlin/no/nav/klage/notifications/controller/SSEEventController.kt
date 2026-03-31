@@ -317,16 +317,21 @@ data: {
 
             val internalNotificationEventPublisher = getInternalNotificationEventPublisher(
                 navIdent = navIdent,
+                clientTraceparent = traceparent,
             )
 
             val internalNotificationChangeEventPublisher = getInternalNotificationChangeEventPublisher(
                 navIdent = navIdent,
+                clientTraceparent = traceparent,
             )
 
             val previousNotificationsAsSSEEvents =
                 getPreviousNotificationsAsSSEEvents(navIdent = navIdent)
 
-            val systemNotificationEventPublisher = getSystemNotificationEventPublisher(navIdent)
+            val systemNotificationEventPublisher = getSystemNotificationEventPublisher(
+                navIdent = navIdent,
+                clientTraceparent = traceparent,
+            )
 
             return getFirstHeartbeat()
                 .mergeWith(heartbeatStream)
@@ -371,11 +376,11 @@ data: {
         )
     }
 
-    private fun getInternalNotificationEventPublisher(navIdent: String): Flux<ServerSentEvent<Any>> {
+    private fun getInternalNotificationEventPublisher(navIdent: String, clientTraceparent: String?): Flux<ServerSentEvent<Any>> {
         return sharedInternalEvents
             .filter { (recipientNavIdent, _) -> recipientNavIdent == navIdent }
             .flatMap { (_, tracedEvent) ->
-                withTraceparent(tracedEvent.traceparent) {
+                withTraceparent(tracedEvent.traceparent, linkTraceparent = clientTraceparent) {
                     Flux.fromIterable(tracedEvent.event.notifications.map { notification ->
                         val data = jsonToInternalNotificationEvent(notification)
                         val id = "${data.createdAt}_${data.id}"
@@ -389,10 +394,10 @@ data: {
             }
     }
 
-    private fun getSystemNotificationEventPublisher(navIdent: String): Flux<ServerSentEvent<Any>> {
+    private fun getSystemNotificationEventPublisher(navIdent: String, clientTraceparent: String?): Flux<ServerSentEvent<Any>> {
         return sharedSystemNotificationEvents
             .map { tracedEvent ->
-                withTraceparent(tracedEvent.traceparent) {
+                withTraceparent(tracedEvent.traceparent, linkTraceparent = clientTraceparent) {
                     val data = systemNotificationToView(systemNotification = tracedEvent.event, navIdent = navIdent)
                     ServerSentEvent.builder<Any>()
                         .id("${tracedEvent.event.createdAt}_${tracedEvent.event.id}")
@@ -403,11 +408,11 @@ data: {
             }
     }
 
-    private fun getInternalNotificationChangeEventPublisher(navIdent: String): Flux<ServerSentEvent<Any>> {
+    private fun getInternalNotificationChangeEventPublisher(navIdent: String, clientTraceparent: String?): Flux<ServerSentEvent<Any>> {
         return sharedChangeEvents
             .filter { (recipientNavIdent, _) -> recipientNavIdent == navIdent || recipientNavIdent == "*" }
             .map { (_, tracedEvent) ->
-                withTraceparent(tracedEvent.traceparent) {
+                withTraceparent(tracedEvent.traceparent, linkTraceparent = clientTraceparent) {
                     val changeEvent = tracedEvent.event
                     when (changeEvent.type) {
                         NotificationChangeEvent.Type.READ -> {
