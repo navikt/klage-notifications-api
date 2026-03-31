@@ -14,10 +14,7 @@ import no.nav.klage.notifications.dto.view.*
 import no.nav.klage.notifications.dto.view.NotificationType.*
 import no.nav.klage.notifications.kafka.AivenKafkaClientCreator
 import no.nav.klage.notifications.service.NotificationService
-import no.nav.klage.notifications.util.TokenUtil
-import no.nav.klage.notifications.util.createSpanFromTraceparent
-import no.nav.klage.notifications.util.currentTraceparent
-import no.nav.klage.notifications.util.getLogger
+import no.nav.klage.notifications.util.*
 import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.core.env.Environment
 import org.springframework.http.MediaType
@@ -43,6 +40,8 @@ class SSEEventController(
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
     }
+
+    private data class KafkaEventWithTrace<T>(val event: T, val traceparent: String?)
 
     @Operation(
         summary = "Subscribe to real-time notification events",
@@ -375,77 +374,84 @@ data: {
     private fun getInternalNotificationEventPublisher(navIdent: String): Flux<ServerSentEvent<Any>> {
         return sharedInternalEvents
             .filter { (recipientNavIdent, _) -> recipientNavIdent == navIdent }
-            .flatMap { (_, event) ->
-                Flux.fromIterable(event.notifications.map { notification ->
-                    val data = jsonToInternalNotificationEvent(notification)
-                    val id = "${data.createdAt}_${data.id}"
-                    ServerSentEvent.builder<Any>()
-                        .id(id)
-                        .event(Action.CREATE.lower)
-                        .data(data)
-                        .build()
-                })
+            .flatMap { (_, tracedEvent) ->
+                withTraceparent(tracedEvent.traceparent) {
+                    Flux.fromIterable(tracedEvent.event.notifications.map { notification ->
+                        val data = jsonToInternalNotificationEvent(notification)
+                        val id = "${data.createdAt}_${data.id}"
+                        ServerSentEvent.builder<Any>()
+                            .id(id)
+                            .event(Action.CREATE.lower)
+                            .data(data)
+                            .build()
+                    })
+                }
             }
     }
 
     private fun getSystemNotificationEventPublisher(navIdent: String): Flux<ServerSentEvent<Any>> {
         return sharedSystemNotificationEvents
-            .map { systemNotification ->
-                val data = systemNotificationToView(systemNotification = systemNotification, navIdent = navIdent)
-                ServerSentEvent.builder<Any>()
-                    .id("${systemNotification.createdAt}_${systemNotification.id}")
-                    .event(Action.CREATE.lower)
-                    .data(data)
-                    .build()
+            .map { tracedEvent ->
+                withTraceparent(tracedEvent.traceparent) {
+                    val data = systemNotificationToView(systemNotification = tracedEvent.event, navIdent = navIdent)
+                    ServerSentEvent.builder<Any>()
+                        .id("${tracedEvent.event.createdAt}_${tracedEvent.event.id}")
+                        .event(Action.CREATE.lower)
+                        .data(data)
+                        .build()
+                }
             }
     }
 
     private fun getInternalNotificationChangeEventPublisher(navIdent: String): Flux<ServerSentEvent<Any>> {
         return sharedChangeEvents
             .filter { (recipientNavIdent, _) -> recipientNavIdent == navIdent || recipientNavIdent == "*" }
-            .map { (_, changeEvent) ->
-                when (changeEvent.type) {
-                    NotificationChangeEvent.Type.READ -> {
-                        ServerSentEvent.builder<Any>()
-                            .id("${changeEvent.updatedAt}_${changeEvent.id}")
-                            .event(Action.READ.lower)
-                            .data(NotificationChanged(id = changeEvent.id!!, traceparent = currentTraceparent()))
-                            .build()
-                    }
-                    NotificationChangeEvent.Type.READ_MULTIPLE -> {
-                        ServerSentEvent.builder<Any>()
-                            .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
-                            .event(Action.READ_MULTIPLE.lower)
-                            .data(NotificationMultipleChanged(ids = changeEvent.ids, traceparent = currentTraceparent()))
-                            .build()
-                    }
-                    NotificationChangeEvent.Type.UNREAD -> {
-                        ServerSentEvent.builder<Any>()
-                            .id("${changeEvent.updatedAt}_${changeEvent.id}")
-                            .event(Action.UNREAD.lower)
-                            .data(NotificationChanged(id = changeEvent.id!!, traceparent = currentTraceparent()))
-                            .build()
-                    }
-                    NotificationChangeEvent.Type.UNREAD_MULTIPLE -> {
-                        ServerSentEvent.builder<Any>()
-                            .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
-                            .event(Action.UNREAD_MULTIPLE.lower)
-                            .data(NotificationMultipleChanged(ids = changeEvent.ids, traceparent = currentTraceparent()))
-                            .build()
-                    }
-                    NotificationChangeEvent.Type.DELETED -> {
-                        ServerSentEvent.builder<Any>()
-                            .id("${changeEvent.updatedAt}_${changeEvent.id}")
-                            .event(Action.DELETE.lower)
-                            .data(NotificationChanged(id = changeEvent.id!!, traceparent = currentTraceparent()))
-                            .build()
-                    }
-                    NotificationChangeEvent.Type.DELETED_MULTIPLE -> {
-                        ServerSentEvent.builder<Any>()
-                            .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
-                            .event(Action.DELETE_MULTIPLE.lower)
-                            .data(NotificationMultipleChanged(ids = changeEvent.ids, traceparent = currentTraceparent()))
-                            .build()
+            .map { (_, tracedEvent) ->
+                withTraceparent(tracedEvent.traceparent) {
+                    val changeEvent = tracedEvent.event
+                    when (changeEvent.type) {
+                        NotificationChangeEvent.Type.READ -> {
+                            ServerSentEvent.builder<Any>()
+                                .id("${changeEvent.updatedAt}_${changeEvent.id}")
+                                .event(Action.READ.lower)
+                                .data(NotificationChanged(id = changeEvent.id!!, traceparent = currentTraceparent()))
+                                .build()
+                        }
+                        NotificationChangeEvent.Type.READ_MULTIPLE -> {
+                            ServerSentEvent.builder<Any>()
+                                .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
+                                .event(Action.READ_MULTIPLE.lower)
+                                .data(NotificationMultipleChanged(ids = changeEvent.ids, traceparent = currentTraceparent()))
+                                .build()
+                        }
+                        NotificationChangeEvent.Type.UNREAD -> {
+                            ServerSentEvent.builder<Any>()
+                                .id("${changeEvent.updatedAt}_${changeEvent.id}")
+                                .event(Action.UNREAD.lower)
+                                .data(NotificationChanged(id = changeEvent.id!!, traceparent = currentTraceparent()))
+                                .build()
+                        }
+                        NotificationChangeEvent.Type.UNREAD_MULTIPLE -> {
+                            ServerSentEvent.builder<Any>()
+                                .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
+                                .event(Action.UNREAD_MULTIPLE.lower)
+                                .data(NotificationMultipleChanged(ids = changeEvent.ids, traceparent = currentTraceparent()))
+                                .build()
+                        }
+                        NotificationChangeEvent.Type.DELETED -> {
+                            ServerSentEvent.builder<Any>()
+                                .id("${changeEvent.updatedAt}_${changeEvent.id}")
+                                .event(Action.DELETE.lower)
+                                .data(NotificationChanged(id = changeEvent.id!!, traceparent = currentTraceparent()))
+                                .build()
+                        }
+                        NotificationChangeEvent.Type.DELETED_MULTIPLE -> {
+                            ServerSentEvent.builder<Any>()
+                                .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
+                                .event(Action.DELETE_MULTIPLE.lower)
+                                .data(NotificationMultipleChanged(ids = changeEvent.ids, traceparent = currentTraceparent()))
+                                .build()
+                        }
                     }
                 }
             }
@@ -623,7 +629,7 @@ data: {
     }
 
     // Shared Kafka consumers - created once and shared by all clients
-    private val sharedInternalEvents: Flux<Pair<String, InternalNotificationEvent>> by lazy {
+    private val sharedInternalEvents: Flux<Pair<String, KafkaEventWithTrace<InternalNotificationEvent>>> by lazy {
         aivenKafkaClientCreator.getNewKafkaNotificationInternalEventsReceiver().receive()
             .doOnNext { consumerRecord ->
                 logger.debug("Received internal notification event at offset {}: {}", consumerRecord.offset(), consumerRecord.key())
@@ -636,11 +642,11 @@ data: {
             }
             .mapNotNull { consumerRecord ->
                 try {
+                    val traceparent = extractTraceparentFromKafkaHeaders(consumerRecord.headers())
                     val event = consumerRecord.value()
 
                     if (event.notifications.isEmpty()) {
                         logger.warn("Received internal notification event with empty notifications at offset {}", consumerRecord.offset())
-                        // Don't acknowledge to trigger reprocessing
                         return@mapNotNull null
                     }
 
@@ -659,16 +665,16 @@ data: {
                     }
 
                     consumerRecord.receiverOffset().acknowledge()
-                    Pair(navIdent, event)
+                    Pair(navIdent, KafkaEventWithTrace(event, traceparent))
                 } catch (e: Exception) {
                     logger.error("Error processing internal notification event at offset {}: ${e.message}", consumerRecord.offset(), e)
-                    null // Don't acknowledge - message will be reprocessed
+                    null
                 }
             }
             .share() // Share among all subscribers
     }
 
-    private val sharedSystemNotificationEvents: Flux<SystemNotification> by lazy {
+    private val sharedSystemNotificationEvents: Flux<KafkaEventWithTrace<SystemNotification>> by lazy {
         aivenKafkaClientCreator.getNewKafkaNotificationInternalSystemEventsReceiver().receive()
             .doOnNext { consumerRecord ->
                 logger.debug("Received system notification event at offset {}: {}", consumerRecord.offset(), consumerRecord.key())
@@ -681,18 +687,18 @@ data: {
             }
             .mapNotNull { consumerRecord ->
                 try {
-                    // Acknowledge after successful processing
+                    val traceparent = extractTraceparentFromKafkaHeaders(consumerRecord.headers())
                     consumerRecord.receiverOffset().acknowledge()
-                    consumerRecord.value()
+                    KafkaEventWithTrace(consumerRecord.value(), traceparent)
                 } catch (e: Exception) {
                     logger.error("Error processing system notification event at offset {}: ${e.message}", consumerRecord.offset(), e)
-                    null // Don't acknowledge - message will be reprocessed
+                    null
                 }
             }
             .share() // Share among all subscribers
     }
 
-    private val sharedChangeEvents: Flux<Pair<String, NotificationChangeEvent>> by lazy {
+    private val sharedChangeEvents: Flux<Pair<String, KafkaEventWithTrace<NotificationChangeEvent>>> by lazy {
         aivenKafkaClientCreator.getNewKafkaNotificationInternalChangeEventsReceiver().receive()
             .doOnNext { consumerRecord ->
                 if (!environment.activeProfiles.contains("prod")) {
@@ -705,15 +711,16 @@ data: {
             }
             .mapNotNull { consumerRecord ->
                 try {
+                    val traceparent = extractTraceparentFromKafkaHeaders(consumerRecord.headers())
                     val changeEvent = consumerRecord.value()
-                    // Acknowledge after successful processing
                     consumerRecord.receiverOffset().acknowledge()
-                    Pair(changeEvent.navIdent, changeEvent)
+                    Pair(changeEvent.navIdent, KafkaEventWithTrace(changeEvent, traceparent))
                 } catch (e: Exception) {
                     logger.error("Error processing internal change event at offset {}: ${e.message}", consumerRecord.offset(), e)
-                    null // Don't acknowledge - message will be reprocessed
+                    null
                 }
             }
             .share() // Share among all subscribers
     }
 }
+
