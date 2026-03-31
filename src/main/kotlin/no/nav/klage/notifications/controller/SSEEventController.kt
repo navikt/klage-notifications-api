@@ -49,7 +49,7 @@ Server-Sent Events (SSE) endpoint that streams notification events in real-time.
 
 **Event Types:**
 - `create` - New notification created
-- `create_multiple` - Multiple notifications loaded (initial load when client connects)
+- `create_multiple` - Multiple notifications loaded (initial load when client connects). Data is wrapped in an object with `traceparent` and `notifications` properties.
 - `read` - Single notification marked as read
 - `read_multiple` - Multiple notifications marked as read
 - `unread` - Single notification marked as unread
@@ -170,40 +170,45 @@ data: {
                 ExampleObject(
                     name = "create_multiple_notifications",
                     summary = "Create Multiple event - Initial load",
-                    description = "Event fired when client first connects, containing all existing notifications in an array",
+                    description = "Event fired when client first connects, containing all existing notifications wrapped in an object with traceparent and notifications",
                     value = """
 event: create_multiple
 id: 2025-11-16T10:33:00_650e8400-e29b-41d4-a716-446655440003
-data: [
-  {
-    "type": "MESSAGE",
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "read": false,
-    "createdAt": "2025-11-16T10:30:00",
-    "message": {
-      "id": "750e8400-e29b-41d4-a716-446655440000",
-      "content": "New message about the case"
+data: {
+  "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+  "notifications": [
+    {
+      "type": "MESSAGE",
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "read": false,
+      "createdAt": "2025-11-16T10:30:00",
+      "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+      "message": {
+        "id": "750e8400-e29b-41d4-a716-446655440000",
+        "content": "New message about the case"
+      },
+      "actor": {
+        "navIdent": "A123456",
+        "navn": "Ola Nordmann"
+      },
+      "behandling": {
+        "id": "650e8400-e29b-41d4-a716-446655440000",
+        "typeId": "1",
+        "ytelseId": "10",
+        "saksnummer": "2025-12345"
+      }
     },
-    "actor": {
-      "navIdent": "A123456",
-      "navn": "Ola Nordmann"
-    },
-    "behandling": {
-      "id": "650e8400-e29b-41d4-a716-446655440000",
-      "typeId": "1",
-      "ytelseId": "10",
-      "saksnummer": "2025-12345"
+    {
+      "type": "SYSTEM",
+      "id": "650e8400-e29b-41d4-a716-446655440001",
+      "read": true,
+      "createdAt": "2025-11-16T10:32:00",
+      "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+      "title": "System Maintenance",
+      "message": "The system will be down for maintenance on Saturday from 10:00 to 12:00"
     }
-  },
-  {
-    "type": "SYSTEM",
-    "id": "650e8400-e29b-41d4-a716-446655440001",
-    "read": true,
-    "createdAt": "2025-11-16T10:32:00",
-    "title": "System Maintenance",
-    "message": "The system will be down for maintenance on Saturday from 10:00 to 12:00"
-  }
-]
+  ]
+}
 """
                 ),
                 ExampleObject(
@@ -341,7 +346,12 @@ data: {
             ServerSentEvent.builder<Any>()
                 .id("${firstNotificationView.createdAt}_${firstNotificationView.id}")
                 .event(Action.CREATE_MULTIPLE.lower)
-                .data(allNotifications)
+                .data(
+                    NotificationMultipleCreated(
+                        traceparent = currentTraceparent(),
+                        notifications = allNotifications,
+                    )
+                )
                 .build()
         )
     }
@@ -349,10 +359,8 @@ data: {
     private fun getInternalNotificationEventPublisher(navIdent: String): Flux<ServerSentEvent<Any>> {
         return sharedInternalEvents
             .filter { (recipientNavIdent, _) -> recipientNavIdent == navIdent }
-            .map { (_, event) ->
-                if (event.notifications.size == 1) {
-                    // Single notification - send CREATE event
-                    val notification = event.notifications.first()
+            .flatMap { (_, event) ->
+                Flux.fromIterable(event.notifications.map { notification ->
                     val data = jsonToInternalNotificationEvent(notification)
                     val id = "${data.createdAt}_${data.id}"
                     ServerSentEvent.builder<Any>()
@@ -360,20 +368,7 @@ data: {
                         .event(Action.CREATE.lower)
                         .data(data)
                         .build()
-                } else {
-                    // Multiple notifications - send CREATE_MULTIPLE event
-                    val notificationData = event.notifications.map { notification ->
-                        jsonToInternalNotificationEvent(notification)
-                    }
-                    // Use first notification for SSE ID
-                    val firstNotification = notificationData.first()
-                    val id = "${firstNotification.createdAt}_${firstNotification.id}"
-                    ServerSentEvent.builder<Any>()
-                        .id(id)
-                        .event(Action.CREATE_MULTIPLE.lower)
-                        .data(notificationData)
-                        .build()
-                }
+                })
             }
     }
 

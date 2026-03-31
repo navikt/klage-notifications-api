@@ -105,6 +105,11 @@ data class NotificationChanged(
     val traceparent: String?,
 )
 
+data class NotificationMultipleCreated(
+    val traceparent: String?,
+    val notifications: List<Any>,
+)
+
 data class NotificationMultipleChanged(
     val ids: List<UUID>,
     val traceparent: String?,
