@@ -10,13 +10,14 @@ val logstashVersion = "9.0"
 val reactorKafkaVersion = "1.3.25"
 val springDocVersion = "3.0.2"
 val shedlockVersion = "7.7.0"
+val otelVersion = "1.59.0"
 
 plugins {
     val kotlinVersion = "2.3.20"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
     kotlin("plugin.jpa") version kotlinVersion
-    id("org.springframework.boot") version "4.0.4"
+    id("org.springframework.boot") version "4.0.5"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -26,22 +27,9 @@ java {
     }
 }
 
-// CVE GHSA-72hv-8253-57qq: jackson-core async parser DoS. Remove when Spring has updated.
-extra["jackson-2-bom.version"] = "2.21.1"
-extra["jackson-bom.version"] = "3.1.0"
-
 repositories {
     mavenCentral()
     maven("https://github-package-registry-mirror.gc.nav.no/cached/maven-release")
-}
-
-// Remove when Spring has updated.
-configurations.all {
-    resolutionStrategy.dependencySubstitution {
-        substitute(module("org.lz4:lz4-java"))
-            .using(module("at.yawk.lz4:lz4-java:1.10.4"))
-            .because("CVE-2025-12183 and CVE-2025-66566: org.lz4:lz4-java is archived, new releases under at.yawk.lz4")
-    }
 }
 
 dependencies {
@@ -70,6 +58,7 @@ dependencies {
     implementation("no.nav.security:token-validation-spring:${tokenValidationVersion}")
     implementation("no.nav.security:token-client-spring:${tokenValidationVersion}")
     implementation("io.micrometer:micrometer-registry-prometheus")
+    implementation("io.opentelemetry:opentelemetry-api:${otelVersion}")
     implementation("net.javacrumbs.shedlock:shedlock-spring:${shedlockVersion}")
     implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:${shedlockVersion}")
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
