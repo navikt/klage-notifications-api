@@ -15,6 +15,7 @@ import no.nav.klage.notifications.dto.view.NotificationType.*
 import no.nav.klage.notifications.kafka.AivenKafkaClientCreator
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.klage.notifications.util.TokenUtil
+import no.nav.klage.notifications.util.createSpanFromTraceparent
 import no.nav.klage.notifications.util.currentTraceparent
 import no.nav.klage.notifications.util.getLogger
 import no.nav.security.token.support.core.api.ProtectedWithClaims
@@ -22,6 +23,7 @@ import org.springframework.core.env.Environment
 import org.springframework.http.MediaType
 import org.springframework.http.codec.ServerSentEvent
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Flux
 import java.time.Duration
@@ -68,6 +70,11 @@ Server-Sent Events (SSE) endpoint that streams notification events in real-time.
 - Sent to ALL connected users (not filtered by navIdent)
 - Each user has their own read/unread status
 - Controlled by admins via /admin/notifications/system endpoint
+
+**Query Parameters:**
+- `traceparent` (optional) - A W3C Trace Context traceparent string (e.g. `00-traceId-spanId-flags`).
+  Since the EventSource API does not support custom HTTP headers, the client can pass its traceparent
+  as a query parameter to link the SSE connection to the client's distributed trace.
 """
     )
     @ApiResponse(
@@ -295,34 +302,43 @@ data: {
         )]
     )
     @GetMapping("/user/notifications/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
-    fun notificationEvents(): Flux<ServerSentEvent<Any>> {
+    fun notificationEvents(
+        @RequestParam(required = false) traceparent: String?,
+    ): Flux<ServerSentEvent<Any>> {
+        val span = traceparent?.let { createSpanFromTraceparent(it) }
+        val scope = span?.makeCurrent()
 
-        logger.debug("New SSE connection for notification events established by navIdent=${tokenUtil.getIdent()}")
+        try {
+            logger.debug("New SSE connection for notification events established by navIdent=${tokenUtil.getIdent()}")
 
-        //https://docs.spring.io/spring-framework/docs/current/reference/html/web.html#mvc-ann-async-disconnects
-        val heartbeatStream = getHeartbeatStream()
+            //https://docs.spring.io/spring-framework/docs/current/reference/html/web.html#mvc-ann-async-disconnects
+            val heartbeatStream = getHeartbeatStream()
 
-        val navIdent = tokenUtil.getIdent()
+            val navIdent = tokenUtil.getIdent()
 
-        val internalNotificationEventPublisher = getInternalNotificationEventPublisher(
-            navIdent = navIdent,
-        )
+            val internalNotificationEventPublisher = getInternalNotificationEventPublisher(
+                navIdent = navIdent,
+            )
 
-        val internalNotificationChangeEventPublisher = getInternalNotificationChangeEventPublisher(
-            navIdent = navIdent,
-        )
+            val internalNotificationChangeEventPublisher = getInternalNotificationChangeEventPublisher(
+                navIdent = navIdent,
+            )
 
-        val previousNotificationsAsSSEEvents =
-            getPreviousNotificationsAsSSEEvents(navIdent = navIdent)
+            val previousNotificationsAsSSEEvents =
+                getPreviousNotificationsAsSSEEvents(navIdent = navIdent)
 
-        val systemNotificationEventPublisher = getSystemNotificationEventPublisher(navIdent)
+            val systemNotificationEventPublisher = getSystemNotificationEventPublisher(navIdent)
 
-        return getFirstHeartbeat()
-            .mergeWith(heartbeatStream)
-            .mergeWith(previousNotificationsAsSSEEvents)
-            .mergeWith(internalNotificationChangeEventPublisher)
-            .mergeWith(internalNotificationEventPublisher)
-            .mergeWith(systemNotificationEventPublisher)
+            return getFirstHeartbeat()
+                .mergeWith(heartbeatStream)
+                .mergeWith(previousNotificationsAsSSEEvents)
+                .mergeWith(internalNotificationChangeEventPublisher)
+                .mergeWith(internalNotificationEventPublisher)
+                .mergeWith(systemNotificationEventPublisher)
+        } finally {
+            scope?.close()
+            span?.end()
+        }
     }
 
     private fun getPreviousNotificationsAsSSEEvents(navIdent: String): Flux<ServerSentEvent<Any>> {
