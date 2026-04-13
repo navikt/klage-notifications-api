@@ -10,7 +10,7 @@ val logstashVersion = "9.0"
 val reactorKafkaVersion = "1.3.25"
 val springDocVersion = "3.0.2"
 val shedlockVersion = "7.7.0"
-val otelVersion = "1.59.0"
+val otelVersion = "1.60.1"
 
 plugins {
     val kotlinVersion = "2.3.20"
