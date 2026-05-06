@@ -70,9 +70,9 @@ dependencies {
         exclude(group = "org.mockito")
     }
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-    testImplementation("org.testcontainers:testcontainers:${testContainersVersion}")
-    testImplementation("org.testcontainers:testcontainers-junit-jupiter:${testContainersVersion}")
-    testImplementation("org.testcontainers:testcontainers-postgresql:${testContainersVersion}")
+    testImplementation("org.testcontainers:testcontainers")
+    testImplementation("org.testcontainers:testcontainers-junit-jupiter")
+    testImplementation("org.testcontainers:testcontainers-postgresql")
     testImplementation("io.mockk:mockk:${mockkVersion}")
     testImplementation("com.ninja-squad:springmockk:${springMockkVersion}")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
