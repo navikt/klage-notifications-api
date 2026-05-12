@@ -56,12 +56,22 @@ class SseSpanStatusFilter : OncePerRequestFilter() {
         )
     }
 
+    init {
+        ourLogger.debug("SseSpanStatusFilter initialized (SSE_PATH=$SSE_PATH)")
+    }
+
     /** Run on async dispatches too — that's where SSE streaming actually happens. */
     override fun shouldNotFilterAsyncDispatch(): Boolean = false
 
     override fun shouldNotFilter(request: HttpServletRequest): Boolean {
-        // Only act on the SSE endpoint; never interfere with anything else.
-        return !request.requestURI.contains(SSE_PATH)
+        val skip = !request.requestURI.contains(SSE_PATH)
+        ourLogger.debug(
+            "shouldNotFilter check: uri={}, dispatcherType={}, skip={}",
+            request.requestURI,
+            request.dispatcherType,
+            skip,
+        )
+        return skip
     }
 
     override fun doFilterInternal(
@@ -69,11 +79,39 @@ class SseSpanStatusFilter : OncePerRequestFilter() {
         response: HttpServletResponse,
         filterChain: FilterChain,
     ) {
+        ourLogger.debug(
+            "Entering SSE filter: uri={}, dispatcherType={}, async={}, currentSpanValid={}",
+            request.requestURI,
+            request.dispatcherType,
+            request.isAsyncStarted,
+            Span.current().spanContext.isValid,
+        )
         try {
             filterChain.doFilter(request, response)
+            ourLogger.debug(
+                "SSE filter chain completed normally: uri={}, dispatcherType={}, responseStatus={}, async={}",
+                request.requestURI,
+                request.dispatcherType,
+                response.status,
+                request.isAsyncStarted,
+            )
         } catch (e: Exception) {
-            if (looksLikeClientDisconnect(e)) {
+            val isDisconnect = looksLikeClientDisconnect(e)
+            ourLogger.debug(
+                "SSE filter caught exception: uri={}, dispatcherType={}, exceptionType={}, message={}, isDisconnect={}",
+                request.requestURI,
+                request.dispatcherType,
+                e.javaClass.name,
+                e.message,
+                isDisconnect,
+            )
+            if (isDisconnect) {
                 markSpanOk(e, request.dispatcherType)
+            } else {
+                ourLogger.debug(
+                    "Not classified as a client disconnect; full cause chain follows",
+                    e,
+                )
             }
             throw e
         }
@@ -81,8 +119,16 @@ class SseSpanStatusFilter : OncePerRequestFilter() {
 
     private fun markSpanOk(e: Throwable, dispatcherType: DispatcherType) {
         val span = Span.current()
-        // No-op span has an invalid SpanContext; nothing useful to do then.
-        if (!span.spanContext.isValid) {
+        val ctx = span.spanContext
+        ourLogger.debug(
+            "markSpanOk: spanClass={}, traceId={}, spanId={}, valid={}, sampled={}",
+            span.javaClass.name,
+            ctx.traceId,
+            ctx.spanId,
+            ctx.isValid,
+            ctx.isSampled,
+        )
+        if (!ctx.isValid) {
             ourLogger.debug(
                 "No active OTEL span when handling client disconnect on SSE endpoint " +
                     "(dispatcherType={}, exception={})",
@@ -105,16 +151,24 @@ class SseSpanStatusFilter : OncePerRequestFilter() {
         while (cause != null && depth < 16) {
             val message = cause.message
             val typeName = cause.javaClass.name
+            ourLogger.debug(
+                "looksLikeClientDisconnect: depth={}, type={}, message={}",
+                depth,
+                typeName,
+                message,
+            )
             if (DISCONNECT_INDICATORS.any { indicator ->
                     message?.contains(indicator, ignoreCase = true) == true ||
                         typeName.contains(indicator, ignoreCase = true)
                 }
             ) {
+                ourLogger.debug("looksLikeClientDisconnect: matched at depth={}", depth)
                 return true
             }
             cause = cause.cause
             depth++
         }
+        ourLogger.debug("looksLikeClientDisconnect: no match after {} levels", depth)
         return false
     }
 }
