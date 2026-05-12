@@ -8,8 +8,6 @@ import io.opentelemetry.sdk.common.CompletableResultCode
 import io.opentelemetry.sdk.trace.data.SpanData
 import io.opentelemetry.sdk.trace.data.StatusData
 import io.opentelemetry.sdk.trace.export.SpanExporter
-import java.util.logging.Level
-import java.util.logging.Logger
 
 /**
  * OTEL Java agent extension that suppresses spurious ERROR statuses on the SSE
@@ -29,23 +27,41 @@ import java.util.logging.Logger
  * the `AutoConfigurationCustomizerProvider` SPI (see
  * `META-INF/services/io.opentelemetry.sdk.autoconfigure.spi.AutoConfigurationCustomizerProvider`).
  *
- * NOTE: This class lives inside the OTEL agent's classloader, so we cannot use
- * SLF4J/Logback — they are loaded by the application classloader and not
- * visible here. We use `java.util.logging` instead, which the agent does see.
- * Output appears on stderr by default; you can tune verbosity via the standard
- * `OTEL_JAVAAGENT_LOGGING` / JUL configuration.
+ * NOTE on logging: we deliberately use `System.out.println` instead of any
+ * logging framework. The extension runs inside the OTEL agent's classloader,
+ * loaded extremely early in JVM startup — before Logback, before Spring Boot's
+ * `jul-to-slf4j` bridge, and before the agent itself has finalized its own
+ * logging config. JUL output from here often disappears in containerized
+ * deploys. stdout is always captured by Kubernetes, so we print there with a
+ * clearly-greppable prefix and accept the small ugliness for reliable
+ * diagnostics. Volume is tiny (a handful at startup + one per actual SSE
+ * disconnect).
  */
 class SseErrorSuppressingProvider : AutoConfigurationCustomizerProvider {
+
+    init {
+        println("$LOG_PREFIX SseErrorSuppressingProvider instance constructed")
+    }
+
     override fun customize(autoConfiguration: AutoConfigurationCustomizer) {
-        LOG.log(Level.INFO, "SseErrorSuppressingProvider: registering SpanExporter wrapper")
+        println("$LOG_PREFIX customize() called — registering SpanExporter wrapper")
         autoConfiguration.addSpanExporterCustomizer { exporter, _ ->
-            LOG.log(Level.INFO) { "SseErrorSuppressingProvider: wrapping exporter ${exporter.javaClass.name}" }
+            println("$LOG_PREFIX wrapping exporter ${exporter.javaClass.name}")
             SseErrorSuppressingSpanExporter(exporter)
         }
     }
 
-    private companion object {
-        private val LOG: Logger = Logger.getLogger(SseErrorSuppressingProvider::class.java.name)
+    companion object {
+        // Module-wide log prefix so all messages from this extension are easy to
+        // grep for in stdout (e.g. `kubectl logs ... | grep '\[otel-sse-ext\]'`).
+        internal const val LOG_PREFIX = "[otel-sse-ext]"
+
+        init {
+            // Runs the first time the class is loaded by the JVM. If we don't
+            // see this line in the pod logs, the extension JAR is not on the
+            // agent's extension path at all.
+            println("$LOG_PREFIX SseErrorSuppressingProvider class loaded")
+        }
     }
 }
 
@@ -56,9 +72,11 @@ internal class SseErrorSuppressingSpanExporter(
     override fun export(spans: Collection<SpanData>): CompletableResultCode {
         val rewritten = spans.map { sd ->
             if (shouldRewrite(sd)) {
-                LOG.log(Level.FINE) {
-                    "Rewriting status ERROR -> OK on SSE span ${sd.name} (traceId=${sd.traceId} spanId=${sd.spanId})"
-                }
+                println(
+                    "${SseErrorSuppressingProvider.LOG_PREFIX} rewriting ERROR -> OK on SSE span " +
+                        "name='${sd.name}' traceId=${sd.traceId} spanId=${sd.spanId} " +
+                        "events=${sd.events.size} statusDesc='${sd.status.description}'"
+                )
                 StatusOverridingSpanData(sd, OK_STATUS)
             } else {
                 sd
@@ -121,8 +139,6 @@ internal class SseErrorSuppressingSpanExporter(
     }
 
     private companion object {
-        private val LOG: Logger = Logger.getLogger(SseErrorSuppressingSpanExporter::class.java.name)
-
         private val HTTP_ROUTE = AttributeKey.stringKey("http.route")
         private val URL_PATH = AttributeKey.stringKey("url.path")
         private val HTTP_TARGET = AttributeKey.stringKey("http.target")
