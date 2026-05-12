@@ -101,6 +101,12 @@ spec:
   env:
     - name: SPRING_PROFILES_ACTIVE
       value: {{springProfile}}
+    # Load our custom OTEL Java agent extension that suppresses spurious ERROR
+    # statuses on the SSE notification endpoint span caused by client disconnects.
+    # The JAR is copied into the image by the Dockerfile (relative to the JVM's
+    # working directory, same as app.jar).
+    - name: OTEL_JAVAAGENT_EXTENSIONS
+      value: otel-extension.jar
   {{#each envs}}
     - name: {{name}}
       value: {{value}}

@@ -93,4 +93,7 @@ tasks.withType<Test> {
 
 tasks.getByName<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
     this.archiveFileName.set("app.jar")
+    // Build the OTEL agent extension JAR alongside the application JAR so the
+    // Dockerfile can COPY it into the image.
+    dependsOn(":otel-extension:jar")
 }
