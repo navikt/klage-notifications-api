@@ -8,6 +8,7 @@ import io.opentelemetry.sdk.common.CompletableResultCode
 import io.opentelemetry.sdk.trace.data.SpanData
 import io.opentelemetry.sdk.trace.data.StatusData
 import io.opentelemetry.sdk.trace.export.SpanExporter
+import java.time.Instant
 
 /**
  * OTEL Java agent extension that suppresses spurious ERROR statuses on the SSE
@@ -27,43 +28,65 @@ import io.opentelemetry.sdk.trace.export.SpanExporter
  * the `AutoConfigurationCustomizerProvider` SPI (see
  * `META-INF/services/io.opentelemetry.sdk.autoconfigure.spi.AutoConfigurationCustomizerProvider`).
  *
- * NOTE on logging: we deliberately use `System.out.println` instead of any
- * logging framework. The extension runs inside the OTEL agent's classloader,
- * loaded extremely early in JVM startup — before Logback, before Spring Boot's
- * `jul-to-slf4j` bridge, and before the agent itself has finalized its own
- * logging config. JUL output from here often disappears in containerized
- * deploys. stdout is always captured by Kubernetes, so we print there with a
- * clearly-greppable prefix and accept the small ugliness for reliable
- * diagnostics. Volume is tiny (a handful at startup + one per actual SSE
- * disconnect).
+ * NOTE on logging: we use `System.out.println` with structured JSON instead
+ * of any logging framework. The extension runs inside the OTEL agent's
+ * classloader, loaded extremely early in JVM startup — before Logback, before
+ * Spring Boot's `jul-to-slf4j` bridge, and before the agent itself has
+ * finalized its own logging config. JUL output from here often disappears in
+ * containerized deploys. stdout is always captured by Kubernetes, so we print
+ * structured JSON there to stay compatible with Grafana Loki / NAIS log
+ * pipelines that expect every stdout line to be valid JSON. Volume is tiny
+ * (a handful at startup + one per actual SSE disconnect).
  */
 class SseErrorSuppressingProvider : AutoConfigurationCustomizerProvider {
 
     init {
-        println("$LOG_PREFIX SseErrorSuppressingProvider instance constructed")
+        logJson("SseErrorSuppressingProvider instance constructed")
     }
 
     override fun customize(autoConfiguration: AutoConfigurationCustomizer) {
-        println("$LOG_PREFIX customize() called — registering SpanExporter wrapper")
+        logJson("customize() called — registering SpanExporter wrapper")
         autoConfiguration.addSpanExporterCustomizer { exporter, _ ->
-            println("$LOG_PREFIX wrapping exporter ${exporter.javaClass.name}")
+            logJson("wrapping exporter ${exporter.javaClass.name}")
             SseErrorSuppressingSpanExporter(exporter)
         }
     }
 
     companion object {
-        // Module-wide log prefix so all messages from this extension are easy to
-        // grep for in stdout (e.g. `kubectl logs ... | grep '\[otel-sse-ext\]'`).
-        internal const val LOG_PREFIX = "[otel-sse-ext]"
+        internal const val LOGGER_NAME = "otel-sse-ext"
 
         init {
-            // Runs the first time the class is loaded by the JVM. If we don't
-            // see this line in the pod logs, the extension JAR is not on the
-            // agent's extension path at all.
-            println("$LOG_PREFIX SseErrorSuppressingProvider class loaded")
+            logJson("SseErrorSuppressingProvider class loaded")
         }
     }
 }
+
+/**
+ * Prints a structured JSON log line to stdout, compatible with the
+ * JSON log format expected by Grafana Loki / NAIS log pipelines.
+ */
+private fun logJson(message: String, extraFields: Map<String, String> = emptyMap()) {
+    val sb = StringBuilder()
+    sb.append("{")
+    sb.append("\"@timestamp\":\"").append(Instant.now()).append("\",")
+    sb.append("\"@version\":\"1\",")
+    sb.append("\"message\":\"").append(escapeJson(message)).append("\",")
+    sb.append("\"logger_name\":\"").append(SseErrorSuppressingProvider.LOGGER_NAME).append("\",")
+    sb.append("\"level\":\"DEBUG\",")
+    sb.append("\"level_value\":10000")
+    for ((key, value) in extraFields) {
+        sb.append(",\"").append(escapeJson(key)).append("\":\"").append(escapeJson(value)).append("\"")
+    }
+    sb.append("}")
+    println(sb.toString())
+}
+
+private fun escapeJson(value: String): String =
+    value.replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
 
 internal class SseErrorSuppressingSpanExporter(
     private val delegate: SpanExporter,
@@ -72,10 +95,15 @@ internal class SseErrorSuppressingSpanExporter(
     override fun export(spans: Collection<SpanData>): CompletableResultCode {
         val rewritten = spans.map { sd ->
             if (shouldRewrite(sd)) {
-                println(
-                    "${SseErrorSuppressingProvider.LOG_PREFIX} rewriting ERROR -> OK on SSE span " +
-                        "name='${sd.name}' traceId=${sd.traceId} spanId=${sd.spanId} " +
-                        "events=${sd.events.size} statusDesc='${sd.status.description}'"
+                logJson(
+                    "rewriting ERROR -> OK on SSE span",
+                    mapOf(
+                        "spanName" to sd.name,
+                        "traceId" to sd.traceId,
+                        "spanId" to sd.spanId,
+                        "events" to sd.events.size.toString(),
+                        "statusDesc" to (sd.status.description ?: ""),
+                    )
                 )
                 StatusOverridingSpanData(sd, OK_STATUS)
             } else {
