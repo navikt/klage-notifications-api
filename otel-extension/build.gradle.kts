@@ -2,7 +2,7 @@ plugins {
     kotlin("jvm")
 }
 
-val otelVersion = "1.62.0"
+val otelVersion = "1.63.0"
 
 java {
     toolchain {
