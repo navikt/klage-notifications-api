@@ -8,7 +8,6 @@ import no.nav.klage.notifications.util.getLogger
 import org.slf4j.Marker
 
 class SseBrokenPipeLogFilter : TurboFilter() {
-
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val ourLogger = getLogger(javaClass.enclosingClass)
@@ -20,13 +19,14 @@ class SseBrokenPipeLogFilter : TurboFilter() {
         level: Level?,
         format: String?,
         params: Array<out Any>?,
-        throwable: Throwable?
+        throwable: Throwable?,
     ): FilterReply {
         if (throwable != null) {
             if (
-                (throwable.javaClass.name == "java.io.IOException" &&
-                 throwable.message == "Broken pipe" &&
-                 logger?.name?.contains("org.apache.catalina.core.ContainerBase") == true
+                (
+                    throwable.javaClass.name == "java.io.IOException" &&
+                        throwable.message == "Broken pipe" &&
+                        logger?.name?.contains("org.apache.catalina.core.ContainerBase") == true
                 )
                 /*
                  ||
@@ -35,18 +35,28 @@ class SseBrokenPipeLogFilter : TurboFilter() {
                 )
                  */
             ) {
-                ourLogger.debug("Suppressing error log message when broken pipe and logger is ${logger.name}. This is probably due to lost client during async/SSE operations.")
+                ourLogger.debug(
+                    "Suppressing error log message when broken pipe and logger is ${logger.name}. This is probably due to lost client during async/SSE operations.",
+                )
                 return FilterReply.DENY
             }
         }
 
-        if (level == Level.WARN && logger?.name == "org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver" && format?.contains("java.io.IOException: Broken pipe") == true) {
-            ourLogger.debug("Suppressing warning log message when broken pipe and logger is ${logger.name}. This is probably due to lost client during async/SSE operations.")
+        if (level == Level.WARN && logger?.name == "org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver" &&
+            format?.contains("java.io.IOException: Broken pipe") == true
+        ) {
+            ourLogger.debug(
+                "Suppressing warning log message when broken pipe and logger is ${logger.name}. This is probably due to lost client during async/SSE operations.",
+            )
             return FilterReply.DENY
         }
 
-        if (level == Level.WARN && logger?.name == "no.nav.klage.config.problem.GlobalExceptionHandler" && format?.contains("Response already committed") == true) {
-            ourLogger.debug("Suppressing warning log message when response already committed and logger is ${logger.name}. This is probably due to lost client during async/SSE operations.")
+        if (level == Level.WARN && logger?.name == "no.nav.klage.config.problem.GlobalExceptionHandler" &&
+            format?.contains("Response already committed") == true
+        ) {
+            ourLogger.debug(
+                "Suppressing warning log message when response already committed and logger is ${logger.name}. This is probably due to lost client during async/SSE operations.",
+            )
             return FilterReply.DENY
         }
 
@@ -68,7 +78,9 @@ class SseBrokenPipeLogFilter : TurboFilter() {
             throwable.javaClass.name == "jakarta.servlet.ServletException" &&
             throwable.message?.contains("JwtTokenUnauthorizedException") == true
         ) {
-            ourLogger.debug("Suppressing warning log message for JwtTokenUnauthorizedException. This is probably due to lost client during async/SSE operations.")
+            ourLogger.debug(
+                "Suppressing warning log message for JwtTokenUnauthorizedException. This is probably due to lost client during async/SSE operations.",
+            )
             return FilterReply.DENY
         }
 

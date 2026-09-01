@@ -2,15 +2,20 @@ package no.nav.klage.notifications.domain
 
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
-import jakarta.persistence.*
+import jakarta.persistence.Column
+import jakarta.persistence.DiscriminatorColumn
+import jakarta.persistence.Entity
+import jakarta.persistence.Id
+import jakarta.persistence.Inheritance
+import jakarta.persistence.InheritanceType
+import jakarta.persistence.Table
 import java.time.LocalDateTime
-import java.util.*
-
+import java.util.UUID
 
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
     include = JsonTypeInfo.As.PROPERTY,
-    property = "notificationType"
+    property = "notificationType",
 )
 @JsonSubTypes(
     JsonSubTypes.Type(value = MeldingNotification::class, name = "MELDING"),
@@ -24,31 +29,22 @@ import java.util.*
 abstract class Notification(
     @Id
     open val id: UUID = UUID.randomUUID(),
-
     @Column(name = "message", nullable = false)
     open var message: String,
-
     @Column(name = "nav_ident", nullable = false)
     open var navIdent: String,
-
     @Column(name = "read", nullable = false)
     open var read: Boolean,
-
     @Column(name = "created_at", nullable = false)
     open val createdAt: LocalDateTime,
-
     @Column(name = "updated_at", nullable = false)
     open var updatedAt: LocalDateTime,
-
     @Column(name = "read_at")
     open var readAt: LocalDateTime?,
-
     @Column(name = "marked_as_deleted", nullable = false)
     open var markedAsDeleted: Boolean,
-
     @Column(name = "kafka_message_id")
     open val kafkaMessageId: UUID?,
-
     @Column(name = "source_created_at", nullable = false)
     open val sourceCreatedAt: LocalDateTime,
 ) {
@@ -58,11 +54,8 @@ abstract class Notification(
         return id == other.id
     }
 
-    override fun hashCode(): Int {
-        return id.hashCode()
-    }
+    override fun hashCode(): Int = id.hashCode()
 
-    override fun toString(): String {
-        return "${this::class.simpleName}(id=$id, message='$message', navIdent='$navIdent', read=$read, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, sourceCreatedAt=$sourceCreatedAt)"
-    }
+    override fun toString(): String =
+        "${this::class.simpleName}(id=$id, message='$message', navIdent='$navIdent', read=$read, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, sourceCreatedAt=$sourceCreatedAt)"
 }

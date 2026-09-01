@@ -1,6 +1,8 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
+val ktlintVersion = "1.8.0"
 val klageKodeverkVersion = "1.12.16"
 val springMockkVersion = "5.0.1"
 val mockkVersion = "1.14.11"
@@ -18,6 +20,59 @@ plugins {
     kotlin("plugin.jpa") version kotlinVersion
     id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
+    id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
+    id("dev.detekt") version "2.0.0-alpha.6"
+}
+
+// This project has a second module (otel-extension), so linting is configured
+// for every project rather than only the root one.
+allprojects {
+    apply(plugin = "org.jlleitschuh.gradle.ktlint")
+    apply(plugin = "dev.detekt")
+
+    configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+        version.set(ktlintVersion)
+        ignoreFailures.set(false)
+        reporters {
+            reporter(ReporterType.PLAIN)
+            reporter(ReporterType.CHECKSTYLE)
+        }
+        filter {
+            exclude { it.file.path.contains("${File.separator}build${File.separator}") }
+        }
+    }
+
+    configure<dev.detekt.gradle.extensions.DetektExtension> {
+        config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+        buildUponDefaultConfig.set(true)
+        ignoreFailures.set(false)
+    }
+
+    // NamedArguments implements RequiresAnalysisApi, so it only reports when detekt
+    // runs with a compile classpath. The plain `detekt` task has no classpath and
+    // would silently pass, hence the analysis aware tasks are wired into `check`
+    // and the plain one is disabled.
+    tasks.named("detekt") {
+        enabled = false
+    }
+
+    tasks.withType<dev.detekt.gradle.Detekt>().configureEach {
+        jvmTarget.set(JvmTarget.JVM_21.target)
+        reports {
+            html.required.set(true)
+            checkstyle.required.set(true)
+            sarif.required.set(false)
+            markdown.required.set(false)
+        }
+    }
+
+    // The subproject's build script has not been evaluated yet at this point,
+    // so `check` does not exist there until its plugins are applied.
+    pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
+        tasks.named("check") {
+            dependsOn("detektMain", "detektTest")
+        }
+    }
 }
 
 java {
@@ -52,14 +107,14 @@ dependencies {
     implementation("com.zaxxer:HikariCP")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("net.logstash.logback:logstash-logback-encoder:${logstashVersion}")
+    implementation("net.logstash.logback:logstash-logback-encoder:$logstashVersion")
     implementation("no.nav.klage:klage-kodeverk:$klageKodeverkVersion")
-    implementation("no.nav.security:token-validation-spring:${tokenValidationVersion}")
-    implementation("no.nav.security:token-client-spring:${tokenValidationVersion}")
+    implementation("no.nav.security:token-validation-spring:$tokenValidationVersion")
+    implementation("no.nav.security:token-client-spring:$tokenValidationVersion")
     implementation("io.micrometer:micrometer-registry-prometheus")
-    implementation("io.opentelemetry:opentelemetry-api:${otelVersion}")
-    implementation("net.javacrumbs.shedlock:shedlock-spring:${shedlockVersion}")
-    implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:${shedlockVersion}")
+    implementation("io.opentelemetry:opentelemetry-api:$otelVersion")
+    implementation("net.javacrumbs.shedlock:shedlock-spring:$shedlockVersion")
+    implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:$shedlockVersion")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(group = "org.junit.vintage")
@@ -73,8 +128,8 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.testcontainers:testcontainers-postgresql")
-    testImplementation("io.mockk:mockk:${mockkVersion}")
-    testImplementation("com.ninja-squad:springmockk:${springMockkVersion}")
+    testImplementation("io.mockk:mockk:$mockkVersion")
+    testImplementation("com.ninja-squad:springmockk:$springMockkVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

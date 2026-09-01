@@ -14,8 +14,14 @@ import no.nav.klage.notifications.service.NotificationService
 import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.*
-import java.util.*
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
+import java.util.UUID
 
 @Tag(
     name = "admin",
@@ -26,10 +32,9 @@ import java.util.*
 @RequestMapping("/admin/notifications")
 class NotificationAdminController(
     private val notificationService: NotificationService,
-    private val notificationAggregateMetricsService: NotificationAggregateMetricsService
+    private val notificationAggregateMetricsService: NotificationAggregateMetricsService,
 ) {
-
-    /* Not in use */
+    // Not in use
 //    @Operation(summary = "Delete a notification", description = "Marks a notification as deleted, by ID")
 //    @ApiResponse(responseCode = "204", description = "Notification deleted successfully")
 //    @ApiResponse(responseCode = "404", description = "Notification not found")
@@ -59,7 +64,8 @@ class NotificationAdminController(
 
     @Operation(
         summary = "Transfer notification ownership for a behandling",
-        description = "Transfers MELDING notifications to a new user (navIdent) and deletes LOST_ACCESS notifications for a specific behandlingId. " +
+        description =
+            "Transfers MELDING notifications to a new user (navIdent) and deletes LOST_ACCESS notifications for a specific behandlingId. " +
                 "SSE clients will be notified: old owner receives DELETE events, new owner receives CREATE events.",
     )
     @ApiResponse(
@@ -76,15 +82,17 @@ class NotificationAdminController(
         @RequestBody request: TransferNotificationOwnershipRequest,
     ): ResponseEntity<Void> {
         notificationService.transferNotificationOwnership(
-            behandlingId,
-            request.newNavIdent,
+            behandlingId = behandlingId,
+            newNavIdent = request.newNavIdent,
         )
         return ResponseEntity.ok().build()
     }
 
     @Operation(
         summary = "Validate no unread notifications for behandling",
-        description = "Validates that there are no unread notifications for a specific behandlingId. Returns 400 if unread notifications exist.",
+        description =
+            "Validates that there are no unread notifications for a specific behandlingId. " +
+                "Returns 400 if unread notifications exist.",
     )
     @ApiResponse(
         responseCode = "200",
@@ -116,13 +124,14 @@ class NotificationAdminController(
         @RequestBody request: CreateSystemNotificationRequest,
     ): ResponseEntity<SystemNotificationResponse> {
         val notification = notificationService.createSystemNotification(request)
-        val response = SystemNotificationResponse(
-            id = notification.id,
-            title = notification.title,
-            message = notification.message,
-            createdAt = notification.createdAt,
-            updatedAt = notification.updatedAt,
-        )
+        val response =
+            SystemNotificationResponse(
+                id = notification.id,
+                title = notification.title,
+                message = notification.message,
+                createdAt = notification.createdAt,
+                updatedAt = notification.updatedAt,
+            )
         return ResponseEntity.status(HttpStatus.CREATED).body(response)
     }
 
@@ -177,15 +186,16 @@ class NotificationAdminController(
     @GetMapping("/system")
     fun getAllSystemNotifications(): ResponseEntity<List<SystemNotificationResponse>> {
         val systemNotifications = notificationService.getAllSystemNotifications()
-        val response = systemNotifications.map { notification ->
-            SystemNotificationResponse(
-                id = notification.id,
-                title = notification.title,
-                message = notification.message,
-                createdAt = notification.createdAt,
-                updatedAt = notification.updatedAt,
-            )
-        }
+        val response =
+            systemNotifications.map { notification ->
+                SystemNotificationResponse(
+                    id = notification.id,
+                    title = notification.title,
+                    message = notification.message,
+                    createdAt = notification.createdAt,
+                    updatedAt = notification.updatedAt,
+                )
+            }
         return ResponseEntity.ok(response)
     }
 
@@ -200,12 +210,13 @@ class NotificationAdminController(
     @GetMapping("/lost-access")
     fun getAllLostAccessNotifications(): ResponseEntity<List<LostAccessNotificationResponse>> {
         val lostAccessNotifications = notificationService.getAllLostAccessNotifications()
-        val response = lostAccessNotifications.map { notification ->
-            LostAccessNotificationResponse(
-                behandlingId = notification.behandlingId,
-                navIdent = notification.navIdent,
-            )
-        }
+        val response =
+            lostAccessNotifications.map { notification ->
+                LostAccessNotificationResponse(
+                    behandlingId = notification.behandlingId,
+                    navIdent = notification.navIdent,
+                )
+            }
         return ResponseEntity.ok(response)
     }
 

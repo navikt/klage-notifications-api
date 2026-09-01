@@ -8,3 +8,7 @@ A Spring Boot-based notification API that supports real-time notifications via S
 - **Kafka Consumer** for receiving notifications from Kafka topics
 - **PostgreSQL** database for persistent storage
 - **User-specific notifications** with support for different notification types and statuses
+
+# Linting and verification
+
+This project uses ktlint and detekt for linting and static code analysis. See internal Confluence page for Team Klage for more info.

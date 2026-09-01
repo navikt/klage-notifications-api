@@ -12,12 +12,11 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager
 import org.springframework.test.context.ActiveProfiles
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 @ActiveProfiles("local")
 @DataJpaTest
 class NotificationRepositoryCleanupTest : PostgresIntegrationTestBase() {
-
     @Autowired
     lateinit var testEntityManager: TestEntityManager
 
@@ -37,22 +36,25 @@ class NotificationRepositoryCleanupTest : PostgresIntegrationTestBase() {
         val now = LocalDateTime.now()
 
         // Create a notification marked as deleted 15 days ago (should be found)
-        val oldDeletedNotification = createMeldingNotification(
-            markedAsDeleted = true,
-            updatedAt = now.minusDays(15)
-        )
+        val oldDeletedNotification =
+            createMeldingNotification(
+                markedAsDeleted = true,
+                updatedAt = now.minusDays(15),
+            )
 
         // Create a notification marked as deleted 5 days ago (should NOT be found)
-        val recentDeletedNotification = createMeldingNotification(
-            markedAsDeleted = true,
-            updatedAt = now.minusDays(5)
-        )
+        val recentDeletedNotification =
+            createMeldingNotification(
+                markedAsDeleted = true,
+                updatedAt = now.minusDays(5),
+            )
 
         // Create an active notification (should NOT be found)
-        val activeNotification = createMeldingNotification(
-            markedAsDeleted = false,
-            updatedAt = now.minusDays(20)
-        )
+        val activeNotification =
+            createMeldingNotification(
+                markedAsDeleted = false,
+                updatedAt = now.minusDays(20),
+            )
 
         meldingNotificationRepository.save(oldDeletedNotification)
         meldingNotificationRepository.save(recentDeletedNotification)
@@ -62,10 +64,11 @@ class NotificationRepositoryCleanupTest : PostgresIntegrationTestBase() {
 
         // Find notifications older than 10 days and marked as deleted
         val cutoffDate = now.minusDays(10)
-        val oldDeletedNotifications = notificationRepository.findByMarkedAsDeletedAndUpdatedAtBefore(
-            markedAsDeleted = true,
-            updatedAt = cutoffDate
-        )
+        val oldDeletedNotifications =
+            notificationRepository.findByMarkedAsDeletedAndUpdatedAtBefore(
+                markedAsDeleted = true,
+                updatedAt = cutoffDate,
+            )
 
         // Verify that exactly 1 notification was found
         Assertions.assertThat(oldDeletedNotifications).hasSize(1)
@@ -74,9 +77,9 @@ class NotificationRepositoryCleanupTest : PostgresIntegrationTestBase() {
 
     private fun createMeldingNotification(
         markedAsDeleted: Boolean,
-        updatedAt: LocalDateTime
-    ): MeldingNotification {
-        return MeldingNotification(
+        updatedAt: LocalDateTime,
+    ): MeldingNotification =
+        MeldingNotification(
             id = UUID.randomUUID(),
             message = "Test notification",
             navIdent = "Z123456",
@@ -93,7 +96,6 @@ class NotificationRepositoryCleanupTest : PostgresIntegrationTestBase() {
             actorNavn = "Test Actor",
             saksnummer = "202312345",
             ytelse = Ytelse.OMS_OMP,
-            behandlingType = Type.KLAGE
+            behandlingType = Type.KLAGE,
         )
-    }
 }

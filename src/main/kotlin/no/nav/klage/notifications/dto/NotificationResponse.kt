@@ -1,7 +1,7 @@
 package no.nav.klage.notifications.dto
 
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 data class NotificationResponse(
     val id: UUID,

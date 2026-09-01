@@ -14,8 +14,7 @@ import reactor.kafka.receiver.KafkaReceiver
 import reactor.kafka.receiver.ReceiverOptions
 import reactor.kafka.receiver.internals.ConsumerFactory
 import reactor.kafka.receiver.internals.DefaultKafkaReceiver
-import java.util.*
-
+import java.util.UUID
 
 @Component
 class AivenKafkaClientCreator(
@@ -29,7 +28,6 @@ class AivenKafkaClientCreator(
     private val notificationInternalSystemEventsTopic: String,
     private val commonKafkaConfig: Map<String, Any>,
 ) {
-
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
@@ -42,7 +40,7 @@ class AivenKafkaClientCreator(
             topic = notificationEventsTopic,
             groupId = "klage-notifications-api-event-consumer",
             clientId = "klage-notifications-api-event-client",
-            className = CreateNotificationEvent::class.java.name
+            className = CreateNotificationEvent::class.java.name,
         )
     }
 
@@ -52,7 +50,7 @@ class AivenKafkaClientCreator(
             topic = notificationInternalEventsTopic,
             groupId = "klage-notifications-api-internal-event-consumer-$uniqueIdPerInstance",
             clientId = "klage-notifications-api-internal-event-client-$uniqueIdPerInstance",
-            className = InternalNotificationEvent::class.java.name
+            className = InternalNotificationEvent::class.java.name,
         )
     }
 
@@ -62,7 +60,7 @@ class AivenKafkaClientCreator(
             topic = notificationInternalChangeEventsTopic,
             groupId = "klage-notifications-api-internal-change-event-consumer-$uniqueIdPerInstance",
             clientId = "klage-notifications-api-internal-change-event-client-$uniqueIdPerInstance",
-            className = NotificationChangeEvent::class.java.name
+            className = NotificationChangeEvent::class.java.name,
         )
     }
 
@@ -72,7 +70,7 @@ class AivenKafkaClientCreator(
             topic = notificationInternalSystemEventsTopic,
             groupId = "klage-notifications-api-internal-system-event-consumer-$uniqueIdPerInstance",
             clientId = "klage-notifications-api-internal-system-event-client-$uniqueIdPerInstance",
-            className = SystemNotification::class.java.name
+            className = SystemNotification::class.java.name,
         )
     }
 
@@ -82,20 +80,20 @@ class AivenKafkaClientCreator(
         clientId: String,
         className: String,
     ): DefaultKafkaReceiver<String, T> {
-        val config = mapOf(
-            ConsumerConfig.GROUP_ID_CONFIG to groupId,
-            ConsumerConfig.CLIENT_ID_CONFIG to clientId,
-            ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG to false,
-            ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
-            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to JacksonJsonDeserializer::class.java,
-            JacksonJsonDeserializer.TRUSTED_PACKAGES to "*",
-            JacksonJsonDeserializer.VALUE_DEFAULT_TYPE to className
-        ) + commonKafkaConfig
+        val config =
+            mapOf(
+                ConsumerConfig.GROUP_ID_CONFIG to groupId,
+                ConsumerConfig.CLIENT_ID_CONFIG to clientId,
+                ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG to false,
+                ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
+                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to JacksonJsonDeserializer::class.java,
+                JacksonJsonDeserializer.TRUSTED_PACKAGES to "*",
+                JacksonJsonDeserializer.VALUE_DEFAULT_TYPE to className,
+            ) + commonKafkaConfig
 
         return DefaultKafkaReceiver(
             ConsumerFactory.INSTANCE,
-            ReceiverOptions.create<String, T>(config).subscription(listOf(topic))
+            ReceiverOptions.create<String, T>(config).subscription(listOf(topic)),
         )
     }
-
 }

@@ -5,26 +5,21 @@ import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 @Entity
 @Table(name = "system_notifications", schema = "klage")
 class SystemNotification(
     @Id
     val id: UUID = UUID.randomUUID(),
-
     @Column(name = "title", nullable = false)
     val title: String,
-
     @Column(name = "message", nullable = false)
     val message: String,
-
     @Column(name = "created_at", nullable = false)
     val createdAt: LocalDateTime,
-
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime,
-
     @Column(name = "marked_as_deleted", nullable = false)
     var markedAsDeleted: Boolean = false,
 ) {
@@ -34,11 +29,8 @@ class SystemNotification(
         return id == other.id
     }
 
-    override fun hashCode(): Int {
-        return id.hashCode()
-    }
+    override fun hashCode(): Int = id.hashCode()
 
-    override fun toString(): String {
-        return "SystemNotification(id=$id, title='$title', message='$message', createdAt=$createdAt, updatedAt=$updatedAt, markedAsDeleted=$markedAsDeleted)"
-    }
+    override fun toString(): String =
+        "SystemNotification(id=$id, title='$title', message='$message', createdAt=$createdAt, updatedAt=$updatedAt, markedAsDeleted=$markedAsDeleted)"
 }

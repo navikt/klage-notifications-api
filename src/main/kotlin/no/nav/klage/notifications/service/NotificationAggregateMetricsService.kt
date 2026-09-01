@@ -3,7 +3,11 @@ package no.nav.klage.notifications.service
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.MeterRegistry
 import jakarta.annotation.PostConstruct
-import no.nav.klage.notifications.domain.*
+import no.nav.klage.notifications.domain.GainedAccessNotification
+import no.nav.klage.notifications.domain.LostAccessNotification
+import no.nav.klage.notifications.domain.MeldingNotification
+import no.nav.klage.notifications.domain.Notification
+import no.nav.klage.notifications.domain.NotificationType
 import no.nav.klage.notifications.repository.NotificationRepository
 import no.nav.klage.notifications.util.getLogger
 import org.springframework.stereotype.Service
@@ -11,20 +15,19 @@ import org.springframework.stereotype.Service
 @Service
 class NotificationAggregateMetricsService(
     private val notificationRepository: NotificationRepository,
-    private val meterRegistry: MeterRegistry
+    private val meterRegistry: MeterRegistry,
 ) {
-
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
 
         private const val METRIC_PREFIX = "klage_notifications"
-        
+
         // Aggregate metric names
         private const val NOTIFICATIONS_PER_BEHANDLING_MIN = "${METRIC_PREFIX}_per_behandling_min_gauge"
         private const val NOTIFICATIONS_PER_BEHANDLING_MAX = "${METRIC_PREFIX}_per_behandling_max_gauge"
         private const val NOTIFICATIONS_PER_BEHANDLING_AVG = "${METRIC_PREFIX}_per_behandling_avg_gauge"
-        
+
         private const val NOTIFICATIONS_PER_USER_MIN = "${METRIC_PREFIX}_per_user_min_gauge"
         private const val NOTIFICATIONS_PER_USER_MAX = "${METRIC_PREFIX}_per_user_max_gauge"
         private const val NOTIFICATIONS_PER_USER_AVG = "${METRIC_PREFIX}_per_user_avg_gauge"
@@ -58,39 +61,46 @@ class NotificationAggregateMetricsService(
             unreadCountByType[type] = 0.0
 
             // Register behandling gauges
-            Gauge.builder(NOTIFICATIONS_PER_BEHANDLING_MIN, this) { behandlingMinByType[type] ?: 0.0 }
+            Gauge
+                .builder(NOTIFICATIONS_PER_BEHANDLING_MIN, this) { behandlingMinByType[type] ?: 0.0 }
                 .tag(TYPE_TAG, type.name)
                 .description("Minimum number of ${type.name} notifications per behandling")
                 .register(meterRegistry)
 
-            Gauge.builder(NOTIFICATIONS_PER_BEHANDLING_MAX, this) { behandlingMaxByType[type] ?: 0.0 }
+            Gauge
+                .builder(NOTIFICATIONS_PER_BEHANDLING_MAX, this) { behandlingMaxByType[type] ?: 0.0 }
                 .tag(TYPE_TAG, type.name)
                 .description("Maximum number of ${type.name} notifications per behandling")
                 .register(meterRegistry)
 
-            Gauge.builder(NOTIFICATIONS_PER_BEHANDLING_AVG, this) { behandlingAvgByType[type] ?: 0.0 }
+            Gauge
+                .builder(NOTIFICATIONS_PER_BEHANDLING_AVG, this) { behandlingAvgByType[type] ?: 0.0 }
                 .tag(TYPE_TAG, type.name)
                 .description("Average number of ${type.name} notifications per behandling")
                 .register(meterRegistry)
 
             // Register user gauges
-            Gauge.builder(NOTIFICATIONS_PER_USER_MIN, this) { userMinByType[type] ?: 0.0 }
+            Gauge
+                .builder(NOTIFICATIONS_PER_USER_MIN, this) { userMinByType[type] ?: 0.0 }
                 .tag(TYPE_TAG, type.name)
                 .description("Minimum number of ${type.name} notifications per user (navIdent)")
                 .register(meterRegistry)
 
-            Gauge.builder(NOTIFICATIONS_PER_USER_MAX, this) { userMaxByType[type] ?: 0.0 }
+            Gauge
+                .builder(NOTIFICATIONS_PER_USER_MAX, this) { userMaxByType[type] ?: 0.0 }
                 .tag(TYPE_TAG, type.name)
                 .description("Maximum number of ${type.name} notifications per user (navIdent)")
                 .register(meterRegistry)
 
-            Gauge.builder(NOTIFICATIONS_PER_USER_AVG, this) { userAvgByType[type] ?: 0.0 }
+            Gauge
+                .builder(NOTIFICATIONS_PER_USER_AVG, this) { userAvgByType[type] ?: 0.0 }
                 .tag(TYPE_TAG, type.name)
                 .description("Average number of ${type.name} notifications per user (navIdent)")
                 .register(meterRegistry)
 
             // Register unread count gauge
-            Gauge.builder(UNREAD_NOTIFICATIONS_COUNT, this) { unreadCountByType[type] ?: 0.0 }
+            Gauge
+                .builder(UNREAD_NOTIFICATIONS_COUNT, this) { unreadCountByType[type] ?: 0.0 }
                 .tag(TYPE_TAG, type.name)
                 .description("Current number of unread ${type.name} notifications")
                 .register(meterRegistry)
@@ -129,8 +139,14 @@ class NotificationAggregateMetricsService(
             logger.debug("Updated unread metrics in {} ms", unreadDuration)
 
             val totalDuration = System.currentTimeMillis() - startTime
-            logger.debug("Updated aggregate metrics for all notification types in {} ms total (fetch: {} ms, behandling: {} ms, user: {} ms, unread: {} ms)",
-                totalDuration, fetchDuration, behandlingDuration, userDuration, unreadDuration)
+            logger.debug(
+                "Updated aggregate metrics for all notification types in {} ms total (fetch: {} ms, behandling: {} ms, user: {} ms, unread: {} ms)",
+                totalDuration,
+                fetchDuration,
+                behandlingDuration,
+                userDuration,
+                unreadDuration,
+            )
         } catch (e: Exception) {
             logger.error("Failed to update aggregate notification metrics", e)
         }
@@ -140,28 +156,29 @@ class NotificationAggregateMetricsService(
         try {
             // Group by type and then by behandlingId
             NotificationType.entries.forEach { type ->
-                val notificationsOfType = when (type) {
-                    NotificationType.MELDING -> allNotifications.filterIsInstance<MeldingNotification>()
-                    NotificationType.LOST_ACCESS -> allNotifications.filterIsInstance<LostAccessNotification>()
-                    NotificationType.GAINED_ACCESS -> allNotifications.filterIsInstance<GainedAccessNotification>()
-                }
+                val notificationsOfType =
+                    when (type) {
+                        NotificationType.MELDING -> allNotifications.filterIsInstance<MeldingNotification>()
+                        NotificationType.LOST_ACCESS -> allNotifications.filterIsInstance<LostAccessNotification>()
+                        NotificationType.GAINED_ACCESS -> allNotifications.filterIsInstance<GainedAccessNotification>()
+                    }
 
                 // Filter only non-deleted notifications
                 val activeNotifications = notificationsOfType.filter { !it.markedAsDeleted }
 
                 // Group by behandlingId and count
-                val countsByBehandling = activeNotifications
-                    .groupBy {
-                        when (it) {
-                            is MeldingNotification -> it.behandlingId
-                            is LostAccessNotification -> it.behandlingId
-                            is GainedAccessNotification -> it.behandlingId
-                            else -> null
-                        }
-                    }
-                    .filter { it.key != null }
-                    .values
-                    .map { it.size.toLong() }
+                val countsByBehandling =
+                    activeNotifications
+                        .groupBy {
+                            when (it) {
+                                is MeldingNotification -> it.behandlingId
+                                is LostAccessNotification -> it.behandlingId
+                                is GainedAccessNotification -> it.behandlingId
+                                else -> null
+                            }
+                        }.filter { it.key != null }
+                        .values
+                        .map { it.size.toLong() }
 
                 if (countsByBehandling.isEmpty()) {
                     behandlingMinByType[type] = 0.0
@@ -178,7 +195,7 @@ class NotificationAggregateMetricsService(
                         behandlingMinByType[type],
                         behandlingMaxByType[type],
                         behandlingAvgByType[type],
-                        countsByBehandling.size
+                        countsByBehandling.size,
                     )
                 }
             }
@@ -191,20 +208,22 @@ class NotificationAggregateMetricsService(
         try {
             // Group by type and then by navIdent
             NotificationType.entries.forEach { type ->
-                val notificationsOfType = when (type) {
-                    NotificationType.MELDING -> allNotifications.filterIsInstance<MeldingNotification>()
-                    NotificationType.LOST_ACCESS -> allNotifications.filterIsInstance<LostAccessNotification>()
-                    NotificationType.GAINED_ACCESS -> allNotifications.filterIsInstance<GainedAccessNotification>()
-                }
+                val notificationsOfType =
+                    when (type) {
+                        NotificationType.MELDING -> allNotifications.filterIsInstance<MeldingNotification>()
+                        NotificationType.LOST_ACCESS -> allNotifications.filterIsInstance<LostAccessNotification>()
+                        NotificationType.GAINED_ACCESS -> allNotifications.filterIsInstance<GainedAccessNotification>()
+                    }
 
                 // Filter only non-deleted notifications
                 val activeNotifications = notificationsOfType.filter { !it.markedAsDeleted }
 
                 // Group by navIdent and count
-                val countsByUser = activeNotifications
-                    .groupBy { it.navIdent }
-                    .values
-                    .map { it.size.toLong() }
+                val countsByUser =
+                    activeNotifications
+                        .groupBy { it.navIdent }
+                        .values
+                        .map { it.size.toLong() }
 
                 if (countsByUser.isEmpty()) {
                     userMinByType[type] = 0.0
@@ -221,7 +240,7 @@ class NotificationAggregateMetricsService(
                         userMinByType[type],
                         userMaxByType[type],
                         userAvgByType[type],
-                        countsByUser.size
+                        countsByUser.size,
                     )
                 }
             }
@@ -234,23 +253,25 @@ class NotificationAggregateMetricsService(
         try {
             // Count unread notifications by type
             NotificationType.entries.forEach { type ->
-                val notificationsOfType = when (type) {
-                    NotificationType.MELDING -> allNotifications.filterIsInstance<MeldingNotification>()
-                    NotificationType.LOST_ACCESS -> allNotifications.filterIsInstance<LostAccessNotification>()
-                    NotificationType.GAINED_ACCESS -> allNotifications.filterIsInstance<GainedAccessNotification>()
-                }
+                val notificationsOfType =
+                    when (type) {
+                        NotificationType.MELDING -> allNotifications.filterIsInstance<MeldingNotification>()
+                        NotificationType.LOST_ACCESS -> allNotifications.filterIsInstance<LostAccessNotification>()
+                        NotificationType.GAINED_ACCESS -> allNotifications.filterIsInstance<GainedAccessNotification>()
+                    }
 
                 // Count unread and non-deleted notifications
-                val unreadCount = notificationsOfType
-                    .count { !it.read && !it.markedAsDeleted }
-                    .toDouble()
+                val unreadCount =
+                    notificationsOfType
+                        .count { !it.read && !it.markedAsDeleted }
+                        .toDouble()
 
                 unreadCountByType[type] = unreadCount
 
                 logger.debug(
                     "{} unread count: {}",
                     type.name,
-                    unreadCount
+                    unreadCount,
                 )
             }
         } catch (e: Exception) {

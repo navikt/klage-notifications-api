@@ -19,7 +19,6 @@ class KafkaInternalEventService(
     @Value($$"${NOTIFICATION_INTERNAL_SYSTEM_EVENTS_TOPIC}")
     private val notificationInternalSystemEventsTopic: String,
 ) {
-
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
@@ -30,16 +29,18 @@ class KafkaInternalEventService(
             logger.debug("Publishing {} internalNotificationEvents to Kafka for subscribers", notifications.size)
 
             val event = InternalNotificationEvent(notifications)
-            val key = if (notifications.isNotEmpty()) {
-                "notification-bulk-${notifications.first().navIdent}"
-            } else {
-                notifications.first().id.toString()
-            }
-            aivenKafkaTemplate.send(
-                notificationInternalEventsTopic,
-                key,
-                event,
-            ).get()
+            val key =
+                if (notifications.isNotEmpty()) {
+                    "notification-bulk-${notifications.first().navIdent}"
+                } else {
+                    notifications.first().id.toString()
+                }
+            aivenKafkaTemplate
+                .send(
+                    notificationInternalEventsTopic,
+                    key,
+                    event,
+                ).get()
 
             logger.debug("Published {} internalNotificationEvents to Kafka for subscribers", notifications.size)
         }.onFailure {
@@ -51,17 +52,19 @@ class KafkaInternalEventService(
         runCatching {
             logger.debug("Publishing internalNotificationChangeEvent to Kafka for subscribers")
 
-            val key = if (!notificationChangeEvent.ids.isNullOrEmpty()) {
-                "notification-bulk-change-${notificationChangeEvent.navIdent}"
-            } else {
-                notificationChangeEvent.id!!.toString()
-            }
+            val key =
+                if (!notificationChangeEvent.ids.isNullOrEmpty()) {
+                    "notification-bulk-change-${notificationChangeEvent.navIdent}"
+                } else {
+                    notificationChangeEvent.id!!.toString()
+                }
 
-            aivenKafkaTemplate.send(
-                notificationInternalChangeEventsTopic,
-                key,
-                notificationChangeEvent,
-            ).get()
+            aivenKafkaTemplate
+                .send(
+                    notificationInternalChangeEventsTopic,
+                    key,
+                    notificationChangeEvent,
+                ).get()
             logger.debug("Published internalNotificationChangeEvent to Kafka for subscribers")
         }.onFailure {
             logger.error("Could not publish internalNotificationChangeEvent to subscribers", it)
@@ -72,11 +75,12 @@ class KafkaInternalEventService(
         runCatching {
             logger.debug("Publishing system notification event to Kafka for SSE subscribers")
 
-            aivenKafkaTemplate.send(
-                notificationInternalSystemEventsTopic,
-                systemNotification.id.toString(),
-                systemNotification,
-            ).get()
+            aivenKafkaTemplate
+                .send(
+                    notificationInternalSystemEventsTopic,
+                    systemNotification.id.toString(),
+                    systemNotification,
+                ).get()
             logger.debug("Published system notification event to Kafka for SSE subscribers")
         }.onFailure {
             logger.error("Could not publish system notification event to subscribers", it)

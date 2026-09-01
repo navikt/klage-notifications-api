@@ -12,7 +12,6 @@ class LeaderElectionService(
     @Value($$"${ELECTOR_GET_URL}")
     private val electorGetUrl: String,
 ) {
-
     private val restClient: RestClient = restClientBuilder.baseUrl(electorGetUrl).build()
 
     companion object {
@@ -21,17 +20,19 @@ class LeaderElectionService(
     }
 
     fun isLeader(): Boolean {
-        val leaderElectionResponse = restClient
-            .get()
-            .retrieve()
-            .body(LeaderElectionResponse::class.java)!!
+        val leaderElectionResponse =
+            restClient
+                .get()
+                .retrieve()
+                .body(LeaderElectionResponse::class.java)!!
 
         val isLeader = leaderElectionResponse.name == InetAddress.getLocalHost().hostName
-        logger.debug("Leader election check: host = ${InetAddress.getLocalHost().hostName}, leader = ${leaderElectionResponse.name}, isLeader = $isLeader")
+        logger.debug(
+            "Leader election check: host = ${InetAddress.getLocalHost().hostName}, leader = ${leaderElectionResponse.name}, isLeader = $isLeader",
+        )
 
         return isLeader
     }
-
 }
 
 data class LeaderElectionResponse(

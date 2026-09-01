@@ -1,7 +1,7 @@
 package no.nav.klage.notifications.dto.view
 
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 enum class NotificationType {
     SYSTEM,
@@ -39,13 +39,13 @@ data class MessageNotificationView(
     val message: Message,
     val actor: NavEmployee,
     val behandling: BehandlingInfo,
-): NotificationView(
-    type = type,
-    id = id,
-    read = read,
-    createdAt = createdAt,
-    traceparent = traceparent,
-) {
+) : NotificationView(
+        type = type,
+        id = id,
+        read = read,
+        createdAt = createdAt,
+        traceparent = traceparent,
+    ) {
     data class Message(
         val id: UUID,
         val content: String,
@@ -60,13 +60,13 @@ data class LostAccessNotificationView(
     override val traceparent: String?,
     val message: String,
     val behandling: BehandlingInfo,
-): NotificationView(
-    type = type,
-    id = id,
-    read = read,
-    createdAt = createdAt,
-    traceparent = traceparent,
-)
+) : NotificationView(
+        type = type,
+        id = id,
+        read = read,
+        createdAt = createdAt,
+        traceparent = traceparent,
+    )
 
 data class GainedAccessNotificationView(
     override val type: NotificationType,
@@ -76,13 +76,13 @@ data class GainedAccessNotificationView(
     override val traceparent: String?,
     val message: String,
     val behandling: BehandlingInfo,
-): NotificationView(
-    type = type,
-    id = id,
-    read = read,
-    createdAt = createdAt,
-    traceparent = traceparent,
-)
+) : NotificationView(
+        type = type,
+        id = id,
+        read = read,
+        createdAt = createdAt,
+        traceparent = traceparent,
+    )
 
 data class SystemNotificationView(
     override val type: NotificationType,
@@ -92,13 +92,13 @@ data class SystemNotificationView(
     override val traceparent: String?,
     val title: String,
     val message: String,
-): NotificationView(
-    type = type,
-    id = id,
-    read = read,
-    createdAt = createdAt,
-    traceparent = traceparent,
-)
+) : NotificationView(
+        type = type,
+        id = id,
+        read = read,
+        createdAt = createdAt,
+        traceparent = traceparent,
+    )
 
 data class NotificationChanged(
     val id: UUID,
@@ -115,7 +115,9 @@ data class NotificationMultipleChanged(
     val traceparent: String?,
 )
 
-enum class Action(val lower: String) {
+enum class Action(
+    val lower: String,
+) {
     CREATE("create"),
     CREATE_MULTIPLE("create_multiple"),
     READ("read"),

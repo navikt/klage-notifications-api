@@ -8,22 +8,21 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class OpenApiConfig {
-
     @Bean
-    fun apiAdmin(): GroupedOpenApi {
-        return GroupedOpenApi.builder()
+    fun apiAdmin(): GroupedOpenApi =
+        GroupedOpenApi
+            .builder()
             .packagesToScan(NotificationAdminController::class.java.packageName)
             .group("admin")
             .pathsToMatch("/admin/**")
             .build()
-    }
 
     @Bean
-    fun apiUser(): GroupedOpenApi {
-        return GroupedOpenApi.builder()
+    fun apiUser(): GroupedOpenApi =
+        GroupedOpenApi
+            .builder()
             .packagesToScan(NotificationUserController::class.java.packageName)
             .group("user")
             .pathsToMatch("/user/**", "/notifications/**")
             .build()
-    }
 }

@@ -8,7 +8,6 @@ import no.nav.klage.notifications.util.getLogger
 import org.slf4j.Marker
 
 class InternalLogFilter : TurboFilter() {
-
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val ourLogger = getLogger(javaClass.enclosingClass)
@@ -20,11 +19,13 @@ class InternalLogFilter : TurboFilter() {
         level: Level?,
         format: String?,
         params: Array<out Any>?,
-        throwable: Throwable?
+        throwable: Throwable?,
     ): FilterReply {
         if (level == Level.DEBUG && logger?.name == "org.springframework.web.filter.CommonsRequestLoggingFilter" &&
-            (format?.contains("request [GET /internal/prometheus") == true ||
-                    format?.contains("request [GET /internal/health") == true)
+            (
+                format?.contains("request [GET /internal/prometheus") == true ||
+                    format?.contains("request [GET /internal/health") == true
+            )
         ) {
             return FilterReply.DENY
         }

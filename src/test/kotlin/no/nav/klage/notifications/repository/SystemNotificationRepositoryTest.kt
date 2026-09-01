@@ -11,12 +11,11 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager
 import org.springframework.test.context.ActiveProfiles
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 @ActiveProfiles("local")
 @DataJpaTest
 class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
-
     @Autowired
     lateinit var testEntityManager: TestEntityManager
 
@@ -35,14 +34,15 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
     @Test
     fun `save and find system notification`() {
         val now = LocalDateTime.now()
-        val notification = SystemNotification(
-            id = UUID.randomUUID(),
-            title = "System Maintenance",
-            message = "The system will be down for maintenance on Saturday",
-            createdAt = now,
-            updatedAt = now,
-            markedAsDeleted = false
-        )
+        val notification =
+            SystemNotification(
+                id = UUID.randomUUID(),
+                title = "System Maintenance",
+                message = "The system will be down for maintenance on Saturday",
+                createdAt = now,
+                updatedAt = now,
+                markedAsDeleted = false,
+            )
 
         val saved = systemNotificationRepository.save(notification)
         testEntityManager.flush()
@@ -61,15 +61,16 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
         val now = LocalDateTime.now()
 
         // Create active notification
-        val activeNotification = systemNotificationRepository.save(
-            SystemNotification(
-                title = "Active Notification",
-                message = "This is active",
-                createdAt = now,
-                updatedAt = now,
-                markedAsDeleted = false
+        val activeNotification =
+            systemNotificationRepository.save(
+                SystemNotification(
+                    title = "Active Notification",
+                    message = "This is active",
+                    createdAt = now,
+                    updatedAt = now,
+                    markedAsDeleted = false,
+                ),
             )
-        )
 
         // Create deleted notification
         systemNotificationRepository.save(
@@ -78,8 +79,8 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
                 message = "This is deleted",
                 createdAt = now.minusDays(1),
                 updatedAt = now,
-                markedAsDeleted = true
-            )
+                markedAsDeleted = true,
+            ),
         )
 
         testEntityManager.flush()
@@ -96,24 +97,26 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
         val now = LocalDateTime.now()
 
         // Create a system notification first
-        val notification = systemNotificationRepository.save(
-            SystemNotification(
-                title = "Test Notification",
-                message = "Test message",
-                createdAt = now,
-                updatedAt = now,
-                markedAsDeleted = false
+        val notification =
+            systemNotificationRepository.save(
+                SystemNotification(
+                    title = "Test Notification",
+                    message = "Test message",
+                    createdAt = now,
+                    updatedAt = now,
+                    markedAsDeleted = false,
+                ),
             )
-        )
         testEntityManager.flush()
 
         // Create read status
-        val readStatus = SystemNotificationReadStatus(
-            id = UUID.randomUUID(),
-            systemNotificationId = notification.id,
-            navIdent = "Z123456",
-            readAt = now
-        )
+        val readStatus =
+            SystemNotificationReadStatus(
+                id = UUID.randomUUID(),
+                systemNotificationId = notification.id,
+                navIdent = "Z123456",
+                readAt = now,
+            )
 
         val saved = systemNotificationReadStatusRepository.save(readStatus)
         testEntityManager.flush()
@@ -131,18 +134,20 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
         val now = LocalDateTime.now()
         val notification = createAndSaveSystemNotification(now)
 
-        val readStatus = SystemNotificationReadStatus(
-            systemNotificationId = notification.id,
-            navIdent = "Z123456",
-            readAt = now
-        )
+        val readStatus =
+            SystemNotificationReadStatus(
+                systemNotificationId = notification.id,
+                navIdent = "Z123456",
+                readAt = now,
+            )
         systemNotificationReadStatusRepository.save(readStatus)
         testEntityManager.flush()
 
-        val exists = systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(
-            notification.id,
-            "Z123456"
-        )
+        val exists =
+            systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(
+                systemNotificationId = notification.id,
+                navIdent = "Z123456",
+            )
 
         assertThat(exists).isTrue()
     }
@@ -152,10 +157,11 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
         val now = LocalDateTime.now()
         val notification = createAndSaveSystemNotification(now)
 
-        val exists = systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(
-            notification.id,
-            "Z999999"
-        )
+        val exists =
+            systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(
+                systemNotificationId = notification.id,
+                navIdent = "Z999999",
+            )
 
         assertThat(exists).isFalse()
     }
@@ -165,18 +171,20 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
         val now = LocalDateTime.now()
         val notification = createAndSaveSystemNotification(now)
 
-        val readStatus = SystemNotificationReadStatus(
-            systemNotificationId = notification.id,
-            navIdent = "Z123456",
-            readAt = now
-        )
+        val readStatus =
+            SystemNotificationReadStatus(
+                systemNotificationId = notification.id,
+                navIdent = "Z123456",
+                readAt = now,
+            )
         systemNotificationReadStatusRepository.save(readStatus)
         testEntityManager.flush()
 
-        val found = systemNotificationReadStatusRepository.findBySystemNotificationIdAndNavIdent(
-            notification.id,
-            "Z123456"
-        )
+        val found =
+            systemNotificationReadStatusRepository.findBySystemNotificationIdAndNavIdent(
+                systemNotificationId = notification.id,
+                navIdent = "Z123456",
+            )
 
         assertThat(found).isNotNull
         assertThat(found?.navIdent).isEqualTo("Z123456")
@@ -188,10 +196,11 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
         val now = LocalDateTime.now()
         val notification = createAndSaveSystemNotification(now)
 
-        val found = systemNotificationReadStatusRepository.findBySystemNotificationIdAndNavIdent(
-            notification.id,
-            "Z999999"
-        )
+        val found =
+            systemNotificationReadStatusRepository.findBySystemNotificationIdAndNavIdent(
+                systemNotificationId = notification.id,
+                navIdent = "Z999999",
+            )
 
         assertThat(found).isNull()
     }
@@ -201,35 +210,36 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
         val now = LocalDateTime.now()
         val notification = createAndSaveSystemNotification(now)
 
-        val readStatus = SystemNotificationReadStatus(
-            systemNotificationId = notification.id,
-            navIdent = "Z123456",
-            readAt = now
-        )
+        val readStatus =
+            SystemNotificationReadStatus(
+                systemNotificationId = notification.id,
+                navIdent = "Z123456",
+                readAt = now,
+            )
         systemNotificationReadStatusRepository.save(readStatus)
         testEntityManager.flush()
 
         // Verify it exists
         assertThat(
             systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(
-                notification.id,
-                "Z123456"
-            )
+                systemNotificationId = notification.id,
+                navIdent = "Z123456",
+            ),
         ).isTrue()
 
         // Delete it
         systemNotificationReadStatusRepository.deleteBySystemNotificationIdAndNavIdent(
-            notification.id,
-            "Z123456"
+            systemNotificationId = notification.id,
+            navIdent = "Z123456",
         )
         testEntityManager.flush()
 
         // Verify it's gone
         assertThat(
             systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(
-                notification.id,
-                "Z123456"
-            )
+                systemNotificationId = notification.id,
+                navIdent = "Z123456",
+            ),
         ).isFalse()
     }
 
@@ -243,8 +253,8 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
             SystemNotificationReadStatus(
                 systemNotificationId = notification.id,
                 navIdent = "Z111111",
-                readAt = now
-            )
+                readAt = now,
+            ),
         )
 
         // User 2 has read it
@@ -252,25 +262,28 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
             SystemNotificationReadStatus(
                 systemNotificationId = notification.id,
                 navIdent = "Z222222",
-                readAt = now.plusHours(1)
-            )
+                readAt = now.plusHours(1),
+            ),
         )
 
         testEntityManager.flush()
 
         // Verify both exist
-        val user1Exists = systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(
-            notification.id,
-            "Z111111"
-        )
-        val user2Exists = systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(
-            notification.id,
-            "Z222222"
-        )
-        val user3Exists = systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(
-            notification.id,
-            "Z333333"
-        )
+        val user1Exists =
+            systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(
+                systemNotificationId = notification.id,
+                navIdent = "Z111111",
+            )
+        val user2Exists =
+            systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(
+                systemNotificationId = notification.id,
+                navIdent = "Z222222",
+            )
+        val user3Exists =
+            systemNotificationReadStatusRepository.existsBySystemNotificationIdAndNavIdent(
+                systemNotificationId = notification.id,
+                navIdent = "Z333333",
+            )
 
         assertThat(user1Exists).isTrue()
         assertThat(user2Exists).isTrue()
@@ -282,20 +295,22 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
         val now = LocalDateTime.now()
         val notification = createAndSaveSystemNotification(now)
 
-        val readStatus1 = SystemNotificationReadStatus(
-            systemNotificationId = notification.id,
-            navIdent = "Z123456",
-            readAt = now
-        )
+        val readStatus1 =
+            SystemNotificationReadStatus(
+                systemNotificationId = notification.id,
+                navIdent = "Z123456",
+                readAt = now,
+            )
         systemNotificationReadStatusRepository.save(readStatus1)
         testEntityManager.flush()
 
         // Try to create duplicate
-        val readStatus2 = SystemNotificationReadStatus(
-            systemNotificationId = notification.id,
-            navIdent = "Z123456",
-            readAt = now.plusHours(1)
-        )
+        val readStatus2 =
+            SystemNotificationReadStatus(
+                systemNotificationId = notification.id,
+                navIdent = "Z123456",
+                readAt = now.plusHours(1),
+            )
 
         try {
             systemNotificationReadStatusRepository.save(readStatus2)
@@ -317,15 +332,15 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
             SystemNotificationReadStatus(
                 systemNotificationId = notification.id,
                 navIdent = "Z111111",
-                readAt = now
-            )
+                readAt = now,
+            ),
         )
         systemNotificationReadStatusRepository.save(
             SystemNotificationReadStatus(
                 systemNotificationId = notification.id,
                 navIdent = "Z222222",
-                readAt = now
-            )
+                readAt = now,
+            ),
         )
         testEntityManager.flush()
 
@@ -344,15 +359,16 @@ class SystemNotificationRepositoryTest : PostgresIntegrationTestBase() {
     private fun createAndSaveSystemNotification(
         now: LocalDateTime,
         title: String = "Test Title",
-        message: String = "Test message"
+        message: String = "Test message",
     ): SystemNotification {
-        val notification = SystemNotification(
-            title = title,
-            message = message,
-            createdAt = now,
-            updatedAt = now,
-            markedAsDeleted = false
-        )
+        val notification =
+            SystemNotification(
+                title = title,
+                message = message,
+                createdAt = now,
+                updatedAt = now,
+                markedAsDeleted = false,
+            )
         return systemNotificationRepository.save(notification)
     }
 }

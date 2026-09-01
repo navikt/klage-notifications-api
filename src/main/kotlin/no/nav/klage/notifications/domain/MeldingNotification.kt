@@ -10,7 +10,7 @@ import no.nav.klage.kodeverk.TypeConverter
 import no.nav.klage.kodeverk.ytelse.Ytelse
 import no.nav.klage.kodeverk.ytelse.YtelseConverter
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 @JsonTypeName("MELDING")
 @Entity
@@ -26,52 +26,42 @@ class MeldingNotification(
     markedAsDeleted: Boolean,
     kafkaMessageId: UUID?,
     sourceCreatedAt: LocalDateTime,
-
     @Column(name = "behandling_id", nullable = false)
     val behandlingId: UUID,
-
     @Column(name = "melding_id", nullable = false)
     val meldingId: UUID,
-
     @Column(name = "actor_nav_ident", nullable = false)
     val actorNavIdent: String,
-
     @Column(name = "actor_navn", nullable = false)
     val actorNavn: String,
-
     @Column(name = "saksnummer", nullable = false)
     val saksnummer: String,
-
     @Column(name = "ytelse_id", nullable = false)
     @Convert(converter = YtelseConverter::class)
     val ytelse: Ytelse,
-
     @Column(name = "behandling_type_id", nullable = false)
     @Convert(converter = TypeConverter::class)
     val behandlingType: Type,
 ) : Notification(
-    id = id,
-    message = message,
-    navIdent = navIdent,
-    read = read,
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-    readAt = readAt,
-    markedAsDeleted = markedAsDeleted,
-    kafkaMessageId = kafkaMessageId,
-    sourceCreatedAt = sourceCreatedAt,
-) {
+        id = id,
+        message = message,
+        navIdent = navIdent,
+        read = read,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        readAt = readAt,
+        markedAsDeleted = markedAsDeleted,
+        kafkaMessageId = kafkaMessageId,
+        sourceCreatedAt = sourceCreatedAt,
+    ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is MeldingNotification) return false
         return id == other.id
     }
 
-    override fun hashCode(): Int {
-        return id.hashCode()
-    }
+    override fun hashCode(): Int = id.hashCode()
 
-    override fun toString(): String {
-        return "MeldingNotification(id=$id, message='$message', navIdent='$navIdent', read=$read, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, behandlingId=$behandlingId, meldingId=$meldingId, actorNavIdent='$actorNavIdent', actorNavn='$actorNavn', saksnummer='$saksnummer', ytelse=$ytelse, behandlingType=$behandlingType, kafkaMessageId=$kafkaMessageId)"
-    }
+    override fun toString(): String =
+        "MeldingNotification(id=$id, message='$message', navIdent='$navIdent', read=$read, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, behandlingId=$behandlingId, meldingId=$meldingId, actorNavIdent='$actorNavIdent', actorNavn='$actorNavn', saksnummer='$saksnummer', ytelse=$ytelse, behandlingType=$behandlingType, kafkaMessageId=$kafkaMessageId)"
 }

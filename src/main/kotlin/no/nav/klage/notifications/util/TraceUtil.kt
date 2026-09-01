@@ -8,14 +8,13 @@ import io.opentelemetry.api.trace.TraceState
 import io.opentelemetry.context.Context
 import org.apache.kafka.common.header.Headers
 
-fun currentTraceparent(): String? {
-    return try {
+fun currentTraceparent(): String? =
+    try {
         val spanContext = Span.current().spanContext
         "00-${spanContext.traceId}-${spanContext.spanId}-${spanContext.traceFlags.asHex()}"
     } catch (_: Exception) {
         null
     }
-}
 
 /**
  * Parses a W3C traceparent string (e.g. "00-traceId-spanId-flags") into a [SpanContext].
@@ -26,12 +25,13 @@ fun parseTraceparent(traceparent: String): SpanContext? {
         val parts = traceparent.split("-")
         if (parts.size != 4) return null
 
-        val spanContext = SpanContext.createFromRemoteParent(
-            parts[1],
-            parts[2],
-            TraceFlags.fromHex(parts[3], 0),
-            TraceState.getDefault(),
-        )
+        val spanContext =
+            SpanContext.createFromRemoteParent(
+                parts[1],
+                parts[2],
+                TraceFlags.fromHex(parts[3], 0),
+                TraceState.getDefault(),
+            )
 
         if (!spanContext.isValid) null else spanContext
     } catch (_: Exception) {
@@ -56,9 +56,11 @@ fun createSpanFromTraceparent(
         val remoteSpanContext = parseTraceparent(traceparent) ?: return null
         val parentContext = Context.current().with(Span.wrap(remoteSpanContext))
 
-        val spanBuilder = GlobalOpenTelemetry.getTracer("klage-notifications-api")
-            .spanBuilder(spanName)
-            .setParent(parentContext)
+        val spanBuilder =
+            GlobalOpenTelemetry
+                .getTracer("klage-notifications-api")
+                .spanBuilder(spanName)
+                .setParent(parentContext)
 
         if (linkTraceparent != null) {
             parseTraceparent(linkTraceparent)?.let { spanBuilder.addLink(it) }
@@ -77,13 +79,12 @@ fun createSpanFromTraceparent(
  * Reactor-kafka consumers do not automatically propagate this trace context through the reactive pipeline,
  * so we extract it manually to carry it alongside the event data.
  */
-fun extractTraceparentFromKafkaHeaders(headers: Headers): String? {
-    return try {
+fun extractTraceparentFromKafkaHeaders(headers: Headers): String? =
+    try {
         headers.lastHeader("traceparent")?.value()?.let { String(it) }
     } catch (_: Exception) {
         null
     }
-}
 
 /**
  * Runs [block] within a span created from the given [traceparent] (parent).
