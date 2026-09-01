@@ -6,20 +6,17 @@ import org.springframework.stereotype.Component
 
 @Component
 class NotificationCleanupJob(
-    private val notificationService: NotificationService
+    private val notificationService: NotificationService,
 ) {
-
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
         private const val DAYS_BEFORE_DELETION = 10
     }
 
-    /**
-     * Scheduled job that permanently deletes notifications marked as deleted and older than 10 days.
-     * Runs at 9:00 AM and 2:00 PM on weekdays (Monday-Friday).
-     */
-    //Keeping data until further notice.
+    // Scheduled job that permanently deletes notifications marked as deleted and older than 10 days.
+    // Runs at 9:00 AM and 2:00 PM on weekdays (Monday-Friday).
+    // Keeping data until further notice.
 //    @Scheduled(cron = "0 0 9,14 ? * MON-FRI")
 //    @SchedulerLock(name = "cleanupOldDeletedNotifications")
 //    fun cleanupOldDeletedNotifications() {
@@ -33,4 +30,3 @@ class NotificationCleanupJob(
 //        }
 //    }
 }
-

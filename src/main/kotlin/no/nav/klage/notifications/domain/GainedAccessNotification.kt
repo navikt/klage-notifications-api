@@ -10,7 +10,7 @@ import no.nav.klage.kodeverk.TypeConverter
 import no.nav.klage.kodeverk.ytelse.Ytelse
 import no.nav.klage.kodeverk.ytelse.YtelseConverter
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 @JsonTypeName("GAINED_ACCESS")
 @Entity
@@ -26,43 +26,36 @@ class GainedAccessNotification(
     markedAsDeleted: Boolean,
     kafkaMessageId: UUID?,
     sourceCreatedAt: LocalDateTime,
-
     @Column(name = "behandling_id", nullable = false)
     val behandlingId: UUID,
-
     @Column(name = "saksnummer", nullable = false)
     val saksnummer: String,
-
     @Column(name = "ytelse_id", nullable = false)
     @Convert(converter = YtelseConverter::class)
     val ytelse: Ytelse,
-
     @Column(name = "behandling_type_id", nullable = false)
     @Convert(converter = TypeConverter::class)
     val behandlingType: Type,
 ) : Notification(
-    id = id,
-    message = message,
-    navIdent = navIdent,
-    read = read,
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-    readAt = readAt,
-    markedAsDeleted = markedAsDeleted,
-    kafkaMessageId = kafkaMessageId,
-    sourceCreatedAt = sourceCreatedAt,
-) {
+        id = id,
+        message = message,
+        navIdent = navIdent,
+        read = read,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        readAt = readAt,
+        markedAsDeleted = markedAsDeleted,
+        kafkaMessageId = kafkaMessageId,
+        sourceCreatedAt = sourceCreatedAt,
+    ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is GainedAccessNotification) return false
         return id == other.id
     }
 
-    override fun hashCode(): Int {
-        return id.hashCode()
-    }
+    override fun hashCode(): Int = id.hashCode()
 
-    override fun toString(): String {
-        return "GainedAccessNotification(id=$id, message='$message', navIdent='$navIdent', read=$read, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, behandlingId=$behandlingId, saksnummer='$saksnummer', ytelse=$ytelse, behandlingType=$behandlingType, kafkaMessageId=$kafkaMessageId)"
-    }
+    override fun toString(): String =
+        "GainedAccessNotification(id=$id, message='$message', navIdent='$navIdent', read=$read, createdAt=$createdAt, updatedAt=$updatedAt, readAt=$readAt, markedAsDeleted=$markedAsDeleted, behandlingId=$behandlingId, saksnummer='$saksnummer', ytelse=$ytelse, behandlingType=$behandlingType, kafkaMessageId=$kafkaMessageId)"
 }

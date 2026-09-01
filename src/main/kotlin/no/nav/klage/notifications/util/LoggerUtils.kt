@@ -16,7 +16,8 @@ fun logErrorResponse(
     classLogger: Logger,
 ): Mono<WebClientResponseException> {
     val errorString = "Got ${response.statusCode()} when requesting $functionName"
-    return response.createException()
+    return response
+        .createException()
         .doOnNext { ex ->
             classLogger.error("$errorString. See team-logs for more details.")
             getTeamLogger().error("$errorString - response body: '${ex.responseBodyAsString}'")

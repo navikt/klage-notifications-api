@@ -12,7 +12,7 @@ import org.springframework.kafka.support.Acknowledgment
 import org.springframework.stereotype.Component
 import java.time.Duration
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 @Component
@@ -25,7 +25,6 @@ class NotificationKafkaConsumer(
     @Value($$"${dlq.retry-delay-seconds:5}")
     private val retryDelaySeconds: Long,
 ) {
-
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
@@ -58,13 +57,11 @@ class NotificationKafkaConsumer(
         acknowledgment: Acknowledgment,
     ) {
         val messageKey = createMessageKey(consumerRecord)
-        val retryInfo = retryAttempts.getOrDefault(
-            messageKey,
-            RetryInfo(
-                0,
-                LocalDateTime.now(),
-            ),
-        )
+        val retryInfo =
+            retryAttempts.getOrDefault(
+                messageKey,
+                RetryInfo(attemptCount = 0, firstAttemptAt = LocalDateTime.now()),
+            )
 
         try {
             if (!environment.activeProfiles.contains("prod")) {
@@ -96,7 +93,6 @@ class NotificationKafkaConsumer(
                 "Successfully processed and acknowledged message at offset {}",
                 consumerRecord.offset(),
             )
-
         } catch (e: Exception) {
             handleProcessingError(
                 consumerRecord = consumerRecord,
@@ -160,10 +156,8 @@ class NotificationKafkaConsumer(
             }
         } else {
             // Update retry count and don't acknowledge - message will be reprocessed
-            retryAttempts[messageKey] = RetryInfo(
-                newAttemptCount,
-                retryInfo.firstAttemptAt,
-            )
+            retryAttempts[messageKey] =
+                RetryInfo(attemptCount = newAttemptCount, firstAttemptAt = retryInfo.firstAttemptAt)
             logger.warn(
                 "Will retry message at offset {} after delay (attempt {}/{})",
                 consumerRecord.offset(),
@@ -180,7 +174,6 @@ class NotificationKafkaConsumer(
         }
     }
 
-    private fun createMessageKey(record: ConsumerRecord<String, CreateNotificationEvent>): String {
-        return "${record.topic()}-${record.partition()}-${record.offset()}"
-    }
+    private fun createMessageKey(record: ConsumerRecord<String, CreateNotificationEvent>): String =
+        "${record.topic()}-${record.partition()}-${record.offset()}"
 }

@@ -7,8 +7,7 @@ import no.nav.klage.kodeverk.Type
 import no.nav.klage.kodeverk.ytelse.Ytelse
 import no.nav.klage.notifications.domain.NotificationType
 import java.time.LocalDateTime
-import java.util.*
-
+import java.util.UUID
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", visible = true)
 @JsonSubTypes(
@@ -40,13 +39,13 @@ data class CreateMeldingNotificationEvent(
     val saksnummer: String,
     val ytelse: Ytelse,
 ) : CreateNotificationEvent(
-    type = type,
-    message = message,
-    recipientNavIdent = recipientNavIdent,
-    sourceCreatedAt = sourceCreatedAt,
-    actorNavIdent = actorNavIdent,
-    actorNavn = actorNavn,
-)
+        type = type,
+        message = message,
+        recipientNavIdent = recipientNavIdent,
+        sourceCreatedAt = sourceCreatedAt,
+        actorNavIdent = actorNavIdent,
+        actorNavn = actorNavn,
+    )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CreateLostAccessNotificationRequest(
@@ -61,13 +60,13 @@ data class CreateLostAccessNotificationRequest(
     val saksnummer: String,
     val ytelse: Ytelse,
 ) : CreateNotificationEvent(
-    type = type,
-    message = message,
-    recipientNavIdent = recipientNavIdent,
-    sourceCreatedAt = sourceCreatedAt,
-    actorNavIdent = actorNavIdent,
-    actorNavn = actorNavn,
-)
+        type = type,
+        message = message,
+        recipientNavIdent = recipientNavIdent,
+        sourceCreatedAt = sourceCreatedAt,
+        actorNavIdent = actorNavIdent,
+        actorNavn = actorNavn,
+    )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CreateGainedAccessNotificationRequest(
@@ -82,10 +81,10 @@ data class CreateGainedAccessNotificationRequest(
     val saksnummer: String,
     val ytelse: Ytelse,
 ) : CreateNotificationEvent(
-    type = type,
-    message = message,
-    recipientNavIdent = recipientNavIdent,
-    sourceCreatedAt = sourceCreatedAt,
-    actorNavIdent = actorNavIdent,
-    actorNavn = actorNavn,
-)
+        type = type,
+        message = message,
+        recipientNavIdent = recipientNavIdent,
+        sourceCreatedAt = sourceCreatedAt,
+        actorNavIdent = actorNavIdent,
+        actorNavn = actorNavn,
+    )

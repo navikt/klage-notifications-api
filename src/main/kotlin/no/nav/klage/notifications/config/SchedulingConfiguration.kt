@@ -10,21 +10,19 @@ import org.springframework.scheduling.annotation.EnableAsync
 import org.springframework.scheduling.annotation.EnableScheduling
 import javax.sql.DataSource
 
-
 @Configuration
 @EnableScheduling
 @EnableSchedulerLock(defaultLockAtMostFor = "10m")
 @EnableAsync
 class SchedulingConfiguration {
-
     @Bean
-    fun lockProvider(dataSource: DataSource): LockProvider {
-        return JdbcTemplateLockProvider(
-            JdbcTemplateLockProvider.Configuration.builder()
+    fun lockProvider(dataSource: DataSource): LockProvider =
+        JdbcTemplateLockProvider(
+            JdbcTemplateLockProvider.Configuration
+                .builder()
                 .withJdbcTemplate(JdbcTemplate(dataSource))
                 .withTableName("klage.shedlock")
                 .usingDbTime()
-                .build()
+                .build(),
         )
-    }
 }

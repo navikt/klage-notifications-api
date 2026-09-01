@@ -12,7 +12,6 @@ class NotificationAggregateMetricsJob(
     private val notificationAggregateMetricsService: NotificationAggregateMetricsService,
     private val leaderElectionService: LeaderElectionService,
 ) {
-
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
@@ -33,5 +32,4 @@ class NotificationAggregateMetricsJob(
             logger.error("Error during scheduled update of aggregate notification metrics", e)
         }
     }
-
 }

@@ -7,14 +7,36 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import no.nav.klage.notifications.config.SecurityConfiguration
-import no.nav.klage.notifications.domain.*
+import no.nav.klage.notifications.domain.GainedAccessNotification
+import no.nav.klage.notifications.domain.LostAccessNotification
+import no.nav.klage.notifications.domain.MeldingNotification
+import no.nav.klage.notifications.domain.Notification
+import no.nav.klage.notifications.domain.SystemNotification
 import no.nav.klage.notifications.dto.InternalNotificationEvent
 import no.nav.klage.notifications.dto.NotificationChangeEvent
-import no.nav.klage.notifications.dto.view.*
-import no.nav.klage.notifications.dto.view.NotificationType.*
+import no.nav.klage.notifications.dto.view.Action
+import no.nav.klage.notifications.dto.view.BehandlingInfo
+import no.nav.klage.notifications.dto.view.GainedAccessNotificationView
+import no.nav.klage.notifications.dto.view.LostAccessNotificationView
+import no.nav.klage.notifications.dto.view.MessageNotificationView
+import no.nav.klage.notifications.dto.view.NavEmployee
+import no.nav.klage.notifications.dto.view.NotificationChanged
+import no.nav.klage.notifications.dto.view.NotificationMultipleChanged
+import no.nav.klage.notifications.dto.view.NotificationMultipleCreated
+import no.nav.klage.notifications.dto.view.NotificationType.GAINED_ACCESS
+import no.nav.klage.notifications.dto.view.NotificationType.LOST_ACCESS
+import no.nav.klage.notifications.dto.view.NotificationType.MESSAGE
+import no.nav.klage.notifications.dto.view.NotificationType.SYSTEM
+import no.nav.klage.notifications.dto.view.NotificationView
+import no.nav.klage.notifications.dto.view.SystemNotificationView
 import no.nav.klage.notifications.kafka.AivenKafkaClientCreator
 import no.nav.klage.notifications.service.NotificationService
-import no.nav.klage.notifications.util.*
+import no.nav.klage.notifications.util.TokenUtil
+import no.nav.klage.notifications.util.createSpanFromTraceparent
+import no.nav.klage.notifications.util.currentTraceparent
+import no.nav.klage.notifications.util.extractTraceparentFromKafkaHeaders
+import no.nav.klage.notifications.util.getLogger
+import no.nav.klage.notifications.util.withTraceparent
 import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.core.env.Environment
 import org.springframework.http.MediaType
@@ -25,7 +47,6 @@ import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Flux
 import java.time.Duration
 
-
 @RestController
 @Tag(name = "user", description = "API for user notifications")
 @ProtectedWithClaims(issuer = SecurityConfiguration.ISSUER_AAD)
@@ -35,13 +56,15 @@ class SSEEventController(
     private val tokenUtil: TokenUtil,
     private val environment: Environment,
 ) {
-
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
     }
 
-    private data class KafkaEventWithTrace<T>(val event: T, val traceparent: String?)
+    private data class KafkaEventWithTrace<T>(
+        val event: T,
+        val traceparent: String?,
+    )
 
     @Operation(
         summary = "Subscribe to real-time notification events",
@@ -74,20 +97,21 @@ Server-Sent Events (SSE) endpoint that streams notification events in real-time.
 - `traceparent` (optional) - A W3C Trace Context traceparent string (e.g. `00-traceId-spanId-flags`).
   Since the EventSource API does not support custom HTTP headers, the client can pass its traceparent
   as a query parameter to link the SSE connection to the client's distributed trace.
-"""
+""",
     )
     @ApiResponse(
         responseCode = "200",
         description = "SSE stream of notification events",
-        content = [Content(
-            mediaType = MediaType.TEXT_EVENT_STREAM_VALUE,
-            schema = Schema(implementation = ServerSentEvent::class),
-            examples = [
-                ExampleObject(
-                    name = "create_message_notification",
-                    summary = "Create event - MESSAGE notification",
-                    description = "Event fired when a new message notification is created or loaded",
-                    value = """
+        content = [
+            Content(
+                mediaType = MediaType.TEXT_EVENT_STREAM_VALUE,
+                schema = Schema(implementation = ServerSentEvent::class),
+                examples = [
+                    ExampleObject(
+                        name = "create_message_notification",
+                        summary = "Create event - MESSAGE notification",
+                        description = "Event fired when a new message notification is created or loaded",
+                        value = """
 event: create
 id: 2025-11-16T10:30:00_550e8400-e29b-41d4-a716-446655440000
 data: {
@@ -110,13 +134,15 @@ data: {
     "saksnummer": "2025-12345"
   }
 }
-"""
-                ),
-                ExampleObject(
-                    name = "create_system_notification",
-                    summary = "Create event - SYSTEM notification",
-                    description = "Event fired when a new system notification is created or loaded. Sent to ALL users with personalized read status.",
-                    value = """
+""",
+                    ),
+                    ExampleObject(
+                        name = "create_system_notification",
+                        summary = "Create event - SYSTEM notification",
+                        description =
+                            "Event fired when a new system notification is created or loaded. " +
+                                "Sent to ALL users with personalized read status.",
+                        value = """
 event: create
 id: 2025-11-16T10:32:00_650e8400-e29b-41d4-a716-446655440001
 data: {
@@ -127,13 +153,13 @@ data: {
   "title": "System Maintenance",
   "message": "The system will be down for maintenance on Saturday from 10:00 to 12:00"
 }
-"""
-                ),
-                ExampleObject(
-                    name = "create_gained_access_notification",
-                    summary = "Create event - GAINED_ACCESS notification",
-                    description = "Event fired when a user gains access to a behandling",
-                    value = """
+""",
+                    ),
+                    ExampleObject(
+                        name = "create_gained_access_notification",
+                        summary = "Create event - GAINED_ACCESS notification",
+                        description = "Event fired when a user gains access to a behandling",
+                        value = """
 event: create
 id: 2025-11-16T10:33:00_750e8400-e29b-41d4-a716-446655440002
 data: {
@@ -149,13 +175,13 @@ data: {
     "saksnummer": "2025-67890"
   }
 }
-"""
-                ),
-                ExampleObject(
-                    name = "create_lost_access_notification",
-                    summary = "Create event - LOST_ACCESS notification",
-                    description = "Event fired when a user loses access to a behandling",
-                    value = """
+""",
+                    ),
+                    ExampleObject(
+                        name = "create_lost_access_notification",
+                        summary = "Create event - LOST_ACCESS notification",
+                        description = "Event fired when a user loses access to a behandling",
+                        value = """
 event: create
 id: 2025-11-16T10:34:00_850e8400-e29b-41d4-a716-446655440003
 data: {
@@ -171,13 +197,15 @@ data: {
     "saksnummer": "2025-67890"
   }
 }
-"""
-                ),
-                ExampleObject(
-                    name = "create_multiple_notifications",
-                    summary = "Create Multiple event - Initial load",
-                    description = "Event fired when client first connects, containing all existing notifications wrapped in an object with traceparent and notifications",
-                    value = """
+""",
+                    ),
+                    ExampleObject(
+                        name = "create_multiple_notifications",
+                        summary = "Create Multiple event - Initial load",
+                        description =
+                            "Event fired when client first connects, containing all existing notifications " +
+                                "wrapped in an object with traceparent and notifications",
+                        value = """
 event: create_multiple
 id: 2025-11-16T10:33:00_650e8400-e29b-41d4-a716-446655440003
 data: {
@@ -215,90 +243,91 @@ data: {
     }
   ]
 }
-"""
-                ),
-                ExampleObject(
-                    name = "read_notification",
-                    summary = "Read event",
-                    description = "Event fired when a notification is marked as read",
-                    value = """
+""",
+                    ),
+                    ExampleObject(
+                        name = "read_notification",
+                        summary = "Read event",
+                        description = "Event fired when a notification is marked as read",
+                        value = """
 event: read
 id: 2025-11-16T10:35:00_550e8400-e29b-41d4-a716-446655440000
 data: {
   "id": "550e8400-e29b-41d4-a716-446655440000"
 }
-"""
-                ),
-                ExampleObject(
-                    name = "read_multiple_notifications",
-                    summary = "Read Multiple event",
-                    description = "Event fired when multiple notifications are marked as read",
-                    value = """
+""",
+                    ),
+                    ExampleObject(
+                        name = "read_multiple_notifications",
+                        summary = "Read Multiple event",
+                        description = "Event fired when multiple notifications are marked as read",
+                        value = """
 event: read_multiple
 id: 2025-11-16T10:35:30_550e8400-e29b-41d4-a716-446655440000
 data: {
   "ids": ["550e8400-e29b-41d4-a716-446655440000", "650e8400-e29b-41d4-a716-446655440001", "750e8400-e29b-41d4-a716-446655440002"]
 }
-"""
-                ),
-                ExampleObject(
-                    name = "unread_notification",
-                    summary = "Unread event",
-                    description = "Event fired when a notification is marked as unread",
-                    value = """
+""",
+                    ),
+                    ExampleObject(
+                        name = "unread_notification",
+                        summary = "Unread event",
+                        description = "Event fired when a notification is marked as unread",
+                        value = """
 event: unread
 id: 2025-11-16T10:36:00_550e8400-e29b-41d4-a716-446655440000
 data: {
   "id": "550e8400-e29b-41d4-a716-446655440000"
 }
-"""
-                ),
-                ExampleObject(
-                    name = "unread_multiple_notifications",
-                    summary = "Unread Multiple event",
-                    description = "Event fired when multiple notifications are marked as unread",
-                    value = """
+""",
+                    ),
+                    ExampleObject(
+                        name = "unread_multiple_notifications",
+                        summary = "Unread Multiple event",
+                        description = "Event fired when multiple notifications are marked as unread",
+                        value = """
 event: unread_multiple
 id: 2025-11-16T10:36:30_550e8400-e29b-41d4-a716-446655440000
 data: {
   "ids": ["550e8400-e29b-41d4-a716-446655440000", "650e8400-e29b-41d4-a716-446655440001"]
 }
-"""
-                ),
-                ExampleObject(
-                    name = "delete_notification",
-                    summary = "Delete event",
-                    description = "Event fired when a notification is deleted",
-                    value = """
+""",
+                    ),
+                    ExampleObject(
+                        name = "delete_notification",
+                        summary = "Delete event",
+                        description = "Event fired when a notification is deleted",
+                        value = """
 event: delete
 id: 2025-11-16T10:37:00_550e8400-e29b-41d4-a716-446655440000
 data: {
   "id": "550e8400-e29b-41d4-a716-446655440000"
 }
-"""
-                ),
-                ExampleObject(
-                    name = "delete_multiple_notifications",
-                    summary = "Delete Multiple event",
-                    description = "Event fired when multiple notifications are deleted",
-                    value = """
+""",
+                    ),
+                    ExampleObject(
+                        name = "delete_multiple_notifications",
+                        summary = "Delete Multiple event",
+                        description = "Event fired when multiple notifications are deleted",
+                        value = """
 event: delete_multiple
 id: 2025-11-16T10:37:30_550e8400-e29b-41d4-a716-446655440000
 data: {
   "ids": ["550e8400-e29b-41d4-a716-446655440000", "650e8400-e29b-41d4-a716-446655440001"]
 }
-"""
-                ),
-                ExampleObject(
-                    name = "heartbeat",
-                    summary = "Heartbeat event",
-                    description = "Keep-alive heartbeat sent every 10 seconds",
-                    value = """
+""",
+                    ),
+                    ExampleObject(
+                        name = "heartbeat",
+                        summary = "Heartbeat event",
+                        description = "Keep-alive heartbeat sent every 10 seconds",
+                        value = """
                         event: HEARTBEAT
-                    """
-                )
-            ]
-        )]
+                    """,
+                    ),
+                ],
+            ),
+        ],
     )
     @GetMapping("/user/notifications/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun notificationEvents(
@@ -310,28 +339,31 @@ data: {
         try {
             logger.debug("New SSE connection for notification events established by navIdent=${tokenUtil.getIdent()}")
 
-            //https://docs.spring.io/spring-framework/docs/current/reference/html/web.html#mvc-ann-async-disconnects
+            // https://docs.spring.io/spring-framework/docs/current/reference/html/web.html#mvc-ann-async-disconnects
             val heartbeatStream = getHeartbeatStream()
 
             val navIdent = tokenUtil.getIdent()
 
-            val internalNotificationEventPublisher = getInternalNotificationEventPublisher(
-                navIdent = navIdent,
-                clientTraceparent = traceparent,
-            )
+            val internalNotificationEventPublisher =
+                getInternalNotificationEventPublisher(
+                    navIdent = navIdent,
+                    clientTraceparent = traceparent,
+                )
 
-            val internalNotificationChangeEventPublisher = getInternalNotificationChangeEventPublisher(
-                navIdent = navIdent,
-                clientTraceparent = traceparent,
-            )
+            val internalNotificationChangeEventPublisher =
+                getInternalNotificationChangeEventPublisher(
+                    navIdent = navIdent,
+                    clientTraceparent = traceparent,
+                )
 
             val previousNotificationsAsSSEEvents =
                 getPreviousNotificationsAsSSEEvents(navIdent = navIdent)
 
-            val systemNotificationEventPublisher = getSystemNotificationEventPublisher(
-                navIdent = navIdent,
-                clientTraceparent = traceparent,
-            )
+            val systemNotificationEventPublisher =
+                getSystemNotificationEventPublisher(
+                    navIdent = navIdent,
+                    clientTraceparent = traceparent,
+                )
 
             return getFirstHeartbeat()
                 .mergeWith(heartbeatStream)
@@ -355,103 +387,126 @@ data: {
 
         // Combine both regular and system notifications into one array
         val regularNotificationData = notificationsByNavIdent.map { dbToInternalNotificationEvent(notification = it) }
-        val systemNotificationData = systemNotifications.map { systemNotificationToView(it, navIdent) }
-        val allNotifications = (regularNotificationData + systemNotificationData)
-            .sortedByDescending { (it as NotificationView).createdAt }
+        val systemNotificationData = systemNotifications.map { systemNotificationToView(systemNotification = it, navIdent = navIdent) }
+        val allNotifications =
+            (regularNotificationData + systemNotificationData)
+                .sortedByDescending { (it as NotificationView).createdAt }
 
         // Use the first notification (most recent) for the SSE ID
         val firstNotificationView = allNotifications.first() as NotificationView
 
         return Flux.just(
-            ServerSentEvent.builder<Any>()
+            ServerSentEvent
+                .builder<Any>()
                 .id("${firstNotificationView.createdAt}_${firstNotificationView.id}")
                 .event(Action.CREATE_MULTIPLE.lower)
                 .data(
                     NotificationMultipleCreated(
                         traceparent = currentTraceparent(),
                         notifications = allNotifications,
-                    )
-                )
-                .build()
+                    ),
+                ).build(),
         )
     }
 
-    private fun getInternalNotificationEventPublisher(navIdent: String, clientTraceparent: String?): Flux<ServerSentEvent<Any>> {
-        return sharedInternalEvents
+    private fun getInternalNotificationEventPublisher(
+        navIdent: String,
+        clientTraceparent: String?,
+    ): Flux<ServerSentEvent<Any>> =
+        sharedInternalEvents
             .filter { (recipientNavIdent, _) -> recipientNavIdent == navIdent }
             .flatMap { (_, tracedEvent) ->
-                withTraceparent(tracedEvent.traceparent, linkTraceparent = clientTraceparent) {
-                    Flux.fromIterable(tracedEvent.event.notifications.map { notification ->
-                        val data = jsonToInternalNotificationEvent(notification)
-                        val id = "${data.createdAt}_${data.id}"
-                        ServerSentEvent.builder<Any>()
-                            .id(id)
-                            .event(Action.CREATE.lower)
-                            .data(data)
-                            .build()
-                    })
+                withTraceparent(traceparent = tracedEvent.traceparent, linkTraceparent = clientTraceparent) {
+                    Flux.fromIterable(
+                        tracedEvent.event.notifications.map { notification ->
+                            val data = jsonToInternalNotificationEvent(notification)
+                            val id = "${data.createdAt}_${data.id}"
+                            ServerSentEvent
+                                .builder<Any>()
+                                .id(id)
+                                .event(Action.CREATE.lower)
+                                .data(data)
+                                .build()
+                        },
+                    )
                 }
             }
-    }
 
-    private fun getSystemNotificationEventPublisher(navIdent: String, clientTraceparent: String?): Flux<ServerSentEvent<Any>> {
-        return sharedSystemNotificationEvents
+    private fun getSystemNotificationEventPublisher(
+        navIdent: String,
+        clientTraceparent: String?,
+    ): Flux<ServerSentEvent<Any>> =
+        sharedSystemNotificationEvents
             .map { tracedEvent ->
-                withTraceparent(tracedEvent.traceparent, linkTraceparent = clientTraceparent) {
+                withTraceparent(traceparent = tracedEvent.traceparent, linkTraceparent = clientTraceparent) {
                     val data = systemNotificationToView(systemNotification = tracedEvent.event, navIdent = navIdent)
-                    ServerSentEvent.builder<Any>()
+                    ServerSentEvent
+                        .builder<Any>()
                         .id("${tracedEvent.event.createdAt}_${tracedEvent.event.id}")
                         .event(Action.CREATE.lower)
                         .data(data)
                         .build()
                 }
             }
-    }
 
-    private fun getInternalNotificationChangeEventPublisher(navIdent: String, clientTraceparent: String?): Flux<ServerSentEvent<Any>> {
-        return sharedChangeEvents
+    private fun getInternalNotificationChangeEventPublisher(
+        navIdent: String,
+        clientTraceparent: String?,
+    ): Flux<ServerSentEvent<Any>> =
+        sharedChangeEvents
             .filter { (recipientNavIdent, _) -> recipientNavIdent == navIdent || recipientNavIdent == "*" }
             .map { (_, tracedEvent) ->
-                withTraceparent(tracedEvent.traceparent, linkTraceparent = clientTraceparent) {
+                withTraceparent(traceparent = tracedEvent.traceparent, linkTraceparent = clientTraceparent) {
                     val changeEvent = tracedEvent.event
                     when (changeEvent.type) {
                         NotificationChangeEvent.Type.READ -> {
-                            ServerSentEvent.builder<Any>()
+                            ServerSentEvent
+                                .builder<Any>()
                                 .id("${changeEvent.updatedAt}_${changeEvent.id}")
                                 .event(Action.READ.lower)
                                 .data(NotificationChanged(id = changeEvent.id!!, traceparent = currentTraceparent()))
                                 .build()
                         }
+
                         NotificationChangeEvent.Type.READ_MULTIPLE -> {
-                            ServerSentEvent.builder<Any>()
+                            ServerSentEvent
+                                .builder<Any>()
                                 .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
                                 .event(Action.READ_MULTIPLE.lower)
                                 .data(NotificationMultipleChanged(ids = changeEvent.ids, traceparent = currentTraceparent()))
                                 .build()
                         }
+
                         NotificationChangeEvent.Type.UNREAD -> {
-                            ServerSentEvent.builder<Any>()
+                            ServerSentEvent
+                                .builder<Any>()
                                 .id("${changeEvent.updatedAt}_${changeEvent.id}")
                                 .event(Action.UNREAD.lower)
                                 .data(NotificationChanged(id = changeEvent.id!!, traceparent = currentTraceparent()))
                                 .build()
                         }
+
                         NotificationChangeEvent.Type.UNREAD_MULTIPLE -> {
-                            ServerSentEvent.builder<Any>()
+                            ServerSentEvent
+                                .builder<Any>()
                                 .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
                                 .event(Action.UNREAD_MULTIPLE.lower)
                                 .data(NotificationMultipleChanged(ids = changeEvent.ids, traceparent = currentTraceparent()))
                                 .build()
                         }
+
                         NotificationChangeEvent.Type.DELETED -> {
-                            ServerSentEvent.builder<Any>()
+                            ServerSentEvent
+                                .builder<Any>()
                                 .id("${changeEvent.updatedAt}_${changeEvent.id}")
                                 .event(Action.DELETE.lower)
                                 .data(NotificationChanged(id = changeEvent.id!!, traceparent = currentTraceparent()))
                                 .build()
                         }
+
                         NotificationChangeEvent.Type.DELETED_MULTIPLE -> {
-                            ServerSentEvent.builder<Any>()
+                            ServerSentEvent
+                                .builder<Any>()
                                 .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
                                 .event(Action.DELETE_MULTIPLE.lower)
                                 .data(NotificationMultipleChanged(ids = changeEvent.ids, traceparent = currentTraceparent()))
@@ -460,36 +515,41 @@ data: {
                     }
                 }
             }
-    }
 
     private fun getFirstHeartbeat(): Flux<ServerSentEvent<Any>> {
-        val emitFirstHeartbeat = Flux.generate {
-            it.next(toHeartBeatServerSentEvent())
-            it.complete()
-        }
+        val emitFirstHeartbeat =
+            Flux.generate {
+                it.next(toHeartBeatServerSentEvent())
+                it.complete()
+            }
         return emitFirstHeartbeat
     }
 
-    private fun getHeartbeatStream(
-    ): Flux<ServerSentEvent<Any>> {
-        val heartbeatStream: Flux<ServerSentEvent<Any>> = Flux.interval(Duration.ofSeconds(10))
-            .map {
-                toHeartBeatServerSentEvent()
-            }
+    private fun getHeartbeatStream(): Flux<ServerSentEvent<Any>> {
+        val heartbeatStream: Flux<ServerSentEvent<Any>> =
+            Flux
+                .interval(Duration.ofSeconds(10))
+                .map {
+                    toHeartBeatServerSentEvent()
+                }
         return heartbeatStream
     }
 
-    private fun toHeartBeatServerSentEvent(): ServerSentEvent<Any> {
-        return ServerSentEvent.builder<Any>()
+    private fun toHeartBeatServerSentEvent(): ServerSentEvent<Any> =
+        ServerSentEvent
+            .builder<Any>()
             .event("HEARTBEAT")
             .build()
-    }
 
-    private fun systemNotificationToView(systemNotification: SystemNotification, navIdent: String): SystemNotificationView {
-        val isRead = notificationService.isSystemNotificationReadByUser(
-            systemNotificationId = systemNotification.id,
-            navIdent = navIdent
-        )
+    private fun systemNotificationToView(
+        systemNotification: SystemNotification,
+        navIdent: String,
+    ): SystemNotificationView {
+        val isRead =
+            notificationService.isSystemNotificationReadByUser(
+                systemNotificationId = systemNotification.id,
+                navIdent = navIdent,
+            )
         return SystemNotificationView(
             type = SYSTEM,
             id = systemNotification.id,
@@ -501,28 +561,31 @@ data: {
         )
     }
 
-    private fun dbToInternalNotificationEvent(notification: Notification): Any {
-        return when (notification) {
+    private fun dbToInternalNotificationEvent(notification: Notification): Any =
+        when (notification) {
             is MeldingNotification -> {
                 MessageNotificationView(
                     type = MESSAGE,
                     id = notification.id,
                     read = notification.read,
                     createdAt = notification.sourceCreatedAt,
-                    message = MessageNotificationView.Message(
-                        id = notification.meldingId,
-                        content = notification.message,
-                    ),
-                    actor = NavEmployee(
-                        navIdent = notification.actorNavIdent,
-                        navn = notification.actorNavn,
-                    ),
-                    behandling = BehandlingInfo(
-                        id = notification.behandlingId,
-                        typeId = notification.behandlingType.id,
-                        ytelseId = notification.ytelse.id,
-                        saksnummer = notification.saksnummer,
-                    ),
+                    message =
+                        MessageNotificationView.Message(
+                            id = notification.meldingId,
+                            content = notification.message,
+                        ),
+                    actor =
+                        NavEmployee(
+                            navIdent = notification.actorNavIdent,
+                            navn = notification.actorNavn,
+                        ),
+                    behandling =
+                        BehandlingInfo(
+                            id = notification.behandlingId,
+                            typeId = notification.behandlingType.id,
+                            ytelseId = notification.ytelse.id,
+                            saksnummer = notification.saksnummer,
+                        ),
                     traceparent = currentTraceparent(),
                 )
             }
@@ -534,12 +597,13 @@ data: {
                     read = notification.read,
                     createdAt = notification.sourceCreatedAt,
                     message = notification.message,
-                    behandling = BehandlingInfo(
-                        id = notification.behandlingId,
-                        typeId = notification.behandlingType.id,
-                        ytelseId = notification.ytelse.id,
-                        saksnummer = notification.saksnummer,
-                    ),
+                    behandling =
+                        BehandlingInfo(
+                            id = notification.behandlingId,
+                            typeId = notification.behandlingType.id,
+                            ytelseId = notification.ytelse.id,
+                            saksnummer = notification.saksnummer,
+                        ),
                     traceparent = currentTraceparent(),
                 )
             }
@@ -551,12 +615,13 @@ data: {
                     read = notification.read,
                     createdAt = notification.sourceCreatedAt,
                     message = notification.message,
-                    behandling = BehandlingInfo(
-                        id = notification.behandlingId,
-                        typeId = notification.behandlingType.id,
-                        ytelseId = notification.ytelse.id,
-                        saksnummer = notification.saksnummer,
-                    ),
+                    behandling =
+                        BehandlingInfo(
+                            id = notification.behandlingId,
+                            typeId = notification.behandlingType.id,
+                            ytelseId = notification.ytelse.id,
+                            saksnummer = notification.saksnummer,
+                        ),
                     traceparent = currentTraceparent(),
                 )
             }
@@ -565,30 +630,32 @@ data: {
                 error("Unknown notification type received in dbToInternalNotificationEvent: ${notification::class.java}")
             }
         }
-    }
 
-    private fun jsonToInternalNotificationEvent(notification: Notification): NotificationView {
-        return when (notification) {
+    private fun jsonToInternalNotificationEvent(notification: Notification): NotificationView =
+        when (notification) {
             is MeldingNotification -> {
                 MessageNotificationView(
                     type = MESSAGE,
                     id = notification.id,
                     read = notification.read,
                     createdAt = notification.sourceCreatedAt,
-                    message = MessageNotificationView.Message(
-                        id = notification.meldingId,
-                        content = notification.message,
-                    ),
-                    actor = NavEmployee(
-                        navIdent = notification.actorNavIdent,
-                        navn = notification.actorNavn,
-                    ),
-                    behandling = BehandlingInfo(
-                        id = notification.behandlingId,
-                        typeId = notification.behandlingType.id,
-                        ytelseId = notification.ytelse.id,
-                        saksnummer = notification.saksnummer,
-                    ),
+                    message =
+                        MessageNotificationView.Message(
+                            id = notification.meldingId,
+                            content = notification.message,
+                        ),
+                    actor =
+                        NavEmployee(
+                            navIdent = notification.actorNavIdent,
+                            navn = notification.actorNavn,
+                        ),
+                    behandling =
+                        BehandlingInfo(
+                            id = notification.behandlingId,
+                            typeId = notification.behandlingType.id,
+                            ytelseId = notification.ytelse.id,
+                            saksnummer = notification.saksnummer,
+                        ),
                     traceparent = currentTraceparent(),
                 )
             }
@@ -600,12 +667,13 @@ data: {
                     read = notification.read,
                     createdAt = notification.sourceCreatedAt,
                     message = notification.message,
-                    behandling = BehandlingInfo(
-                        id = notification.behandlingId,
-                        typeId = notification.behandlingType.id,
-                        ytelseId = notification.ytelse.id,
-                        saksnummer = notification.saksnummer,
-                    ),
+                    behandling =
+                        BehandlingInfo(
+                            id = notification.behandlingId,
+                            typeId = notification.behandlingType.id,
+                            ytelseId = notification.ytelse.id,
+                            saksnummer = notification.saksnummer,
+                        ),
                     traceparent = currentTraceparent(),
                 )
             }
@@ -617,12 +685,13 @@ data: {
                     read = notification.read,
                     createdAt = notification.sourceCreatedAt,
                     message = notification.message,
-                    behandling = BehandlingInfo(
-                        id = notification.behandlingId,
-                        typeId = notification.behandlingType.id,
-                        ytelseId = notification.ytelse.id,
-                        saksnummer = notification.saksnummer,
-                    ),
+                    behandling =
+                        BehandlingInfo(
+                            id = notification.behandlingId,
+                            typeId = notification.behandlingType.id,
+                            ytelseId = notification.ytelse.id,
+                            saksnummer = notification.saksnummer,
+                        ),
                     traceparent = currentTraceparent(),
                 )
             }
@@ -631,21 +700,21 @@ data: {
                 error("Unknown notification type received in jsonToInternalNotificationEvent: ${notification::class.java}")
             }
         }
-    }
 
     // Shared Kafka consumers - created once and shared by all clients
     private val sharedInternalEvents: Flux<Pair<String, KafkaEventWithTrace<InternalNotificationEvent>>> by lazy {
-        aivenKafkaClientCreator.getNewKafkaNotificationInternalEventsReceiver().receive()
+        aivenKafkaClientCreator
+            .getNewKafkaNotificationInternalEventsReceiver()
+            .receive()
             .doOnNext { consumerRecord ->
                 logger.debug("Received internal notification event at offset {}: {}", consumerRecord.offset(), consumerRecord.key())
                 if (!environment.activeProfiles.contains("prod")) {
                     logger.debug(
                         "Received internal Kafka-message (notification event): {}",
-                        consumerRecord.value()
+                        consumerRecord.value(),
                     )
                 }
-            }
-            .mapNotNull { consumerRecord ->
+            }.mapNotNull { consumerRecord ->
                 try {
                     val traceparent = extractTraceparentFromKafkaHeaders(consumerRecord.headers())
                     val event = consumerRecord.value()
@@ -655,77 +724,79 @@ data: {
                         return@mapNotNull null
                     }
 
-                    val navIdent = if (event.notifications.size > 1) {
-                        //verify that all notifications have the same navIdent
-                        val navIdent = event.notifications.first().navIdent
-                        if (!event.notifications.all { it.navIdent == navIdent }) {
-                            logger.warn("Received internal notification event with inconsistent navIdent at offset {}", consumerRecord.offset())
-                            // Don't acknowledge to trigger reprocessing
-                            return@mapNotNull null
+                    val navIdent =
+                        if (event.notifications.size > 1) {
+                            // verify that all notifications have the same navIdent
+                            val navIdent = event.notifications.first().navIdent
+                            if (!event.notifications.all { it.navIdent == navIdent }) {
+                                logger.warn(
+                                    "Received internal notification event with inconsistent navIdent at offset {}",
+                                    consumerRecord.offset(),
+                                )
+                                // Don't acknowledge to trigger reprocessing
+                                return@mapNotNull null
+                            } else {
+                                navIdent
+                            }
                         } else {
-                            navIdent
+                            event.notifications.first().navIdent
                         }
-                    } else {
-                        event.notifications.first().navIdent
-                    }
 
                     consumerRecord.receiverOffset().acknowledge()
-                    Pair(navIdent, KafkaEventWithTrace(event, traceparent))
+                    Pair(first = navIdent, second = KafkaEventWithTrace(event, traceparent))
                 } catch (e: Exception) {
                     logger.error("Error processing internal notification event at offset {}: ${e.message}", consumerRecord.offset(), e)
                     null
                 }
-            }
-            .share() // Share among all subscribers
+            }.share() // Share among all subscribers
     }
 
     private val sharedSystemNotificationEvents: Flux<KafkaEventWithTrace<SystemNotification>> by lazy {
-        aivenKafkaClientCreator.getNewKafkaNotificationInternalSystemEventsReceiver().receive()
+        aivenKafkaClientCreator
+            .getNewKafkaNotificationInternalSystemEventsReceiver()
+            .receive()
             .doOnNext { consumerRecord ->
                 logger.debug("Received system notification event at offset {}: {}", consumerRecord.offset(), consumerRecord.key())
                 if (!environment.activeProfiles.contains("prod")) {
                     logger.debug(
                         "Received internal Kafka-message (system notification): {}",
-                        consumerRecord.value()
+                        consumerRecord.value(),
                     )
                 }
-            }
-            .mapNotNull { consumerRecord ->
+            }.mapNotNull { consumerRecord ->
                 try {
                     val traceparent = extractTraceparentFromKafkaHeaders(consumerRecord.headers())
                     consumerRecord.receiverOffset().acknowledge()
-                    KafkaEventWithTrace(consumerRecord.value(), traceparent)
+                    KafkaEventWithTrace(event = consumerRecord.value(), traceparent = traceparent)
                 } catch (e: Exception) {
                     logger.error("Error processing system notification event at offset {}: ${e.message}", consumerRecord.offset(), e)
                     null
                 }
-            }
-            .share() // Share among all subscribers
+            }.share() // Share among all subscribers
     }
 
     private val sharedChangeEvents: Flux<Pair<String, KafkaEventWithTrace<NotificationChangeEvent>>> by lazy {
-        aivenKafkaClientCreator.getNewKafkaNotificationInternalChangeEventsReceiver().receive()
+        aivenKafkaClientCreator
+            .getNewKafkaNotificationInternalChangeEventsReceiver()
+            .receive()
             .doOnNext { consumerRecord ->
                 if (!environment.activeProfiles.contains("prod")) {
                     logger.debug(
                         "Received internal Kafka-message (notification change) at offset {}: {}",
                         consumerRecord.offset(),
-                        consumerRecord.value()
+                        consumerRecord.value(),
                     )
                 }
-            }
-            .mapNotNull { consumerRecord ->
+            }.mapNotNull { consumerRecord ->
                 try {
                     val traceparent = extractTraceparentFromKafkaHeaders(consumerRecord.headers())
                     val changeEvent = consumerRecord.value()
                     consumerRecord.receiverOffset().acknowledge()
-                    Pair(changeEvent.navIdent, KafkaEventWithTrace(changeEvent, traceparent))
+                    Pair(first = changeEvent.navIdent, second = KafkaEventWithTrace(event = changeEvent, traceparent = traceparent))
                 } catch (e: Exception) {
                     logger.error("Error processing internal change event at offset {}: ${e.message}", consumerRecord.offset(), e)
                     null
                 }
-            }
-            .share() // Share among all subscribers
+            }.share() // Share among all subscribers
     }
 }
-

@@ -13,13 +13,11 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager
 import org.springframework.test.context.ActiveProfiles
 import java.time.LocalDateTime
-import java.util.*
-
+import java.util.UUID
 
 @ActiveProfiles("local")
 @DataJpaTest
 class NotificationRepositoryTest : PostgresIntegrationTestBase() {
-
     @Autowired
     lateinit var testEntityManager: TestEntityManager
 
@@ -42,25 +40,26 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
         val navIdent = "Z123456"
         val now = LocalDateTime.now()
 
-        val meldingNotification = MeldingNotification(
-            id = UUID.randomUUID(),
-            message = "You have a new message in case $behandlingId",
-            navIdent = navIdent,
-            read = false,
-            createdAt = now,
-            updatedAt = now,
-            readAt = null,
-            markedAsDeleted = false,
-            kafkaMessageId = UUID.randomUUID(),
-            sourceCreatedAt = now.minusDays(2),
-            behandlingId = behandlingId,
-            meldingId = meldingId,
-            actorNavIdent = "Z999999",
-            actorNavn = "Test Testesen",
-            saksnummer = "202312345",
-            ytelse = Ytelse.OMS_OMP,
-            behandlingType = Type.KLAGE
-        )
+        val meldingNotification =
+            MeldingNotification(
+                id = UUID.randomUUID(),
+                message = "You have a new message in case $behandlingId",
+                navIdent = navIdent,
+                read = false,
+                createdAt = now,
+                updatedAt = now,
+                readAt = null,
+                markedAsDeleted = false,
+                kafkaMessageId = UUID.randomUUID(),
+                sourceCreatedAt = now.minusDays(2),
+                behandlingId = behandlingId,
+                meldingId = meldingId,
+                actorNavIdent = "Z999999",
+                actorNavn = "Test Testesen",
+                saksnummer = "202312345",
+                ytelse = Ytelse.OMS_OMP,
+                behandlingType = Type.KLAGE,
+            )
 
         val saved = meldingNotificationRepository.save(meldingNotification)
         testEntityManager.flush()
@@ -83,22 +82,23 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
         val navIdent = "Z123456"
         val now = LocalDateTime.now()
 
-        val lostAccessNotification = LostAccessNotification(
-            id = UUID.randomUUID(),
-            message = "You no longer have access to case $behandlingId",
-            navIdent = navIdent,
-            read = false,
-            createdAt = now,
-            updatedAt = now,
-            readAt = null,
-            markedAsDeleted = false,
-            kafkaMessageId = UUID.randomUUID(),
-            sourceCreatedAt = now.minusDays(3),
-            behandlingId = behandlingId,
-            saksnummer = "202398765",
-            ytelse = Ytelse.SYK_SYK,
-            behandlingType = Type.ANKE
-        )
+        val lostAccessNotification =
+            LostAccessNotification(
+                id = UUID.randomUUID(),
+                message = "You no longer have access to case $behandlingId",
+                navIdent = navIdent,
+                read = false,
+                createdAt = now,
+                updatedAt = now,
+                readAt = null,
+                markedAsDeleted = false,
+                kafkaMessageId = UUID.randomUUID(),
+                sourceCreatedAt = now.minusDays(3),
+                behandlingId = behandlingId,
+                saksnummer = "202398765",
+                ytelse = Ytelse.SYK_SYK,
+                behandlingType = Type.ANKE,
+            )
 
         val saved = lostAccessNotificationRepository.save(lostAccessNotification)
         testEntityManager.flush()
@@ -118,22 +118,23 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
         val navIdent = "Z123456"
         val now = LocalDateTime.now()
 
-        val gainedAccessNotification = GainedAccessNotification(
-            id = UUID.randomUUID(),
-            message = "You now have access to case $behandlingId",
-            navIdent = navIdent,
-            read = false,
-            createdAt = now,
-            updatedAt = now,
-            readAt = null,
-            markedAsDeleted = false,
-            kafkaMessageId = UUID.randomUUID(),
-            sourceCreatedAt = now.minusDays(3),
-            behandlingId = behandlingId,
-            saksnummer = "202398765",
-            ytelse = Ytelse.SYK_SYK,
-            behandlingType = Type.ANKE
-        )
+        val gainedAccessNotification =
+            GainedAccessNotification(
+                id = UUID.randomUUID(),
+                message = "You now have access to case $behandlingId",
+                navIdent = navIdent,
+                read = false,
+                createdAt = now,
+                updatedAt = now,
+                readAt = null,
+                markedAsDeleted = false,
+                kafkaMessageId = UUID.randomUUID(),
+                sourceCreatedAt = now.minusDays(3),
+                behandlingId = behandlingId,
+                saksnummer = "202398765",
+                ytelse = Ytelse.SYK_SYK,
+                behandlingType = Type.ANKE,
+            )
 
         val saved = gainedAccessNotificationRepository.save(gainedAccessNotification)
         testEntityManager.flush()
@@ -154,64 +155,67 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
         val now = LocalDateTime.now()
 
         // Create a MeldingNotification with sharedBehandlingId
-        val meldingNotification = MeldingNotification(
-            id = UUID.randomUUID(),
-            message = "New message for behandling",
-            navIdent = "Z111111",
-            read = false,
-            createdAt = now,
-            updatedAt = now,
-            readAt = null,
-            markedAsDeleted = false,
-            kafkaMessageId = UUID.randomUUID(),
-            sourceCreatedAt = now.minusDays(1),
-            behandlingId = sharedBehandlingId,
-            meldingId = UUID.randomUUID(),
-            actorNavIdent = "Z999999",
-            actorNavn = "Actor Name",
-            saksnummer = "202312345",
-            ytelse = Ytelse.OMS_OMP,
-            behandlingType = Type.KLAGE
-        )
+        val meldingNotification =
+            MeldingNotification(
+                id = UUID.randomUUID(),
+                message = "New message for behandling",
+                navIdent = "Z111111",
+                read = false,
+                createdAt = now,
+                updatedAt = now,
+                readAt = null,
+                markedAsDeleted = false,
+                kafkaMessageId = UUID.randomUUID(),
+                sourceCreatedAt = now.minusDays(1),
+                behandlingId = sharedBehandlingId,
+                meldingId = UUID.randomUUID(),
+                actorNavIdent = "Z999999",
+                actorNavn = "Actor Name",
+                saksnummer = "202312345",
+                ytelse = Ytelse.OMS_OMP,
+                behandlingType = Type.KLAGE,
+            )
 
         // Create a LostAccessNotification with sharedBehandlingId
-        val lostAccessNotification = LostAccessNotification(
-            id = UUID.randomUUID(),
-            message = "Lost access to behandling",
-            navIdent = "Z222222",
-            read = false,
-            createdAt = now,
-            updatedAt = now,
-            readAt = null,
-            markedAsDeleted = false,
-            kafkaMessageId = UUID.randomUUID(),
-            sourceCreatedAt = now.minusDays(2),
-            behandlingId = sharedBehandlingId,
-            saksnummer = "202312345",
-            ytelse = Ytelse.SYK_SYK,
-            behandlingType = Type.ANKE
-        )
+        val lostAccessNotification =
+            LostAccessNotification(
+                id = UUID.randomUUID(),
+                message = "Lost access to behandling",
+                navIdent = "Z222222",
+                read = false,
+                createdAt = now,
+                updatedAt = now,
+                readAt = null,
+                markedAsDeleted = false,
+                kafkaMessageId = UUID.randomUUID(),
+                sourceCreatedAt = now.minusDays(2),
+                behandlingId = sharedBehandlingId,
+                saksnummer = "202312345",
+                ytelse = Ytelse.SYK_SYK,
+                behandlingType = Type.ANKE,
+            )
 
         // Create another MeldingNotification with a different behandlingId (should not be returned)
-        val otherMeldingNotification = MeldingNotification(
-            id = UUID.randomUUID(),
-            message = "Message for other behandling",
-            navIdent = "Z333333",
-            read = false,
-            createdAt = now,
-            updatedAt = now,
-            readAt = null,
-            markedAsDeleted = false,
-            kafkaMessageId = UUID.randomUUID(),
-            sourceCreatedAt = now.minusDays(3),
-            behandlingId = otherBehandlingId,
-            meldingId = UUID.randomUUID(),
-            actorNavIdent = "Z888888",
-            actorNavn = "Other Actor",
-            saksnummer = "202398765",
-            ytelse = Ytelse.FOR_FOR,
-            behandlingType = Type.KLAGE
-        )
+        val otherMeldingNotification =
+            MeldingNotification(
+                id = UUID.randomUUID(),
+                message = "Message for other behandling",
+                navIdent = "Z333333",
+                read = false,
+                createdAt = now,
+                updatedAt = now,
+                readAt = null,
+                markedAsDeleted = false,
+                kafkaMessageId = UUID.randomUUID(),
+                sourceCreatedAt = now.minusDays(3),
+                behandlingId = otherBehandlingId,
+                meldingId = UUID.randomUUID(),
+                actorNavIdent = "Z888888",
+                actorNavn = "Other Actor",
+                saksnummer = "202398765",
+                ytelse = Ytelse.FOR_FOR,
+                behandlingType = Type.KLAGE,
+            )
 
         meldingNotificationRepository.save(meldingNotification)
         lostAccessNotificationRepository.save(lostAccessNotification)

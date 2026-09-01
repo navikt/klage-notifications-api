@@ -14,10 +14,9 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 class NotificationAggregateMetricsServiceTest {
-
     private lateinit var meterRegistry: PrometheusMeterRegistry
     private lateinit var notificationRepository: NotificationRepository
     private lateinit var service: NotificationAggregateMetricsService
@@ -37,47 +36,61 @@ class NotificationAggregateMetricsServiceTest {
         // Then - Verify all gauges exist for each notification type
         NotificationType.entries.forEach { type ->
             // Behandling gauges
-            val minBehandlingGauge = meterRegistry.find("klage_notifications_per_behandling_min_gauge")
-                .tag("notification_type", type.name)
-                .gauge()
+            val minBehandlingGauge =
+                meterRegistry
+                    .find("klage_notifications_per_behandling_min_gauge")
+                    .tag("notification_type", type.name)
+                    .gauge()
             assertThat(minBehandlingGauge).isNotNull
             assertThat(minBehandlingGauge!!.value()).isEqualTo(0.0)
 
-            val maxBehandlingGauge = meterRegistry.find("klage_notifications_per_behandling_max_gauge")
-                .tag("notification_type", type.name)
-                .gauge()
+            val maxBehandlingGauge =
+                meterRegistry
+                    .find("klage_notifications_per_behandling_max_gauge")
+                    .tag("notification_type", type.name)
+                    .gauge()
             assertThat(maxBehandlingGauge).isNotNull
             assertThat(maxBehandlingGauge!!.value()).isEqualTo(0.0)
 
-            val avgBehandlingGauge = meterRegistry.find("klage_notifications_per_behandling_avg_gauge")
-                .tag("notification_type", type.name)
-                .gauge()
+            val avgBehandlingGauge =
+                meterRegistry
+                    .find("klage_notifications_per_behandling_avg_gauge")
+                    .tag("notification_type", type.name)
+                    .gauge()
             assertThat(avgBehandlingGauge).isNotNull
             assertThat(avgBehandlingGauge!!.value()).isEqualTo(0.0)
 
             // User gauges
-            val minUserGauge = meterRegistry.find("klage_notifications_per_user_min_gauge")
-                .tag("notification_type", type.name)
-                .gauge()
+            val minUserGauge =
+                meterRegistry
+                    .find("klage_notifications_per_user_min_gauge")
+                    .tag("notification_type", type.name)
+                    .gauge()
             assertThat(minUserGauge).isNotNull
             assertThat(minUserGauge!!.value()).isEqualTo(0.0)
 
-            val maxUserGauge = meterRegistry.find("klage_notifications_per_user_max_gauge")
-                .tag("notification_type", type.name)
-                .gauge()
+            val maxUserGauge =
+                meterRegistry
+                    .find("klage_notifications_per_user_max_gauge")
+                    .tag("notification_type", type.name)
+                    .gauge()
             assertThat(maxUserGauge).isNotNull
             assertThat(maxUserGauge!!.value()).isEqualTo(0.0)
 
-            val avgUserGauge = meterRegistry.find("klage_notifications_per_user_avg_gauge")
-                .tag("notification_type", type.name)
-                .gauge()
+            val avgUserGauge =
+                meterRegistry
+                    .find("klage_notifications_per_user_avg_gauge")
+                    .tag("notification_type", type.name)
+                    .gauge()
             assertThat(avgUserGauge).isNotNull
             assertThat(avgUserGauge!!.value()).isEqualTo(0.0)
 
             // Unread count gauge
-            val unreadGauge = meterRegistry.find("klage_notifications_unread_total_gauge")
-                .tag("notification_type", type.name)
-                .gauge()
+            val unreadGauge =
+                meterRegistry
+                    .find("klage_notifications_unread_total_gauge")
+                    .tag("notification_type", type.name)
+                    .gauge()
             assertThat(unreadGauge).isNotNull
             assertThat(unreadGauge!!.value()).isEqualTo(0.0)
         }
@@ -88,12 +101,13 @@ class NotificationAggregateMetricsServiceTest {
         // Given
         val behandlingId1 = UUID.randomUUID()
         val behandlingId2 = UUID.randomUUID()
-        val notifications = listOf(
-            createMeldingNotification(behandlingId = behandlingId1, navIdent = "Z111111"),
-            createMeldingNotification(behandlingId = behandlingId1, navIdent = "Z111111"),
-            createMeldingNotification(behandlingId = behandlingId1, navIdent = "Z111111"),
-            createMeldingNotification(behandlingId = behandlingId2, navIdent = "Z222222"),
-        )
+        val notifications =
+            listOf(
+                createMeldingNotification(behandlingId = behandlingId1, navIdent = "Z111111"),
+                createMeldingNotification(behandlingId = behandlingId1, navIdent = "Z111111"),
+                createMeldingNotification(behandlingId = behandlingId1, navIdent = "Z111111"),
+                createMeldingNotification(behandlingId = behandlingId2, navIdent = "Z222222"),
+            )
 
         every { notificationRepository.findAll() } returns notifications
         service.initializeGauges()
@@ -102,33 +116,40 @@ class NotificationAggregateMetricsServiceTest {
         service.updateAggregateMetrics()
 
         // Then - behandling1 has 3 notifications, behandling2 has 1
-        val minGauge = meterRegistry.find("klage_notifications_per_behandling_min_gauge")
-            .tag("notification_type", "MELDING")
-            .gauge()
+        val minGauge =
+            meterRegistry
+                .find("klage_notifications_per_behandling_min_gauge")
+                .tag("notification_type", "MELDING")
+                .gauge()
         assertThat(minGauge!!.value()).isEqualTo(1.0)
 
-        val maxGauge = meterRegistry.find("klage_notifications_per_behandling_max_gauge")
-            .tag("notification_type", "MELDING")
-            .gauge()
+        val maxGauge =
+            meterRegistry
+                .find("klage_notifications_per_behandling_max_gauge")
+                .tag("notification_type", "MELDING")
+                .gauge()
         assertThat(maxGauge!!.value()).isEqualTo(3.0)
 
-        val avgGauge = meterRegistry.find("klage_notifications_per_behandling_avg_gauge")
-            .tag("notification_type", "MELDING")
-            .gauge()
+        val avgGauge =
+            meterRegistry
+                .find("klage_notifications_per_behandling_avg_gauge")
+                .tag("notification_type", "MELDING")
+                .gauge()
         assertThat(avgGauge!!.value()).isEqualTo(2.0) // (3 + 1) / 2 = 2.0
     }
 
     @Test
     fun `updateAggregateMetrics updates user metrics correctly for MELDING notifications`() {
         // Given
-        val notifications = listOf(
-            createMeldingNotification(navIdent = "Z111111"),
-            createMeldingNotification(navIdent = "Z111111"),
-            createMeldingNotification(navIdent = "Z111111"),
-            createMeldingNotification(navIdent = "Z111111"),
-            createMeldingNotification(navIdent = "Z222222"),
-            createMeldingNotification(navIdent = "Z222222"),
-        )
+        val notifications =
+            listOf(
+                createMeldingNotification(navIdent = "Z111111"),
+                createMeldingNotification(navIdent = "Z111111"),
+                createMeldingNotification(navIdent = "Z111111"),
+                createMeldingNotification(navIdent = "Z111111"),
+                createMeldingNotification(navIdent = "Z222222"),
+                createMeldingNotification(navIdent = "Z222222"),
+            )
 
         every { notificationRepository.findAll() } returns notifications
         service.initializeGauges()
@@ -137,19 +158,25 @@ class NotificationAggregateMetricsServiceTest {
         service.updateAggregateMetrics()
 
         // Then - user1 has 4 notifications, user2 has 2
-        val minGauge = meterRegistry.find("klage_notifications_per_user_min_gauge")
-            .tag("notification_type", "MELDING")
-            .gauge()
+        val minGauge =
+            meterRegistry
+                .find("klage_notifications_per_user_min_gauge")
+                .tag("notification_type", "MELDING")
+                .gauge()
         assertThat(minGauge!!.value()).isEqualTo(2.0)
 
-        val maxGauge = meterRegistry.find("klage_notifications_per_user_max_gauge")
-            .tag("notification_type", "MELDING")
-            .gauge()
+        val maxGauge =
+            meterRegistry
+                .find("klage_notifications_per_user_max_gauge")
+                .tag("notification_type", "MELDING")
+                .gauge()
         assertThat(maxGauge!!.value()).isEqualTo(4.0)
 
-        val avgGauge = meterRegistry.find("klage_notifications_per_user_avg_gauge")
-            .tag("notification_type", "MELDING")
-            .gauge()
+        val avgGauge =
+            meterRegistry
+                .find("klage_notifications_per_user_avg_gauge")
+                .tag("notification_type", "MELDING")
+                .gauge()
         assertThat(avgGauge!!.value()).isEqualTo(3.0) // (4 + 2) / 2 = 3.0
     }
 
@@ -158,11 +185,12 @@ class NotificationAggregateMetricsServiceTest {
         // Given
         val behandlingId1 = UUID.randomUUID()
         val behandlingId2 = UUID.randomUUID()
-        val notifications = listOf(
-            createLostAccessNotification(behandlingId = behandlingId1),
-            createLostAccessNotification(behandlingId = behandlingId2),
-            createLostAccessNotification(behandlingId = behandlingId2),
-        )
+        val notifications =
+            listOf(
+                createLostAccessNotification(behandlingId = behandlingId1),
+                createLostAccessNotification(behandlingId = behandlingId2),
+                createLostAccessNotification(behandlingId = behandlingId2),
+            )
 
         every { notificationRepository.findAll() } returns notifications
         service.initializeGauges()
@@ -171,32 +199,39 @@ class NotificationAggregateMetricsServiceTest {
         service.updateAggregateMetrics()
 
         // Then - behandling1 has 1 notification, behandling2 has 2
-        val minGauge = meterRegistry.find("klage_notifications_per_behandling_min_gauge")
-            .tag("notification_type", "LOST_ACCESS")
-            .gauge()
+        val minGauge =
+            meterRegistry
+                .find("klage_notifications_per_behandling_min_gauge")
+                .tag("notification_type", "LOST_ACCESS")
+                .gauge()
         assertThat(minGauge!!.value()).isEqualTo(1.0)
 
-        val maxGauge = meterRegistry.find("klage_notifications_per_behandling_max_gauge")
-            .tag("notification_type", "LOST_ACCESS")
-            .gauge()
+        val maxGauge =
+            meterRegistry
+                .find("klage_notifications_per_behandling_max_gauge")
+                .tag("notification_type", "LOST_ACCESS")
+                .gauge()
         assertThat(maxGauge!!.value()).isEqualTo(2.0)
 
-        val avgGauge = meterRegistry.find("klage_notifications_per_behandling_avg_gauge")
-            .tag("notification_type", "LOST_ACCESS")
-            .gauge()
+        val avgGauge =
+            meterRegistry
+                .find("klage_notifications_per_behandling_avg_gauge")
+                .tag("notification_type", "LOST_ACCESS")
+                .gauge()
         assertThat(avgGauge!!.value()).isEqualTo(1.5) // (1 + 2) / 2 = 1.5
     }
 
     @Test
     fun `updateAggregateMetrics updates unread count correctly`() {
         // Given
-        val notifications = listOf(
-            createMeldingNotification(read = false),
-            createMeldingNotification(read = false),
-            createMeldingNotification(read = true),
-            createLostAccessNotification(read = false),
-            createLostAccessNotification(read = true),
-        )
+        val notifications =
+            listOf(
+                createMeldingNotification(read = false),
+                createMeldingNotification(read = false),
+                createMeldingNotification(read = true),
+                createLostAccessNotification(read = false),
+                createLostAccessNotification(read = true),
+            )
 
         every { notificationRepository.findAll() } returns notifications
         service.initializeGauges()
@@ -205,14 +240,18 @@ class NotificationAggregateMetricsServiceTest {
         service.updateAggregateMetrics()
 
         // Then
-        val meldingUnreadGauge = meterRegistry.find("klage_notifications_unread_total_gauge")
-            .tag("notification_type", "MELDING")
-            .gauge()
+        val meldingUnreadGauge =
+            meterRegistry
+                .find("klage_notifications_unread_total_gauge")
+                .tag("notification_type", "MELDING")
+                .gauge()
         assertThat(meldingUnreadGauge!!.value()).isEqualTo(2.0)
 
-        val lostAccessUnreadGauge = meterRegistry.find("klage_notifications_unread_total_gauge")
-            .tag("notification_type", "LOST_ACCESS")
-            .gauge()
+        val lostAccessUnreadGauge =
+            meterRegistry
+                .find("klage_notifications_unread_total_gauge")
+                .tag("notification_type", "LOST_ACCESS")
+                .gauge()
         assertThat(lostAccessUnreadGauge!!.value()).isEqualTo(1.0)
     }
 
@@ -220,11 +259,12 @@ class NotificationAggregateMetricsServiceTest {
     fun `updateAggregateMetrics excludes marked as deleted notifications from behandling metrics`() {
         // Given
         val behandlingId = UUID.randomUUID()
-        val notifications = listOf(
-            createMeldingNotification(behandlingId = behandlingId, markedAsDeleted = false),
-            createMeldingNotification(behandlingId = behandlingId, markedAsDeleted = false),
-            createMeldingNotification(behandlingId = behandlingId, markedAsDeleted = true),
-        )
+        val notifications =
+            listOf(
+                createMeldingNotification(behandlingId = behandlingId, markedAsDeleted = false),
+                createMeldingNotification(behandlingId = behandlingId, markedAsDeleted = false),
+                createMeldingNotification(behandlingId = behandlingId, markedAsDeleted = true),
+            )
 
         every { notificationRepository.findAll() } returns notifications
         service.initializeGauges()
@@ -233,14 +273,18 @@ class NotificationAggregateMetricsServiceTest {
         service.updateAggregateMetrics()
 
         // Then - Only 2 active notifications should be counted
-        val minGauge = meterRegistry.find("klage_notifications_per_behandling_min_gauge")
-            .tag("notification_type", "MELDING")
-            .gauge()
+        val minGauge =
+            meterRegistry
+                .find("klage_notifications_per_behandling_min_gauge")
+                .tag("notification_type", "MELDING")
+                .gauge()
         assertThat(minGauge!!.value()).isEqualTo(2.0)
 
-        val maxGauge = meterRegistry.find("klage_notifications_per_behandling_max_gauge")
-            .tag("notification_type", "MELDING")
-            .gauge()
+        val maxGauge =
+            meterRegistry
+                .find("klage_notifications_per_behandling_max_gauge")
+                .tag("notification_type", "MELDING")
+                .gauge()
         assertThat(maxGauge!!.value()).isEqualTo(2.0)
     }
 
@@ -248,11 +292,12 @@ class NotificationAggregateMetricsServiceTest {
     fun `updateAggregateMetrics excludes marked as deleted notifications from user metrics`() {
         // Given
         val navIdent = "Z111111"
-        val notifications = listOf(
-            createMeldingNotification(navIdent = navIdent, markedAsDeleted = false),
-            createMeldingNotification(navIdent = navIdent, markedAsDeleted = false),
-            createMeldingNotification(navIdent = navIdent, markedAsDeleted = true),
-        )
+        val notifications =
+            listOf(
+                createMeldingNotification(navIdent = navIdent, markedAsDeleted = false),
+                createMeldingNotification(navIdent = navIdent, markedAsDeleted = false),
+                createMeldingNotification(navIdent = navIdent, markedAsDeleted = true),
+            )
 
         every { notificationRepository.findAll() } returns notifications
         service.initializeGauges()
@@ -261,25 +306,30 @@ class NotificationAggregateMetricsServiceTest {
         service.updateAggregateMetrics()
 
         // Then - Only 2 active notifications should be counted
-        val minGauge = meterRegistry.find("klage_notifications_per_user_min_gauge")
-            .tag("notification_type", "MELDING")
-            .gauge()
+        val minGauge =
+            meterRegistry
+                .find("klage_notifications_per_user_min_gauge")
+                .tag("notification_type", "MELDING")
+                .gauge()
         assertThat(minGauge!!.value()).isEqualTo(2.0)
 
-        val maxGauge = meterRegistry.find("klage_notifications_per_user_max_gauge")
-            .tag("notification_type", "MELDING")
-            .gauge()
+        val maxGauge =
+            meterRegistry
+                .find("klage_notifications_per_user_max_gauge")
+                .tag("notification_type", "MELDING")
+                .gauge()
         assertThat(maxGauge!!.value()).isEqualTo(2.0)
     }
 
     @Test
     fun `updateAggregateMetrics excludes marked as deleted notifications from unread count`() {
         // Given
-        val notifications = listOf(
-            createMeldingNotification(read = false, markedAsDeleted = false),
-            createMeldingNotification(read = false, markedAsDeleted = false),
-            createMeldingNotification(read = false, markedAsDeleted = true),
-        )
+        val notifications =
+            listOf(
+                createMeldingNotification(read = false, markedAsDeleted = false),
+                createMeldingNotification(read = false, markedAsDeleted = false),
+                createMeldingNotification(read = false, markedAsDeleted = true),
+            )
 
         every { notificationRepository.findAll() } returns notifications
         service.initializeGauges()
@@ -288,9 +338,11 @@ class NotificationAggregateMetricsServiceTest {
         service.updateAggregateMetrics()
 
         // Then - Only 2 unread active notifications should be counted
-        val unreadGauge = meterRegistry.find("klage_notifications_unread_total_gauge")
-            .tag("notification_type", "MELDING")
-            .gauge()
+        val unreadGauge =
+            meterRegistry
+                .find("klage_notifications_unread_total_gauge")
+                .tag("notification_type", "MELDING")
+                .gauge()
         assertThat(unreadGauge!!.value()).isEqualTo(2.0)
     }
 
@@ -305,24 +357,32 @@ class NotificationAggregateMetricsServiceTest {
 
         // Then - All gauges should remain at 0
         NotificationType.entries.forEach { type ->
-            val minBehandlingGauge = meterRegistry.find("klage_notifications_per_behandling_min_gauge")
-                .tag("notification_type", type.name)
-                .gauge()
+            val minBehandlingGauge =
+                meterRegistry
+                    .find("klage_notifications_per_behandling_min_gauge")
+                    .tag("notification_type", type.name)
+                    .gauge()
             assertThat(minBehandlingGauge!!.value()).isEqualTo(0.0)
 
-            val maxBehandlingGauge = meterRegistry.find("klage_notifications_per_behandling_max_gauge")
-                .tag("notification_type", type.name)
-                .gauge()
+            val maxBehandlingGauge =
+                meterRegistry
+                    .find("klage_notifications_per_behandling_max_gauge")
+                    .tag("notification_type", type.name)
+                    .gauge()
             assertThat(maxBehandlingGauge!!.value()).isEqualTo(0.0)
 
-            val avgBehandlingGauge = meterRegistry.find("klage_notifications_per_behandling_avg_gauge")
-                .tag("notification_type", type.name)
-                .gauge()
+            val avgBehandlingGauge =
+                meterRegistry
+                    .find("klage_notifications_per_behandling_avg_gauge")
+                    .tag("notification_type", type.name)
+                    .gauge()
             assertThat(avgBehandlingGauge!!.value()).isEqualTo(0.0)
 
-            val unreadGauge = meterRegistry.find("klage_notifications_unread_total_gauge")
-                .tag("notification_type", type.name)
-                .gauge()
+            val unreadGauge =
+                meterRegistry
+                    .find("klage_notifications_unread_total_gauge")
+                    .tag("notification_type", type.name)
+                    .gauge()
             assertThat(unreadGauge!!.value()).isEqualTo(0.0)
         }
     }
@@ -332,11 +392,12 @@ class NotificationAggregateMetricsServiceTest {
         // Given
         val behandlingId = UUID.randomUUID()
         val navIdent = "Z111111"
-        val notifications = listOf(
-            createMeldingNotification(behandlingId = behandlingId, navIdent = navIdent, read = false),
-            createMeldingNotification(behandlingId = behandlingId, navIdent = navIdent, read = false),
-            createLostAccessNotification(behandlingId = behandlingId, navIdent = navIdent, read = true),
-        )
+        val notifications =
+            listOf(
+                createMeldingNotification(behandlingId = behandlingId, navIdent = navIdent, read = false),
+                createMeldingNotification(behandlingId = behandlingId, navIdent = navIdent, read = false),
+                createLostAccessNotification(behandlingId = behandlingId, navIdent = navIdent, read = true),
+            )
 
         every { notificationRepository.findAll() } returns notifications
         service.initializeGauges()
@@ -345,24 +406,32 @@ class NotificationAggregateMetricsServiceTest {
         service.updateAggregateMetrics()
 
         // Then - Each type should be tracked separately
-        val meldingUnreadGauge = meterRegistry.find("klage_notifications_unread_total_gauge")
-            .tag("notification_type", "MELDING")
-            .gauge()
+        val meldingUnreadGauge =
+            meterRegistry
+                .find("klage_notifications_unread_total_gauge")
+                .tag("notification_type", "MELDING")
+                .gauge()
         assertThat(meldingUnreadGauge!!.value()).isEqualTo(2.0)
 
-        val lostAccessUnreadGauge = meterRegistry.find("klage_notifications_unread_total_gauge")
-            .tag("notification_type", "LOST_ACCESS")
-            .gauge()
+        val lostAccessUnreadGauge =
+            meterRegistry
+                .find("klage_notifications_unread_total_gauge")
+                .tag("notification_type", "LOST_ACCESS")
+                .gauge()
         assertThat(lostAccessUnreadGauge!!.value()).isEqualTo(0.0)
 
-        val meldingPerBehandlingGauge = meterRegistry.find("klage_notifications_per_behandling_min_gauge")
-            .tag("notification_type", "MELDING")
-            .gauge()
+        val meldingPerBehandlingGauge =
+            meterRegistry
+                .find("klage_notifications_per_behandling_min_gauge")
+                .tag("notification_type", "MELDING")
+                .gauge()
         assertThat(meldingPerBehandlingGauge!!.value()).isEqualTo(2.0)
 
-        val lostAccessPerBehandlingGauge = meterRegistry.find("klage_notifications_per_behandling_min_gauge")
-            .tag("notification_type", "LOST_ACCESS")
-            .gauge()
+        val lostAccessPerBehandlingGauge =
+            meterRegistry
+                .find("klage_notifications_per_behandling_min_gauge")
+                .tag("notification_type", "LOST_ACCESS")
+                .gauge()
         assertThat(lostAccessPerBehandlingGauge!!.value()).isEqualTo(1.0)
     }
 
@@ -376,19 +445,22 @@ class NotificationAggregateMetricsServiceTest {
         service.updateAggregateMetrics()
 
         // Then - Gauges should still have their initial values
-        val minGauge = meterRegistry.find("klage_notifications_per_behandling_min_gauge")
-            .tag("notification_type", "MELDING")
-            .gauge()
+        val minGauge =
+            meterRegistry
+                .find("klage_notifications_per_behandling_min_gauge")
+                .tag("notification_type", "MELDING")
+                .gauge()
         assertThat(minGauge!!.value()).isEqualTo(0.0)
     }
 
     @Test
     fun `prometheus output contains all gauge metrics`() {
-        val notifications = listOf(
-            createMeldingNotification(read = false),
-            createMeldingNotification(read = false),
-            createLostAccessNotification(read = true),
-        )
+        val notifications =
+            listOf(
+                createMeldingNotification(read = false),
+                createMeldingNotification(read = false),
+                createLostAccessNotification(read = true),
+            )
 
         every { notificationRepository.findAll() } returns notifications
         service.initializeGauges()
@@ -419,7 +491,7 @@ class NotificationAggregateMetricsServiceTest {
         behandlingId: UUID = UUID.randomUUID(),
         navIdent: String = "Z999999",
         read: Boolean = false,
-        markedAsDeleted: Boolean = false
+        markedAsDeleted: Boolean = false,
     ): MeldingNotification {
         val now = LocalDateTime.now()
         return MeldingNotification(
@@ -447,7 +519,7 @@ class NotificationAggregateMetricsServiceTest {
         behandlingId: UUID = UUID.randomUUID(),
         navIdent: String = "Z999999",
         read: Boolean = false,
-        markedAsDeleted: Boolean = false
+        markedAsDeleted: Boolean = false,
     ): LostAccessNotification {
         val now = LocalDateTime.now()
         return LostAccessNotification(

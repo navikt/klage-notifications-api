@@ -17,23 +17,24 @@ class DeadLetterMessageRepositoryTest : PostgresIntegrationTestBase() {
 
     @Test
     fun `test save and find dead letter message`() {
-        val deadLetterMessage = DeadLetterMessage(
-            topic = "test-topic",
-            messageKey = "test-key",
-            messageValue = """{"test": "value"}""",
-            kafkaOffset = 123L,
-            partition = 0,
-            errorMessage = "Test error",
-            stackTrace = "Test stack trace",
-            attemptCount = 3,
-            firstAttemptAt = LocalDateTime.now().minusMinutes(5),
-            lastAttemptAt = LocalDateTime.now(),
-            processed = false,
-            createdAt = LocalDateTime.now(),
-            processedAt = null,
-            reprocess = false,
-            reprocessedAt = null,
-        )
+        val deadLetterMessage =
+            DeadLetterMessage(
+                topic = "test-topic",
+                messageKey = "test-key",
+                messageValue = """{"test": "value"}""",
+                kafkaOffset = 123L,
+                partition = 0,
+                errorMessage = "Test error",
+                stackTrace = "Test stack trace",
+                attemptCount = 3,
+                firstAttemptAt = LocalDateTime.now().minusMinutes(5),
+                lastAttemptAt = LocalDateTime.now(),
+                processed = false,
+                createdAt = LocalDateTime.now(),
+                processedAt = null,
+                reprocess = false,
+                reprocessedAt = null,
+            )
         val saved = deadLetterMessageRepository.save(deadLetterMessage)
         val found = deadLetterMessageRepository.findById(saved.id)
 
@@ -43,5 +44,4 @@ class DeadLetterMessageRepositoryTest : PostgresIntegrationTestBase() {
         assertThat(found.get().attemptCount).isEqualTo(3)
         assertThat(found.get().processed).isFalse()
     }
-
 }

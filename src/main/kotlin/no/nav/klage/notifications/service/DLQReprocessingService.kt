@@ -5,14 +5,13 @@ import no.nav.klage.notifications.dto.CreateNotificationEvent
 import no.nav.klage.notifications.util.getLogger
 import no.nav.klage.notifications.util.ourJacksonObjectMapper
 import org.springframework.stereotype.Service
-import java.util.*
+import java.util.UUID
 
 @Service
 class DLQReprocessingService(
     private val deadLetterQueueService: DeadLetterQueueService,
     private val notificationService: NotificationService,
 ) {
-
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
@@ -48,10 +47,11 @@ class DLQReprocessingService(
             )
 
             // Deserialize the message value back to CreateNotificationEvent
-            val createNotificationEvent = objectMapper.readValue(
-                dlqMessage.messageValue,
-                CreateNotificationEvent::class.java,
-            )
+            val createNotificationEvent =
+                objectMapper.readValue(
+                    dlqMessage.messageValue,
+                    CreateNotificationEvent::class.java,
+                )
 
             // Get the Kafka message ID from the message key
             val kafkaMessageId = UUID.fromString(dlqMessage.messageKey)
@@ -74,7 +74,6 @@ class DLQReprocessingService(
                 dlqMessage.topic,
                 dlqMessage.kafkaOffset,
             )
-
         } catch (e: Exception) {
             logger.error(
                 "Failed to reprocess DLQ message {} - Topic: {}, Offset: {}: {}",

@@ -13,12 +13,11 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager
 import org.springframework.test.context.ActiveProfiles
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 @ActiveProfiles("local")
 @DataJpaTest
 class NotificationRepositoryValidationTest : PostgresIntegrationTestBase() {
-
     @Autowired
     lateinit var testEntityManager: TestEntityManager
 
@@ -42,30 +41,33 @@ class NotificationRepositoryValidationTest : PostgresIntegrationTestBase() {
         val now = LocalDateTime.now()
 
         // Create an unread MeldingNotification
-        val unreadMelding = createMeldingNotification(
-            behandlingId = behandlingId,
-            read = false,
-            markedAsDeleted = false,
-            updatedAt = now
-        )
+        val unreadMelding =
+            createMeldingNotification(
+                behandlingId = behandlingId,
+                read = false,
+                markedAsDeleted = false,
+                updatedAt = now,
+            )
 
         // Create a read MeldingNotification (should NOT be found)
-        val readMelding = createMeldingNotification(
-            behandlingId = behandlingId,
-            read = true,
-            markedAsDeleted = false,
-            updatedAt = now
-        )
+        val readMelding =
+            createMeldingNotification(
+                behandlingId = behandlingId,
+                read = true,
+                markedAsDeleted = false,
+                updatedAt = now,
+            )
 
         meldingNotificationRepository.save(unreadMelding)
         meldingNotificationRepository.save(readMelding)
         testEntityManager.flush()
         testEntityManager.clear()
 
-        val unreadNotifications = notificationRepository.findByReadAndBehandlingIdAndNotMarkedAsDeleted(
-            read = false,
-            behandlingId = behandlingId
-        )
+        val unreadNotifications =
+            notificationRepository.findByReadAndBehandlingIdAndNotMarkedAsDeleted(
+                read = false,
+                behandlingId = behandlingId,
+            )
 
         assertThat(unreadNotifications).hasSize(1)
         assertThat(unreadNotifications.first().id).isEqualTo(unreadMelding.id)
@@ -77,50 +79,53 @@ class NotificationRepositoryValidationTest : PostgresIntegrationTestBase() {
         val now = LocalDateTime.now()
 
         // Create an unread LostAccessNotification for user 1
-        val unreadLostAccess = LostAccessNotification(
-            id = UUID.randomUUID(),
-            message = "Lost access notification",
-            navIdent = "Z123456",
-            read = false,
-            createdAt = now,
-            updatedAt = now,
-            readAt = null,
-            markedAsDeleted = false,
-            kafkaMessageId = UUID.randomUUID(),
-            sourceCreatedAt = now.minusDays(1),
-            behandlingId = behandlingId,
-            saksnummer = "202312345",
-            ytelse = Ytelse.SYK_SYK,
-            behandlingType = Type.ANKE
-        )
+        val unreadLostAccess =
+            LostAccessNotification(
+                id = UUID.randomUUID(),
+                message = "Lost access notification",
+                navIdent = "Z123456",
+                read = false,
+                createdAt = now,
+                updatedAt = now,
+                readAt = null,
+                markedAsDeleted = false,
+                kafkaMessageId = UUID.randomUUID(),
+                sourceCreatedAt = now.minusDays(1),
+                behandlingId = behandlingId,
+                saksnummer = "202312345",
+                ytelse = Ytelse.SYK_SYK,
+                behandlingType = Type.ANKE,
+            )
 
         // Create a read LostAccessNotification for user 2 (different navIdent to avoid unique constraint violation)
-        val readLostAccess = LostAccessNotification(
-            id = UUID.randomUUID(),
-            message = "Lost access notification",
-            navIdent = "Z789012",  // Different navIdent
-            read = true,
-            createdAt = now,
-            updatedAt = now,
-            readAt = now,
-            markedAsDeleted = false,
-            kafkaMessageId = UUID.randomUUID(),
-            sourceCreatedAt = now.minusDays(1),
-            behandlingId = behandlingId,
-            saksnummer = "202312345",
-            ytelse = Ytelse.SYK_SYK,
-            behandlingType = Type.ANKE
-        )
+        val readLostAccess =
+            LostAccessNotification(
+                id = UUID.randomUUID(),
+                message = "Lost access notification",
+                navIdent = "Z789012", // Different navIdent
+                read = true,
+                createdAt = now,
+                updatedAt = now,
+                readAt = now,
+                markedAsDeleted = false,
+                kafkaMessageId = UUID.randomUUID(),
+                sourceCreatedAt = now.minusDays(1),
+                behandlingId = behandlingId,
+                saksnummer = "202312345",
+                ytelse = Ytelse.SYK_SYK,
+                behandlingType = Type.ANKE,
+            )
 
         lostAccessNotificationRepository.save(unreadLostAccess)
         lostAccessNotificationRepository.save(readLostAccess)
         testEntityManager.flush()
         testEntityManager.clear()
 
-        val unreadNotifications = notificationRepository.findByReadAndBehandlingIdAndNotMarkedAsDeleted(
-            read = false,
-            behandlingId = behandlingId
-        )
+        val unreadNotifications =
+            notificationRepository.findByReadAndBehandlingIdAndNotMarkedAsDeleted(
+                read = false,
+                behandlingId = behandlingId,
+            )
 
         assertThat(unreadNotifications).hasSize(1)
         assertThat(unreadNotifications.first().id).isEqualTo(unreadLostAccess.id)
@@ -132,30 +137,33 @@ class NotificationRepositoryValidationTest : PostgresIntegrationTestBase() {
         val now = LocalDateTime.now()
 
         // Create an unread MeldingNotification
-        val unreadMelding = createMeldingNotification(
-            behandlingId = behandlingId,
-            read = false,
-            markedAsDeleted = false,
-            updatedAt = now
-        )
+        val unreadMelding =
+            createMeldingNotification(
+                behandlingId = behandlingId,
+                read = false,
+                markedAsDeleted = false,
+                updatedAt = now,
+            )
 
         // Create an unread LostAccessNotification
-        val unreadLostAccess = createLostAccessNotification(
-            behandlingId = behandlingId,
-            read = false,
-            markedAsDeleted = false,
-            updatedAt = now
-        )
+        val unreadLostAccess =
+            createLostAccessNotification(
+                behandlingId = behandlingId,
+                read = false,
+                markedAsDeleted = false,
+                updatedAt = now,
+            )
 
         meldingNotificationRepository.save(unreadMelding)
         lostAccessNotificationRepository.save(unreadLostAccess)
         testEntityManager.flush()
         testEntityManager.clear()
 
-        val unreadNotifications = notificationRepository.findByReadAndBehandlingIdAndNotMarkedAsDeleted(
-            read = false,
-            behandlingId = behandlingId
-        )
+        val unreadNotifications =
+            notificationRepository.findByReadAndBehandlingIdAndNotMarkedAsDeleted(
+                read = false,
+                behandlingId = behandlingId,
+            )
 
         assertThat(unreadNotifications).hasSize(2)
         assertThat(unreadNotifications).anyMatch { it is MeldingNotification }
@@ -168,30 +176,33 @@ class NotificationRepositoryValidationTest : PostgresIntegrationTestBase() {
         val now = LocalDateTime.now()
 
         // Create an unread notification marked as deleted (should NOT be found)
-        val deletedUnreadMelding = createMeldingNotification(
-            behandlingId = behandlingId,
-            read = false,
-            markedAsDeleted = true,
-            updatedAt = now
-        )
+        val deletedUnreadMelding =
+            createMeldingNotification(
+                behandlingId = behandlingId,
+                read = false,
+                markedAsDeleted = true,
+                updatedAt = now,
+            )
 
         // Create an unread notification not marked as deleted (should be found)
-        val unreadMelding = createMeldingNotification(
-            behandlingId = behandlingId,
-            read = false,
-            markedAsDeleted = false,
-            updatedAt = now
-        )
+        val unreadMelding =
+            createMeldingNotification(
+                behandlingId = behandlingId,
+                read = false,
+                markedAsDeleted = false,
+                updatedAt = now,
+            )
 
         meldingNotificationRepository.save(deletedUnreadMelding)
         meldingNotificationRepository.save(unreadMelding)
         testEntityManager.flush()
         testEntityManager.clear()
 
-        val unreadNotifications = notificationRepository.findByReadAndBehandlingIdAndNotMarkedAsDeleted(
-            read = false,
-            behandlingId = behandlingId
-        )
+        val unreadNotifications =
+            notificationRepository.findByReadAndBehandlingIdAndNotMarkedAsDeleted(
+                read = false,
+                behandlingId = behandlingId,
+            )
 
         assertThat(unreadNotifications).hasSize(1)
         assertThat(unreadNotifications.first().id).isEqualTo(unreadMelding.id)
@@ -203,21 +214,23 @@ class NotificationRepositoryValidationTest : PostgresIntegrationTestBase() {
         val now = LocalDateTime.now()
 
         // Create only read notifications
-        val readMelding = createMeldingNotification(
-            behandlingId = behandlingId,
-            read = true,
-            markedAsDeleted = false,
-            updatedAt = now
-        )
+        val readMelding =
+            createMeldingNotification(
+                behandlingId = behandlingId,
+                read = true,
+                markedAsDeleted = false,
+                updatedAt = now,
+            )
 
         meldingNotificationRepository.save(readMelding)
         testEntityManager.flush()
         testEntityManager.clear()
 
-        val unreadNotifications = notificationRepository.findByReadAndBehandlingIdAndNotMarkedAsDeleted(
-            read = false,
-            behandlingId = behandlingId
-        )
+        val unreadNotifications =
+            notificationRepository.findByReadAndBehandlingIdAndNotMarkedAsDeleted(
+                read = false,
+                behandlingId = behandlingId,
+            )
 
         assertThat(unreadNotifications).isEmpty()
     }
@@ -229,30 +242,33 @@ class NotificationRepositoryValidationTest : PostgresIntegrationTestBase() {
         val now = LocalDateTime.now()
 
         // Create unread notification for behandlingId1
-        val unreadMelding1 = createMeldingNotification(
-            behandlingId = behandlingId1,
-            read = false,
-            markedAsDeleted = false,
-            updatedAt = now
-        )
+        val unreadMelding1 =
+            createMeldingNotification(
+                behandlingId = behandlingId1,
+                read = false,
+                markedAsDeleted = false,
+                updatedAt = now,
+            )
 
         // Create unread notification for behandlingId2 (should NOT be found)
-        val unreadMelding2 = createMeldingNotification(
-            behandlingId = behandlingId2,
-            read = false,
-            markedAsDeleted = false,
-            updatedAt = now
-        )
+        val unreadMelding2 =
+            createMeldingNotification(
+                behandlingId = behandlingId2,
+                read = false,
+                markedAsDeleted = false,
+                updatedAt = now,
+            )
 
         meldingNotificationRepository.save(unreadMelding1)
         meldingNotificationRepository.save(unreadMelding2)
         testEntityManager.flush()
         testEntityManager.clear()
 
-        val unreadNotifications = notificationRepository.findByReadAndBehandlingIdAndNotMarkedAsDeleted(
-            read = false,
-            behandlingId = behandlingId1
-        )
+        val unreadNotifications =
+            notificationRepository.findByReadAndBehandlingIdAndNotMarkedAsDeleted(
+                read = false,
+                behandlingId = behandlingId1,
+            )
 
         assertThat(unreadNotifications).hasSize(1)
         assertThat(unreadNotifications.first().id).isEqualTo(unreadMelding1.id)
@@ -262,9 +278,9 @@ class NotificationRepositoryValidationTest : PostgresIntegrationTestBase() {
         behandlingId: UUID,
         read: Boolean,
         markedAsDeleted: Boolean,
-        updatedAt: LocalDateTime
-    ): MeldingNotification {
-        return MeldingNotification(
+        updatedAt: LocalDateTime,
+    ): MeldingNotification =
+        MeldingNotification(
             id = UUID.randomUUID(),
             message = "Test notification",
             navIdent = "Z123456",
@@ -281,17 +297,16 @@ class NotificationRepositoryValidationTest : PostgresIntegrationTestBase() {
             actorNavn = "Test Actor",
             saksnummer = "202312345",
             ytelse = Ytelse.OMS_OMP,
-            behandlingType = Type.KLAGE
+            behandlingType = Type.KLAGE,
         )
-    }
 
     private fun createLostAccessNotification(
         behandlingId: UUID,
         read: Boolean,
         markedAsDeleted: Boolean,
-        updatedAt: LocalDateTime
-    ): LostAccessNotification {
-        return LostAccessNotification(
+        updatedAt: LocalDateTime,
+    ): LostAccessNotification =
+        LostAccessNotification(
             id = UUID.randomUUID(),
             message = "Lost access notification",
             navIdent = "Z123456",
@@ -305,7 +320,6 @@ class NotificationRepositoryValidationTest : PostgresIntegrationTestBase() {
             behandlingId = behandlingId,
             saksnummer = "202312345",
             ytelse = Ytelse.SYK_SYK,
-            behandlingType = Type.ANKE
+            behandlingType = Type.ANKE,
         )
-    }
 }

@@ -10,14 +10,13 @@ import org.springframework.transaction.annotation.Transactional
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 @Service
 @Transactional
 class DeadLetterQueueService(
     private val deadLetterMessageRepository: DeadLetterMessageRepository,
 ) {
-
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
@@ -31,35 +30,37 @@ class DeadLetterQueueService(
         firstAttemptAt: LocalDateTime,
     ) {
         try {
-            val messageValue = try {
-                objectMapper.writeValueAsString(record.value())
-            } catch (e: Exception) {
-                logger.error(
-                    "Could not serialize message value, using toString()",
-                    e,
-                )
-                record.value()?.toString() ?: "null"
-            }
+            val messageValue =
+                try {
+                    objectMapper.writeValueAsString(record.value())
+                } catch (e: Exception) {
+                    logger.error(
+                        "Could not serialize message value, using toString()",
+                        e,
+                    )
+                    record.value()?.toString() ?: "null"
+                }
 
             val stackTrace = getStackTraceAsString(exception)
 
-            val deadLetterMessage = DeadLetterMessage(
-                topic = record.topic(),
-                messageKey = record.key(),
-                messageValue = messageValue,
-                kafkaOffset = record.offset(),
-                partition = record.partition(),
-                errorMessage = exception.message ?: exception::class.java.simpleName,
-                stackTrace = stackTrace,
-                attemptCount = attemptCount,
-                firstAttemptAt = firstAttemptAt,
-                lastAttemptAt = LocalDateTime.now(),
-                processed = false,
-                reprocess = false,
-                reprocessedAt = null,
-                createdAt = LocalDateTime.now(),
-                processedAt = null,
-            )
+            val deadLetterMessage =
+                DeadLetterMessage(
+                    topic = record.topic(),
+                    messageKey = record.key(),
+                    messageValue = messageValue,
+                    kafkaOffset = record.offset(),
+                    partition = record.partition(),
+                    errorMessage = exception.message ?: exception::class.java.simpleName,
+                    stackTrace = stackTrace,
+                    attemptCount = attemptCount,
+                    firstAttemptAt = firstAttemptAt,
+                    lastAttemptAt = LocalDateTime.now(),
+                    processed = false,
+                    reprocess = false,
+                    reprocessedAt = null,
+                    createdAt = LocalDateTime.now(),
+                    processedAt = null,
+                )
 
             deadLetterMessageRepository.save(deadLetterMessage)
 
@@ -83,13 +84,17 @@ class DeadLetterQueueService(
     }
 
     @Transactional(readOnly = true)
-    fun getMessagesMarkedForReprocessing(): List<DeadLetterMessage> {
-        return deadLetterMessageRepository.findByReprocessOrderByCreatedAtAsc(true)
-    }
+    fun getMessagesMarkedForReprocessing(): List<DeadLetterMessage> = deadLetterMessageRepository.findByReprocessOrderByCreatedAtAsc(true)
 
-    fun markAsReprocessed(id: UUID, success: Boolean, errorMessage: String? = null) {
-        val message = deadLetterMessageRepository.findById(id)
-            .orElseThrow { IllegalArgumentException("Dead letter message not found: $id") }
+    fun markAsReprocessed(
+        id: UUID,
+        success: Boolean,
+        errorMessage: String? = null,
+    ) {
+        val message =
+            deadLetterMessageRepository
+                .findById(id)
+                .orElseThrow { IllegalArgumentException("Dead letter message not found: $id") }
 
         message.reprocess = false
         message.reprocessedAt = LocalDateTime.now()

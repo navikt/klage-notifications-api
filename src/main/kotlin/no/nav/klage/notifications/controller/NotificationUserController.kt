@@ -10,8 +10,13 @@ import no.nav.klage.notifications.service.NotificationService
 import no.nav.klage.notifications.util.TokenUtil
 import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.*
-import java.util.*
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
+import java.util.UUID
 
 @Tag(name = "user", description = "API for user notifications")
 @ProtectedWithClaims(issuer = SecurityConfiguration.ISSUER_AAD)
@@ -21,12 +26,11 @@ class NotificationUserController(
     private val notificationService: NotificationService,
     private val tokenUtil: TokenUtil,
 ) {
-
     @Operation(summary = "Mark a notification as read", description = "Marks a specific notification as read for the current user")
     @ApiResponse(responseCode = "200", description = "Notification marked as read successfully")
     @PatchMapping("/{id}/read")
     fun markAsRead(
-        @Parameter(description = "Notification ID") @PathVariable id: UUID
+        @Parameter(description = "Notification ID") @PathVariable id: UUID,
     ) {
         val navIdent = tokenUtil.getIdent()
         notificationService.markAsRead(id = id, navIdent = navIdent)
@@ -44,7 +48,7 @@ class NotificationUserController(
     @ApiResponse(responseCode = "200", description = "Notification marked as unread successfully")
     @PatchMapping("/{id}/unread")
     fun setUnread(
-        @Parameter(description = "Notification ID") @PathVariable id: UUID
+        @Parameter(description = "Notification ID") @PathVariable id: UUID,
     ) {
         val navIdent = tokenUtil.getIdent()
         notificationService.setUnread(id = id, navIdent = navIdent)
@@ -54,17 +58,20 @@ class NotificationUserController(
     @ApiResponse(responseCode = "200", description = "Notifications marked as read successfully")
     @PatchMapping("/read-multiple")
     fun markMultipleAsRead(
-        @Parameter(description = "List of notification IDs to mark as read") @RequestBody notificationIdList: List<UUID>
+        @Parameter(description = "List of notification IDs to mark as read") @RequestBody notificationIdList: List<UUID>,
     ) {
         val navIdent = tokenUtil.getIdent()
         notificationService.markMultipleAsRead(notificationIdList = notificationIdList, navIdent = navIdent)
     }
 
-    @Operation(summary = "Mark multiple notifications as unread", description = "Marks multiple notifications as unread for the current user")
+    @Operation(
+        summary = "Mark multiple notifications as unread",
+        description = "Marks multiple notifications as unread for the current user",
+    )
     @ApiResponse(responseCode = "200", description = "Notifications marked as unread successfully")
     @PatchMapping("/unread-multiple")
     fun markMultipleAsUnread(
-        @Parameter(description = "List of notification IDs to mark as unread") @RequestBody notificationIdList: List<UUID>
+        @Parameter(description = "List of notification IDs to mark as unread") @RequestBody notificationIdList: List<UUID>,
     ) {
         val navIdent = tokenUtil.getIdent()
         notificationService.markMultipleAsUnread(notificationIdList = notificationIdList, navIdent = navIdent)
@@ -72,7 +79,9 @@ class NotificationUserController(
 
     @Operation(
         summary = "Get count of unread MELDING (for now) notifications for behandling",
-        description = "Returns the number of unread MELDING notifications for a specific behandlingId. Only counts notifications of type MELDING that are not marked as deleted.",
+        description =
+            "Returns the number of unread MELDING notifications for a specific behandlingId. " +
+                "Only counts notifications of type MELDING that are not marked as deleted.",
     )
     @ApiResponse(
         responseCode = "200",

@@ -39,7 +39,6 @@ import java.time.Instant
  * (a handful at startup + one per actual SSE disconnect).
  */
 class SseErrorSuppressingProvider : AutoConfigurationCustomizerProvider {
-
     init {
         logJson("SseErrorSuppressingProvider instance constructed")
     }
@@ -65,7 +64,10 @@ class SseErrorSuppressingProvider : AutoConfigurationCustomizerProvider {
  * Prints a structured JSON log line to stdout, compatible with the
  * JSON log format expected by Grafana Loki / NAIS log pipelines.
  */
-private fun logJson(message: String, extraFields: Map<String, String> = emptyMap()) {
+private fun logJson(
+    message: String,
+    extraFields: Map<String, String> = emptyMap(),
+) {
     val sb = StringBuilder()
     sb.append("{")
     sb.append("\"@timestamp\":\"").append(Instant.now()).append("\",")
@@ -75,41 +77,48 @@ private fun logJson(message: String, extraFields: Map<String, String> = emptyMap
     sb.append("\"level\":\"DEBUG\",")
     sb.append("\"level_value\":10000")
     for ((key, value) in extraFields) {
-        sb.append(",\"").append(escapeJson(key)).append("\":\"").append(escapeJson(value)).append("\"")
+        sb
+            .append(",\"")
+            .append(escapeJson(key))
+            .append("\":\"")
+            .append(escapeJson(value))
+            .append("\"")
     }
     sb.append("}")
     println(sb.toString())
 }
 
 private fun escapeJson(value: String): String =
-    value.replace("\\", "\\\\")
-        .replace("\"", "\\\"")
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
-        .replace("\t", "\\t")
+    value
+        .replace(oldValue = "\\", newValue = "\\\\")
+        .replace(oldValue = "\"", newValue = "\\\"")
+        .replace(oldValue = "\n", newValue = "\\n")
+        .replace(oldValue = "\r", newValue = "\\r")
+        .replace(oldValue = "\t", newValue = "\\t")
 
 internal class SseErrorSuppressingSpanExporter(
     private val delegate: SpanExporter,
 ) : SpanExporter {
-
     override fun export(spans: Collection<SpanData>): CompletableResultCode {
-        val rewritten = spans.map { sd ->
-            if (shouldRewrite(sd)) {
-                logJson(
-                    "rewriting ERROR -> OK on SSE span",
-                    mapOf(
-                        "spanName" to sd.name,
-                        "traceId" to sd.traceId,
-                        "spanId" to sd.spanId,
-                        "events" to sd.events.size.toString(),
-                        "statusDesc" to (sd.status.description ?: ""),
+        val rewritten =
+            spans.map { sd ->
+                if (shouldRewrite(sd)) {
+                    logJson(
+                        message = "rewriting ERROR -> OK on SSE span",
+                        extraFields =
+                            mapOf(
+                                "spanName" to sd.name,
+                                "traceId" to sd.traceId,
+                                "spanId" to sd.spanId,
+                                "events" to sd.events.size.toString(),
+                                "statusDesc" to (sd.status.description ?: ""),
+                            ),
                     )
-                )
-                StatusOverridingSpanData(sd, OK_STATUS)
-            } else {
-                sd
+                    StatusOverridingSpanData(delegate = sd, overriddenStatus = OK_STATUS)
+                } else {
+                    sd
+                }
             }
-        }
         return delegate.export(rewritten)
     }
 
@@ -143,8 +152,8 @@ internal class SseErrorSuppressingSpanExporter(
             val message = event.attributes.get(EXCEPTION_MESSAGE)
             val type = event.attributes.get(EXCEPTION_TYPE)
             if (DISCONNECT_INDICATORS.any { needle ->
-                    message?.contains(needle, ignoreCase = true) == true ||
-                        type?.contains(needle, ignoreCase = true) == true
+                    message?.contains(other = needle, ignoreCase = true) == true ||
+                        type?.contains(other = needle, ignoreCase = true) == true
                 }
             ) {
                 return true
@@ -152,7 +161,7 @@ internal class SseErrorSuppressingSpanExporter(
         }
 
         val description = sd.status.description
-        if (description != null && DISCONNECT_INDICATORS.any { description.contains(it, ignoreCase = true) }) {
+        if (description != null && DISCONNECT_INDICATORS.any { description.contains(other = it, ignoreCase = true) }) {
             return true
         }
 
@@ -177,19 +186,21 @@ internal class SseErrorSuppressingSpanExporter(
         private const val SSE_PATH = "/user/notifications/events"
 
         // Substrings of exception messages / types that indicate a client disconnect.
-        private val DISCONNECT_INDICATORS = listOf(
-            "Broken pipe",
-            "Connection reset by peer",
-            "ClientAbortException",
-            "AsyncRequestNotUsableException",
-            "EofException",
-            "Response already committed",
-        )
+        private val DISCONNECT_INDICATORS =
+            listOf(
+                "Broken pipe",
+                "Connection reset by peer",
+                "ClientAbortException",
+                "AsyncRequestNotUsableException",
+                "EofException",
+                "Response already committed",
+            )
 
-        private val OK_STATUS: StatusData = StatusData.create(
-            StatusCode.OK,
-            "Client disconnected (expected for SSE)",
-        )
+        private val OK_STATUS: StatusData =
+            StatusData.create(
+                StatusCode.OK,
+                "Client disconnected (expected for SSE)",
+            )
     }
 }
 

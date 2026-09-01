@@ -6,13 +6,13 @@ import org.testcontainers.containers.wait.strategy.HostPortWaitStrategy
 import org.testcontainers.postgresql.PostgreSQLContainer
 
 abstract class PostgresIntegrationTestBase {
-
     companion object {
-        private val postgres = PostgreSQLContainer("postgres:18.0").apply {
-            waitingFor(HostPortWaitStrategy())
-            withReuse(true)
-            start()
-        }
+        private val postgres =
+            PostgreSQLContainer("postgres:18.0").apply {
+                waitingFor(HostPortWaitStrategy())
+                withReuse(true)
+                start()
+            }
 
         @JvmStatic
         @DynamicPropertySource

@@ -37,52 +37,54 @@ class AivenKafkaConfiguration(
     @Value($$"${spring.profiles.active:local}")
     private val springProfile: String,
 ) {
-
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
     }
 
-    //Common config bean
+    // Common config bean
     @Bean
-    fun commonKafkaConfig(): Map<String, Any> = mapOf(
-        BOOTSTRAP_SERVERS_CONFIG to kafkaBrokers
-    ) + securityConfig()
+    fun commonKafkaConfig(): Map<String, Any> =
+        mapOf(
+            BOOTSTRAP_SERVERS_CONFIG to kafkaBrokers,
+        ) + securityConfig()
 
-    //Producer bean
+    // Producer bean
     @Bean
     fun aivenKafkaTemplate(commonKafkaConfig: Map<String, Any>): KafkaTemplate<String, Any> {
-        val config = mapOf(
-            ProducerConfig.CLIENT_ID_CONFIG to "klage-notifications-api-$springProfile-producer",
-            ProducerConfig.ACKS_CONFIG to "1",
-            ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
-            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to JacksonJsonSerializer::class.java
-        ) + commonKafkaConfig
+        val config =
+            mapOf(
+                ProducerConfig.CLIENT_ID_CONFIG to "klage-notifications-api-$springProfile-producer",
+                ProducerConfig.ACKS_CONFIG to "1",
+                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to JacksonJsonSerializer::class.java,
+            ) + commonKafkaConfig
 
         return KafkaTemplate(DefaultKafkaProducerFactory(config))
     }
 
-    //Consumer factory bean
+    // Consumer factory bean
     @Bean
     fun consumerFactory(commonKafkaConfig: Map<String, Any>): ConsumerFactory<String, CreateNotificationEvent> {
-        val config = mapOf(
-            ConsumerConfig.GROUP_ID_CONFIG to "klage-notifications-api-$springProfile-consumer",
-            ConsumerConfig.CLIENT_ID_CONFIG to "klage-notifications-api-$springProfile-client",
-            ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG to false,
-            ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
-            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to ErrorHandlingDeserializer::class.java,
-            ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS to JacksonJsonDeserializer::class.java.name,
-            JacksonJsonDeserializer.TRUSTED_PACKAGES to "*",
-            JacksonJsonDeserializer.VALUE_DEFAULT_TYPE to CreateNotificationEvent::class.java.name
-        ) + commonKafkaConfig
+        val config =
+            mapOf(
+                ConsumerConfig.GROUP_ID_CONFIG to "klage-notifications-api-$springProfile-consumer",
+                ConsumerConfig.CLIENT_ID_CONFIG to "klage-notifications-api-$springProfile-client",
+                ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG to false,
+                ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
+                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to ErrorHandlingDeserializer::class.java,
+                ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS to JacksonJsonDeserializer::class.java.name,
+                JacksonJsonDeserializer.TRUSTED_PACKAGES to "*",
+                JacksonJsonDeserializer.VALUE_DEFAULT_TYPE to CreateNotificationEvent::class.java.name,
+            ) + commonKafkaConfig
 
         return DefaultKafkaConsumerFactory(config)
     }
 
-    //Kafka listener container factory bean
+    // Kafka listener container factory bean
     @Bean
     fun kafkaListenerContainerFactory(
-        consumerFactory: ConsumerFactory<String, CreateNotificationEvent>
+        consumerFactory: ConsumerFactory<String, CreateNotificationEvent>,
     ): ConcurrentKafkaListenerContainerFactory<String, CreateNotificationEvent> {
         val factory = ConcurrentKafkaListenerContainerFactory<String, CreateNotificationEvent>()
         factory.setConsumerFactory(consumerFactory)
@@ -91,16 +93,16 @@ class AivenKafkaConfiguration(
         return factory
     }
 
-    private fun securityConfig() = mapOf(
-        CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to "SSL",
-        SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG to "", // Disable server host name verification
-        SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG to "JKS",
-        SslConfigs.SSL_KEYSTORE_TYPE_CONFIG to "PKCS12",
-        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to kafkaTruststorePath,
-        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to kafkaCredstorePassword,
-        SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG to kafkaKeystorePath,
-        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to kafkaCredstorePassword,
-        SslConfigs.SSL_KEY_PASSWORD_CONFIG to kafkaCredstorePassword,
-    )
-
+    private fun securityConfig() =
+        mapOf(
+            CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to "SSL",
+            SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG to "", // Disable server host name verification
+            SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG to "JKS",
+            SslConfigs.SSL_KEYSTORE_TYPE_CONFIG to "PKCS12",
+            SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to kafkaTruststorePath,
+            SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to kafkaCredstorePassword,
+            SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG to kafkaKeystorePath,
+            SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to kafkaCredstorePassword,
+            SslConfigs.SSL_KEY_PASSWORD_CONFIG to kafkaCredstorePassword,
+        )
 }

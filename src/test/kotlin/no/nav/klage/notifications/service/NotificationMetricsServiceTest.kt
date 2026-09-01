@@ -11,10 +11,9 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 class NotificationMetricsServiceTest {
-
     private lateinit var meterRegistry: PrometheusMeterRegistry
     private lateinit var metricsService: NotificationMetricsService
 
@@ -58,9 +57,11 @@ class NotificationMetricsServiceTest {
         metricsService.recordNotificationCreated(notification)
 
         // Then
-        val counter = meterRegistry.find("klage_notifications_total_counter")
-            .tag("notification_type", "MELDING")
-            .counter()
+        val counter =
+            meterRegistry
+                .find("klage_notifications_total_counter")
+                .tag("notification_type", "MELDING")
+                .counter()
 
         assertThat(counter).isNotNull
         assertThat(counter!!.count()).isEqualTo(1.0)
@@ -76,16 +77,20 @@ class NotificationMetricsServiceTest {
         metricsService.recordNotificationRead(notification)
 
         // Then
-        val readCounter = meterRegistry.find("klage_notifications_read_events_total_counter")
-            .tag("notification_type", "MELDING")
-            .counter()
+        val readCounter =
+            meterRegistry
+                .find("klage_notifications_read_events_total_counter")
+                .tag("notification_type", "MELDING")
+                .counter()
 
         assertThat(readCounter).isNotNull
         assertThat(readCounter!!.count()).isEqualTo(1.0)
 
-        val timer = meterRegistry.find("klage_notifications_time_to_read_seconds_timer")
-            .tag("notification_type", "MELDING")
-            .timer()
+        val timer =
+            meterRegistry
+                .find("klage_notifications_time_to_read_seconds_timer")
+                .tag("notification_type", "MELDING")
+                .timer()
 
         assertThat(timer).isNotNull
         assertThat(timer!!.count()).isEqualTo(1L)
@@ -100,9 +105,11 @@ class NotificationMetricsServiceTest {
         metricsService.recordNotificationUnread(notification)
 
         // Then
-        val counter = meterRegistry.find("klage_notifications_unread_events_total_counter")
-            .tag("notification_type", "MELDING")
-            .counter()
+        val counter =
+            meterRegistry
+                .find("klage_notifications_unread_events_total_counter")
+                .tag("notification_type", "MELDING")
+                .counter()
 
         assertThat(counter).isNotNull
         assertThat(counter!!.count()).isEqualTo(1.0)
@@ -117,9 +124,11 @@ class NotificationMetricsServiceTest {
         metricsService.recordNotificationDeleted(notification)
 
         // Then
-        val counter = meterRegistry.find("klage_notifications_deleted_events_total_counter")
-            .tag("notification_type", "MELDING")
-            .counter()
+        val counter =
+            meterRegistry
+                .find("klage_notifications_deleted_events_total_counter")
+                .tag("notification_type", "MELDING")
+                .counter()
 
         assertThat(counter).isNotNull
         assertThat(counter!!.count()).isEqualTo(1.0)
@@ -134,9 +143,11 @@ class NotificationMetricsServiceTest {
         metricsService.recordSystemNotificationCreated(notification)
 
         // Then
-        val counter = meterRegistry.find("klage_notifications_total_counter")
-            .tag("notification_type", "SYSTEM")
-            .counter()
+        val counter =
+            meterRegistry
+                .find("klage_notifications_total_counter")
+                .tag("notification_type", "SYSTEM")
+                .counter()
 
         assertThat(counter).isNotNull
         assertThat(counter!!.count()).isEqualTo(1.0)
@@ -145,24 +156,29 @@ class NotificationMetricsServiceTest {
     @Test
     fun `test record multiple notifications read`() {
         // Given
-        val notifications = listOf(
-            createMeldingNotification(),
-            createMeldingNotification(),
-            createLostAccessNotification(),
-        )
+        val notifications =
+            listOf(
+                createMeldingNotification(),
+                createMeldingNotification(),
+                createLostAccessNotification(),
+            )
         notifications.forEach { it.readAt = LocalDateTime.now() }
 
         // When
         metricsService.recordMultipleNotificationsRead(notifications)
 
         // Then
-        val meldingCounters = meterRegistry.find("klage_notifications_read_events_total_counter")
-            .tag("notification_type", "MELDING")
-            .counters()
+        val meldingCounters =
+            meterRegistry
+                .find("klage_notifications_read_events_total_counter")
+                .tag("notification_type", "MELDING")
+                .counters()
 
-        val lostAccessCounters = meterRegistry.find("klage_notifications_read_events_total_counter")
-            .tag("notification_type", "LOST_ACCESS")
-            .counters()
+        val lostAccessCounters =
+            meterRegistry
+                .find("klage_notifications_read_events_total_counter")
+                .tag("notification_type", "LOST_ACCESS")
+                .counters()
 
         assertThat(meldingCounters).isNotNull
         assertThat(lostAccessCounters).isNotNull
@@ -181,13 +197,17 @@ class NotificationMetricsServiceTest {
         metricsService.recordNotificationCreated(lostAccessNotification)
 
         // Then
-        val meldingCounters = meterRegistry.find("klage_notifications_total_counter")
-            .tag("notification_type", "MELDING")
-            .counters()
+        val meldingCounters =
+            meterRegistry
+                .find("klage_notifications_total_counter")
+                .tag("notification_type", "MELDING")
+                .counters()
 
-        val lostAccessCounters = meterRegistry.find("klage_notifications_total_counter")
-            .tag("notification_type", "LOST_ACCESS")
-            .counters()
+        val lostAccessCounters =
+            meterRegistry
+                .find("klage_notifications_total_counter")
+                .tag("notification_type", "LOST_ACCESS")
+                .counters()
 
         assertThat(meldingCounters).isNotNull
         assertThat(lostAccessCounters).isNotNull

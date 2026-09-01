@@ -12,12 +12,11 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.test.context.ActiveProfiles
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 @ActiveProfiles("local")
 @DataJpaTest
 class NotificationDBIdempotencyTest : PostgresIntegrationTestBase() {
-
     @Autowired
     lateinit var meldingNotificationRepository: MeldingNotificationRepository
 
@@ -28,25 +27,26 @@ class NotificationDBIdempotencyTest : PostgresIntegrationTestBase() {
         val navIdent = "Z123456"
         val now = LocalDateTime.now()
 
-        val notification1 = MeldingNotification(
-            id = UUID.randomUUID(),
-            message = "First message",
-            navIdent = navIdent,
-            read = false,
-            createdAt = now,
-            updatedAt = now,
-            readAt = null,
-            markedAsDeleted = false,
-            kafkaMessageId = UUID.randomUUID(),
-            sourceCreatedAt = now,
-            behandlingId = behandlingId,
-            meldingId = meldingId,
-            actorNavIdent = "Z999999",
-            actorNavn = "Actor Name",
-            saksnummer = "202312345",
-            ytelse = Ytelse.SYK_SYK,
-            behandlingType = Type.KLAGE,
-        )
+        val notification1 =
+            MeldingNotification(
+                id = UUID.randomUUID(),
+                message = "First message",
+                navIdent = navIdent,
+                read = false,
+                createdAt = now,
+                updatedAt = now,
+                readAt = null,
+                markedAsDeleted = false,
+                kafkaMessageId = UUID.randomUUID(),
+                sourceCreatedAt = now,
+                behandlingId = behandlingId,
+                meldingId = meldingId,
+                actorNavIdent = "Z999999",
+                actorNavn = "Actor Name",
+                saksnummer = "202312345",
+                ytelse = Ytelse.SYK_SYK,
+                behandlingType = Type.KLAGE,
+            )
 
         meldingNotificationRepository.saveAndFlush(notification1)
         val countAfterFirst = meldingNotificationRepository.count()
@@ -54,25 +54,26 @@ class NotificationDBIdempotencyTest : PostgresIntegrationTestBase() {
 
         // Try to create another notification with the same meldingId but different id
         // This should fail due to unique constraint
-        val notification2 = MeldingNotification(
-            id = UUID.randomUUID(), // Different id
-            message = "Second message", // Different message
-            navIdent = navIdent,
-            read = false,
-            createdAt = now,
-            updatedAt = now,
-            readAt = null,
-            markedAsDeleted = false,
-            kafkaMessageId = UUID.randomUUID(),
-            sourceCreatedAt = now,
-            behandlingId = behandlingId,
-            meldingId = meldingId, // Same meldingId - should violate constraint
-            actorNavIdent = "Z999999",
-            actorNavn = "Actor Name",
-            saksnummer = "202312345",
-            ytelse = Ytelse.SYK_SYK,
-            behandlingType = Type.KLAGE,
-        )
+        val notification2 =
+            MeldingNotification(
+                id = UUID.randomUUID(), // Different id
+                message = "Second message", // Different message
+                navIdent = navIdent,
+                read = false,
+                createdAt = now,
+                updatedAt = now,
+                readAt = null,
+                markedAsDeleted = false,
+                kafkaMessageId = UUID.randomUUID(),
+                sourceCreatedAt = now,
+                behandlingId = behandlingId,
+                meldingId = meldingId, // Same meldingId - should violate constraint
+                actorNavIdent = "Z999999",
+                actorNavn = "Actor Name",
+                saksnummer = "202312345",
+                ytelse = Ytelse.SYK_SYK,
+                behandlingType = Type.KLAGE,
+            )
 
         // Attempt to save should throw constraint violation exception
         assertThrows<DataIntegrityViolationException> {
