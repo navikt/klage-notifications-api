@@ -94,7 +94,7 @@ class NotificationRepositoryValidationTest : PostgresIntegrationTestBase() {
                 behandlingId = behandlingId,
                 saksnummer = "202312345",
                 ytelse = Ytelse.SYK_SYK,
-                behandlingType = Type.ANKE,
+                behandlingType = Type.ANKE_FOER_2027,
             )
 
         // Create a read LostAccessNotification for user 2 (different navIdent to avoid unique constraint violation)
@@ -113,7 +113,7 @@ class NotificationRepositoryValidationTest : PostgresIntegrationTestBase() {
                 behandlingId = behandlingId,
                 saksnummer = "202312345",
                 ytelse = Ytelse.SYK_SYK,
-                behandlingType = Type.ANKE,
+                behandlingType = Type.ANKE_FOER_2027,
             )
 
         lostAccessNotificationRepository.save(unreadLostAccess)
@@ -320,6 +320,6 @@ class NotificationRepositoryValidationTest : PostgresIntegrationTestBase() {
             behandlingId = behandlingId,
             saksnummer = "202312345",
             ytelse = Ytelse.SYK_SYK,
-            behandlingType = Type.ANKE,
+            behandlingType = Type.ANKE_FOER_2027,
         )
 }
