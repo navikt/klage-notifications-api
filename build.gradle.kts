@@ -10,7 +10,7 @@ val tokenValidationVersion = "6.0.12"
 val logstashVersion = "9.0"
 val reactorKafkaVersion = "1.3.25"
 val springDocVersion = "3.1.0"
-val shedlockVersion = "7.8.0"
+val shedlockVersion = "7.9.0"
 val otelVersion = "1.65.0"
 
 plugins {
