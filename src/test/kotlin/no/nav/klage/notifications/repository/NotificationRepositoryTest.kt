@@ -97,7 +97,7 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
                 behandlingId = behandlingId,
                 saksnummer = "202398765",
                 ytelse = Ytelse.SYK_SYK,
-                behandlingType = Type.ANKE,
+                behandlingType = Type.ANKE_FOER_2027,
             )
 
         val saved = lostAccessNotificationRepository.save(lostAccessNotification)
@@ -108,7 +108,7 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
         assertThat(found).isPresent
         assertThat(found.get()).isEqualTo(saved)
         assertThat(found.get().behandlingId).isEqualTo(behandlingId)
-        assertThat(found.get().behandlingType).isEqualTo(Type.ANKE)
+        assertThat(found.get().behandlingType).isEqualTo(Type.ANKE_FOER_2027)
         assertThat(found.get().navIdent).isEqualTo(navIdent)
     }
 
@@ -133,7 +133,7 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
                 behandlingId = behandlingId,
                 saksnummer = "202398765",
                 ytelse = Ytelse.SYK_SYK,
-                behandlingType = Type.ANKE,
+                behandlingType = Type.ANKE_FOER_2027,
             )
 
         val saved = gainedAccessNotificationRepository.save(gainedAccessNotification)
@@ -144,7 +144,7 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
         assertThat(found).isPresent
         assertThat(found.get()).isEqualTo(saved)
         assertThat(found.get().behandlingId).isEqualTo(behandlingId)
-        assertThat(found.get().behandlingType).isEqualTo(Type.ANKE)
+        assertThat(found.get().behandlingType).isEqualTo(Type.ANKE_FOER_2027)
         assertThat(found.get().navIdent).isEqualTo(navIdent)
     }
 
@@ -192,7 +192,7 @@ class NotificationRepositoryTest : PostgresIntegrationTestBase() {
                 behandlingId = sharedBehandlingId,
                 saksnummer = "202312345",
                 ytelse = Ytelse.SYK_SYK,
-                behandlingType = Type.ANKE,
+                behandlingType = Type.ANKE_FOER_2027,
             )
 
         // Create another MeldingNotification with a different behandlingId (should not be returned)
