@@ -9,12 +9,12 @@ val mockkVersion = "1.14.11"
 val tokenValidationVersion = "6.0.12"
 val logstashVersion = "9.0"
 val reactorKafkaVersion = "1.3.25"
-val springDocVersion = "3.1.0"
-val shedlockVersion = "7.9.0"
+val springDocVersion = "3.1.1"
+val shedlockVersion = "7.10.0"
 val otelVersion = "1.65.0"
 
 plugins {
-    val kotlinVersion = "2.4.10"
+    val kotlinVersion = "2.4.20"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
     kotlin("plugin.jpa") version kotlinVersion
