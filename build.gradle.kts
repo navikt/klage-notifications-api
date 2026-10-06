@@ -1,3 +1,4 @@
+import dev.detekt.gradle.plugin.getSupportedKotlinVersion
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
@@ -9,12 +10,12 @@ val mockkVersion = "1.14.11"
 val tokenValidationVersion = "6.0.12"
 val logstashVersion = "9.0"
 val reactorKafkaVersion = "1.3.25"
-val springDocVersion = "3.1.0"
-val shedlockVersion = "7.9.0"
-val otelVersion = "1.65.0"
+val springDocVersion = "3.1.1"
+val shedlockVersion = "7.10.1"
+val otelVersion = "1.66.0"
 
 plugins {
-    val kotlinVersion = "2.4.10"
+    val kotlinVersion = "2.4.20"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
     kotlin("plugin.jpa") version kotlinVersion
@@ -46,6 +47,27 @@ allprojects {
         config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
         buildUponDefaultConfig.set(true)
         ignoreFailures.set(false)
+    }
+
+    // io.spring.dependency-management applies the Kotlin BOM to every configuration,
+    // which would force the linters onto the project's Kotlin compiler. Both tools are
+    // built against a specific compiler version and break when it changes.
+    configurations.matching { it.name == "detekt" }.configureEach {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "org.jetbrains.kotlin") {
+                useVersion(getSupportedKotlinVersion())
+            }
+        }
+    }
+
+    // ktlint-gradle has no equivalent of getSupportedKotlinVersion(), so keep the
+    // version that ktlint itself declares instead of the one forced by the BOM.
+    configurations.matching { it.name.startsWith("ktlint") }.configureEach {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "org.jetbrains.kotlin") {
+                useVersion(requested.version!!)
+            }
+        }
     }
 
     // NamedArguments implements RequiresAnalysisApi, so it only reports when detekt
