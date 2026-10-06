@@ -6,5 +6,6 @@
 
 /build/
 /out/
+/otel-extension/build/
 
 .DS_Store
