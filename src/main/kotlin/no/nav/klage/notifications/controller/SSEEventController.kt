@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import no.nav.klage.notifications.config.SecurityConfiguration
+import no.nav.klage.notifications.config.SseShutdownSignal
 import no.nav.klage.notifications.domain.GainedAccessNotification
 import no.nav.klage.notifications.domain.LostAccessNotification
 import no.nav.klage.notifications.domain.MeldingNotification
@@ -55,6 +56,7 @@ class SSEEventController(
     private val notificationService: NotificationService,
     private val tokenUtil: TokenUtil,
     private val environment: Environment,
+    private val sseShutdownSignal: SseShutdownSignal,
 ) {
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
@@ -365,12 +367,14 @@ data: {
                     clientTraceparent = traceparent,
                 )
 
+            // The stream completes when the application shuts down. The client then reconnects, normally to another pod.
             return getFirstHeartbeat()
                 .mergeWith(heartbeatStream)
                 .mergeWith(previousNotificationsAsSSEEvents)
                 .mergeWith(internalNotificationChangeEventPublisher)
                 .mergeWith(internalNotificationEventPublisher)
                 .mergeWith(systemNotificationEventPublisher)
+                .takeUntilOther(sseShutdownSignal.asMono())
         } finally {
             scope?.close()
             span?.end()
