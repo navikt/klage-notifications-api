@@ -46,6 +46,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Flux
+import reactor.core.scheduler.Schedulers
 import java.time.Duration
 
 @RestController
@@ -374,6 +375,7 @@ data: {
                 .mergeWith(internalNotificationChangeEventPublisher)
                 .mergeWith(internalNotificationEventPublisher)
                 .mergeWith(systemNotificationEventPublisher)
+                .cancelOn(Schedulers.boundedElastic())
                 .takeUntilOther(sseShutdownSignal.asMono())
         } finally {
             scope?.close()
