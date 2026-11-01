@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.media.ExampleObject
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
-import no.nav.klage.notifications.config.SecurityConfiguration
 import no.nav.klage.notifications.config.SseShutdownSignal
 import no.nav.klage.notifications.domain.GainedAccessNotification
 import no.nav.klage.notifications.domain.LostAccessNotification
@@ -38,7 +37,6 @@ import no.nav.klage.notifications.util.currentTraceparent
 import no.nav.klage.notifications.util.extractTraceparentFromKafkaHeaders
 import no.nav.klage.notifications.util.getLogger
 import no.nav.klage.notifications.util.withTraceparent
-import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.core.env.Environment
 import org.springframework.http.MediaType
 import org.springframework.http.codec.ServerSentEvent
@@ -51,7 +49,6 @@ import java.time.Duration
 
 @RestController
 @Tag(name = "user", description = "API for user notifications")
-@ProtectedWithClaims(issuer = SecurityConfiguration.ISSUER_AAD)
 class SSEEventController(
     private val aivenKafkaClientCreator: AivenKafkaClientCreator,
     private val notificationService: NotificationService,

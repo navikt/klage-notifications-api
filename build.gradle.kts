@@ -7,7 +7,7 @@ val ktlintVersion = "1.8.0"
 val klageKodeverkVersion = "3.4.5"
 val springMockkVersion = "5.0.1"
 val mockkVersion = "1.14.11"
-val tokenValidationVersion = "6.0.12"
+val klageAuthVersion = "0.3.0"
 val logstashVersion = "9.0"
 val reactorKafkaVersion = "1.3.25"
 val springDocVersion = "3.1.1"
@@ -118,6 +118,7 @@ dependencies {
     implementation("org.eclipse.jetty.http2:jetty-http2-server")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -128,11 +129,11 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation("com.zaxxer:HikariCP")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("tools.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("net.logstash.logback:logstash-logback-encoder:$logstashVersion")
     implementation("no.nav.klage:klage-kodeverk:$klageKodeverkVersion")
-    implementation("no.nav.security:token-validation-spring:$tokenValidationVersion")
-    implementation("no.nav.security:token-client-spring:$tokenValidationVersion")
+    implementation("no.nav.klage:klage-auth:$klageAuthVersion")
     implementation("io.micrometer:micrometer-registry-prometheus")
     implementation("io.opentelemetry:opentelemetry-api:$otelVersion")
     implementation("net.javacrumbs.shedlock:shedlock-spring:$shedlockVersion")
@@ -152,6 +153,8 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testImplementation("io.mockk:mockk:$mockkVersion")
     testImplementation("com.ninja-squad:springmockk:$springMockkVersion")
+    testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+    testImplementation("no.nav.klage:klage-auth-test:$klageAuthVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

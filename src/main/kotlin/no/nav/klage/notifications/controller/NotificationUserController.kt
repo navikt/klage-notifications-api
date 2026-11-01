@@ -4,11 +4,9 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
-import no.nav.klage.notifications.config.SecurityConfiguration
 import no.nav.klage.notifications.dto.view.UnreadNotificationCountResponse
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.klage.notifications.util.TokenUtil
-import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -19,7 +17,6 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 @Tag(name = "user", description = "API for user notifications")
-@ProtectedWithClaims(issuer = SecurityConfiguration.ISSUER_AAD)
 @RestController
 @RequestMapping("/user/notifications", "/notifications")
 class NotificationUserController(
