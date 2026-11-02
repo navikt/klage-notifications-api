@@ -1,6 +1,10 @@
 spring:
   application:
     name: klage-notifications-api
+  web:
+    error:
+      include-message: never
+      include-stacktrace: never
 
   datasource:
     url: ${NAIS_DATABASE_KLAGE_NOTIFICATIONS_API_KLAGE_NOTIFICATIONS_API_JDBC_URL}
@@ -20,7 +24,7 @@ spring:
 management:
   endpoint:
     health:
-      show-details: always
+      show-details: never
   endpoints.web:
     exposure:
       include: info, health, metrics, prometheus
@@ -36,20 +40,6 @@ management:
 server:
   port: 8080
 
-no.nav.security.jwt:
-  client:
-    registration:
-      azure-onbehalfof:
-        token-endpoint-url: https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token
-        grant-type: urn:ietf:params:oauth:grant-type:jwt-bearer
-        scope: https://graph.microsoft.com/.default
-        authentication:
-          client-id: ${AZURE_APP_CLIENT_ID}
-          client-jwk: ${AZURE_APP_JWK}
-          client-auth-method: private_key_jwt
-  issuer.aad:
-    discoveryurl: ${AZURE_APP_WELL_KNOWN_URL}
-    accepted_audience: ${AZURE_APP_CLIENT_ID}
 
 NOTIFICATION_EVENTS_TOPIC: klage.klage-notification-events.v1
 NOTIFICATION_INTERNAL_EVENTS_TOPIC: klage.klage-notification-internal-events.v1

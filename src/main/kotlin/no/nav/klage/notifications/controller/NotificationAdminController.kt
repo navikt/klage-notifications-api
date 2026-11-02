@@ -4,14 +4,12 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
-import no.nav.klage.notifications.config.SecurityConfiguration
 import no.nav.klage.notifications.dto.CreateSystemNotificationRequest
 import no.nav.klage.notifications.dto.TransferNotificationOwnershipRequest
 import no.nav.klage.notifications.dto.view.LostAccessNotificationResponse
 import no.nav.klage.notifications.dto.view.SystemNotificationResponse
 import no.nav.klage.notifications.service.NotificationAggregateMetricsService
 import no.nav.klage.notifications.service.NotificationService
-import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -27,7 +25,6 @@ import java.util.UUID
     name = "admin",
     description = "API for managing notifications",
 )
-@ProtectedWithClaims(issuer = SecurityConfiguration.ISSUER_AAD)
 @RestController
 @RequestMapping("/admin/notifications")
 class NotificationAdminController(

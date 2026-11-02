@@ -51,10 +51,6 @@
 
         <logger name="org.springframework.data.convert.CustomConversions" level="error"/>
 
-        <logger name="no.nav.security.token.support" level="info" additivity="false">
-            <appender-ref ref="team-logs"/>
-        </logger>
-
         <logger name="org.hibernate.SQL_SLOW" level="debug"/>
         <logger name="org.hibernate.orm.connections.pooling" level="warn"/>
 
