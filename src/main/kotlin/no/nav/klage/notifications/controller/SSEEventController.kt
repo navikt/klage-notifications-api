@@ -458,66 +458,75 @@ data: {
     ): Flux<ServerSentEvent<Any>> =
         sharedChangeEvents
             .filter { (recipientNavIdent, _) -> recipientNavIdent == navIdent || recipientNavIdent == "*" }
-            .map { (_, tracedEvent) ->
-                withTraceparent(traceparent = tracedEvent.traceparent, linkTraceparent = clientTraceparent) {
-                    val changeEvent = tracedEvent.event
-                    when (changeEvent.type) {
-                        NotificationChangeEvent.Type.READ -> {
-                            ServerSentEvent
-                                .builder<Any>()
-                                .id("${changeEvent.updatedAt}_${changeEvent.id}")
-                                .event(Action.READ.lower)
-                                .data(NotificationChanged(id = changeEvent.id!!, traceparent = currentTraceparent()))
-                                .build()
-                        }
+            .mapNotNull { (_, tracedEvent) ->
+                // An exception here would terminate the SSE stream for the client, so skip invalid events instead
+                runCatching { toChangeServerSentEvent(tracedEvent, clientTraceparent) }
+                    .onFailure { logger.error("Could not map notification change event to SSE, skipping it", it) }
+                    .getOrNull()
+            }
 
-                        NotificationChangeEvent.Type.READ_MULTIPLE -> {
-                            ServerSentEvent
-                                .builder<Any>()
-                                .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
-                                .event(Action.READ_MULTIPLE.lower)
-                                .data(NotificationMultipleChanged(ids = changeEvent.ids, traceparent = currentTraceparent()))
-                                .build()
-                        }
+    private fun toChangeServerSentEvent(
+        tracedEvent: KafkaEventWithTrace<NotificationChangeEvent>,
+        clientTraceparent: String?,
+    ): ServerSentEvent<Any> =
+        withTraceparent(traceparent = tracedEvent.traceparent, linkTraceparent = clientTraceparent) {
+            val changeEvent = tracedEvent.event
+            when (changeEvent.type) {
+                NotificationChangeEvent.Type.READ -> {
+                    ServerSentEvent
+                        .builder<Any>()
+                        .id("${changeEvent.updatedAt}_${changeEvent.id}")
+                        .event(Action.READ.lower)
+                        .data(NotificationChanged(id = changeEvent.id!!, traceparent = currentTraceparent()))
+                        .build()
+                }
 
-                        NotificationChangeEvent.Type.UNREAD -> {
-                            ServerSentEvent
-                                .builder<Any>()
-                                .id("${changeEvent.updatedAt}_${changeEvent.id}")
-                                .event(Action.UNREAD.lower)
-                                .data(NotificationChanged(id = changeEvent.id!!, traceparent = currentTraceparent()))
-                                .build()
-                        }
+                NotificationChangeEvent.Type.READ_MULTIPLE -> {
+                    ServerSentEvent
+                        .builder<Any>()
+                        .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
+                        .event(Action.READ_MULTIPLE.lower)
+                        .data(NotificationMultipleChanged(ids = changeEvent.ids, traceparent = currentTraceparent()))
+                        .build()
+                }
 
-                        NotificationChangeEvent.Type.UNREAD_MULTIPLE -> {
-                            ServerSentEvent
-                                .builder<Any>()
-                                .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
-                                .event(Action.UNREAD_MULTIPLE.lower)
-                                .data(NotificationMultipleChanged(ids = changeEvent.ids, traceparent = currentTraceparent()))
-                                .build()
-                        }
+                NotificationChangeEvent.Type.UNREAD -> {
+                    ServerSentEvent
+                        .builder<Any>()
+                        .id("${changeEvent.updatedAt}_${changeEvent.id}")
+                        .event(Action.UNREAD.lower)
+                        .data(NotificationChanged(id = changeEvent.id!!, traceparent = currentTraceparent()))
+                        .build()
+                }
 
-                        NotificationChangeEvent.Type.DELETED -> {
-                            ServerSentEvent
-                                .builder<Any>()
-                                .id("${changeEvent.updatedAt}_${changeEvent.id}")
-                                .event(Action.DELETE.lower)
-                                .data(NotificationChanged(id = changeEvent.id!!, traceparent = currentTraceparent()))
-                                .build()
-                        }
+                NotificationChangeEvent.Type.UNREAD_MULTIPLE -> {
+                    ServerSentEvent
+                        .builder<Any>()
+                        .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
+                        .event(Action.UNREAD_MULTIPLE.lower)
+                        .data(NotificationMultipleChanged(ids = changeEvent.ids, traceparent = currentTraceparent()))
+                        .build()
+                }
 
-                        NotificationChangeEvent.Type.DELETED_MULTIPLE -> {
-                            ServerSentEvent
-                                .builder<Any>()
-                                .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
-                                .event(Action.DELETE_MULTIPLE.lower)
-                                .data(NotificationMultipleChanged(ids = changeEvent.ids, traceparent = currentTraceparent()))
-                                .build()
-                        }
-                    }
+                NotificationChangeEvent.Type.DELETED -> {
+                    ServerSentEvent
+                        .builder<Any>()
+                        .id("${changeEvent.updatedAt}_${changeEvent.id}")
+                        .event(Action.DELETE.lower)
+                        .data(NotificationChanged(id = changeEvent.id!!, traceparent = currentTraceparent()))
+                        .build()
+                }
+
+                NotificationChangeEvent.Type.DELETED_MULTIPLE -> {
+                    ServerSentEvent
+                        .builder<Any>()
+                        .id("${changeEvent.updatedAt}_${changeEvent.ids!!.first()}")
+                        .event(Action.DELETE_MULTIPLE.lower)
+                        .data(NotificationMultipleChanged(ids = changeEvent.ids, traceparent = currentTraceparent()))
+                        .build()
                 }
             }
+        }
 
     private fun getFirstHeartbeat(): Flux<ServerSentEvent<Any>> {
         val emitFirstHeartbeat =
