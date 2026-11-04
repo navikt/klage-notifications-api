@@ -109,11 +109,12 @@ class SSEEventControllerTest {
             mockk<NotificationService> {
                 every { getNotificationsByNavIdent(navIdent) } returns emptyList()
                 every { getAllSystemNotifications() } returns emptyList()
-                every { isSystemNotificationReadByUser(failing.id, navIdent) } throws RuntimeException("database unavailable")
-                every { isSystemNotificationReadByUser(working.id, navIdent) } returns false
+                every { isSystemNotificationReadByUser(systemNotificationId = failing.id, navIdent = navIdent) } throws
+                    RuntimeException("database unavailable")
+                every { isSystemNotificationReadByUser(systemNotificationId = working.id, navIdent = navIdent) } returns false
             }
 
-        val events = collectUntilShutdown(controller(kafkaClientCreator, notificationService))
+        val events = collectUntilShutdown(controller(kafkaClientCreator = kafkaClientCreator, notificationService = notificationService))
 
         assertThat(events.map(ServerSentEvent<Any>::event)).containsExactly("HEARTBEAT", "create")
         assertThat(events.last().id()).endsWith(working.id.toString())
