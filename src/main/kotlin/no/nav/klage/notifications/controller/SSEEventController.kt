@@ -418,20 +418,21 @@ data: {
     ): Flux<ServerSentEvent<Any>> =
         sharedInternalEvents
             .filter { (recipientNavIdent, _) -> recipientNavIdent == navIdent }
-            .flatMap { (_, tracedEvent) ->
+            .flatMapIterable { (_, tracedEvent) ->
                 withTraceparent(traceparent = tracedEvent.traceparent, linkTraceparent = clientTraceparent) {
-                    Flux.fromIterable(
-                        tracedEvent.event.notifications.map { notification ->
+                    tracedEvent.event.notifications.mapNotNull { notification ->
+                        // An exception here would terminate the SSE stream for the client, so skip invalid notifications instead
+                        runCatching {
                             val data = jsonToInternalNotificationEvent(notification)
-                            val id = "${data.createdAt}_${data.id}"
                             ServerSentEvent
                                 .builder<Any>()
-                                .id(id)
+                                .id("${data.createdAt}_${data.id}")
                                 .event(Action.CREATE.lower)
                                 .data(data)
                                 .build()
-                        },
-                    )
+                        }.onFailure { logger.error("Could not map notification ${notification.id} to SSE, skipping it", it) }
+                            .getOrNull()
+                    }
                 }
             }
 
@@ -440,16 +441,20 @@ data: {
         clientTraceparent: String?,
     ): Flux<ServerSentEvent<Any>> =
         sharedSystemNotificationEvents
-            .map { tracedEvent ->
-                withTraceparent(traceparent = tracedEvent.traceparent, linkTraceparent = clientTraceparent) {
-                    val data = systemNotificationToView(systemNotification = tracedEvent.event, navIdent = navIdent)
-                    ServerSentEvent
-                        .builder<Any>()
-                        .id("${tracedEvent.event.createdAt}_${tracedEvent.event.id}")
-                        .event(Action.CREATE.lower)
-                        .data(data)
-                        .build()
-                }
+            .mapNotNull { tracedEvent ->
+                // An exception here (e.g. a database error) would terminate the SSE stream for the client, so skip the event instead
+                runCatching {
+                    withTraceparent(traceparent = tracedEvent.traceparent, linkTraceparent = clientTraceparent) {
+                        val data = systemNotificationToView(systemNotification = tracedEvent.event, navIdent = navIdent)
+                        ServerSentEvent
+                            .builder<Any>()
+                            .id("${tracedEvent.event.createdAt}_${tracedEvent.event.id}")
+                            .event(Action.CREATE.lower)
+                            .data(data)
+                            .build()
+                    }
+                }.onFailure { logger.error("Could not map system notification ${tracedEvent.event.id} to SSE, skipping it", it) }
+                    .getOrNull()
             }
 
     private fun getInternalNotificationChangeEventPublisher(
@@ -729,7 +734,13 @@ data: {
             }.mapNotNull { consumerRecord ->
                 try {
                     val traceparent = extractTraceparentFromKafkaHeaders(consumerRecord.headers())
-                    val event = consumerRecord.value()
+                    val event: InternalNotificationEvent? = consumerRecord.value()
+
+                    if (event == null) {
+                        logger.error("Could not deserialize internal notification event at offset {}, skipping it", consumerRecord.offset())
+                        consumerRecord.receiverOffset().acknowledge()
+                        return@mapNotNull null
+                    }
 
                     if (event.notifications.isEmpty()) {
                         logger.warn("Received internal notification event with empty notifications at offset {}", consumerRecord.offset())
@@ -778,8 +789,15 @@ data: {
             }.mapNotNull { consumerRecord ->
                 try {
                     val traceparent = extractTraceparentFromKafkaHeaders(consumerRecord.headers())
+                    val event: SystemNotification? = consumerRecord.value()
                     consumerRecord.receiverOffset().acknowledge()
-                    KafkaEventWithTrace(event = consumerRecord.value(), traceparent = traceparent)
+
+                    if (event == null) {
+                        logger.error("Could not deserialize system notification event at offset {}, skipping it", consumerRecord.offset())
+                        return@mapNotNull null
+                    }
+
+                    KafkaEventWithTrace(event = event, traceparent = traceparent)
                 } catch (e: Exception) {
                     logger.error("Error processing system notification event at offset {}: ${e.message}", consumerRecord.offset(), e)
                     null
@@ -802,8 +820,14 @@ data: {
             }.mapNotNull { consumerRecord ->
                 try {
                     val traceparent = extractTraceparentFromKafkaHeaders(consumerRecord.headers())
-                    val changeEvent = consumerRecord.value()
+                    val changeEvent: NotificationChangeEvent? = consumerRecord.value()
                     consumerRecord.receiverOffset().acknowledge()
+
+                    if (changeEvent == null) {
+                        logger.error("Could not deserialize internal change event at offset {}, skipping it", consumerRecord.offset())
+                        return@mapNotNull null
+                    }
+
                     Pair(first = changeEvent.navIdent, second = KafkaEventWithTrace(event = changeEvent, traceparent = traceparent))
                 } catch (e: Exception) {
                     logger.error("Error processing internal change event at offset {}: ${e.message}", consumerRecord.offset(), e)

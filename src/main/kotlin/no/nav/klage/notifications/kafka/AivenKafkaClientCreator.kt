@@ -8,6 +8,7 @@ import no.nav.klage.notifications.util.getLogger
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
 import org.springframework.kafka.support.serializer.JacksonJsonDeserializer
 import org.springframework.stereotype.Component
 import reactor.kafka.receiver.KafkaReceiver
@@ -86,7 +87,9 @@ class AivenKafkaClientCreator(
                 ConsumerConfig.CLIENT_ID_CONFIG to clientId,
                 ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG to false,
                 ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
-                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to JacksonJsonDeserializer::class.java,
+                // Undeserializable messages become null values instead of failing the shared receiver
+                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to ErrorHandlingDeserializer::class.java,
+                ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS to JacksonJsonDeserializer::class.java.name,
                 JacksonJsonDeserializer.TRUSTED_PACKAGES to "*",
                 JacksonJsonDeserializer.VALUE_DEFAULT_TYPE to className,
             ) + commonKafkaConfig
