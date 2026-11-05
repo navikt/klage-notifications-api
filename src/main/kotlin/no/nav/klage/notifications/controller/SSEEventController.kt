@@ -29,7 +29,7 @@ import no.nav.klage.notifications.dto.view.NotificationType.MESSAGE
 import no.nav.klage.notifications.dto.view.NotificationType.SYSTEM
 import no.nav.klage.notifications.dto.view.NotificationView
 import no.nav.klage.notifications.dto.view.SystemNotificationView
-import no.nav.klage.notifications.kafka.AivenKafkaClientCreator
+import no.nav.klage.notifications.kafka.InternalKafkaEventStreams
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.klage.notifications.util.TokenUtil
 import no.nav.klage.notifications.util.createSpanFromTraceparent
@@ -50,7 +50,7 @@ import java.time.Duration
 @RestController
 @Tag(name = "user", description = "API for user notifications")
 class SSEEventController(
-    private val aivenKafkaClientCreator: AivenKafkaClientCreator,
+    private val internalKafkaEventStreams: InternalKafkaEventStreams,
     private val notificationService: NotificationService,
     private val tokenUtil: TokenUtil,
     private val environment: Environment,
@@ -59,6 +59,10 @@ class SSEEventController(
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
+
+        // The sink drops events for subscribers without demand. This per-client buffer queues events and errors on
+        // overflow, so the client reconnects and reloads state from the database.
+        private const val SSE_CLIENT_BUFFER_SIZE = 256
     }
 
     private data class KafkaEventWithTrace<T>(
@@ -417,6 +421,7 @@ data: {
         clientTraceparent: String?,
     ): Flux<ServerSentEvent<Any>> =
         sharedInternalEvents
+            .onBackpressureBuffer(SSE_CLIENT_BUFFER_SIZE)
             .filter { (recipientNavIdent, _) -> recipientNavIdent == navIdent }
             .flatMapIterable { (_, tracedEvent) ->
                 withTraceparent(traceparent = tracedEvent.traceparent, linkTraceparent = clientTraceparent) {
@@ -441,6 +446,7 @@ data: {
         clientTraceparent: String?,
     ): Flux<ServerSentEvent<Any>> =
         sharedSystemNotificationEvents
+            .onBackpressureBuffer(SSE_CLIENT_BUFFER_SIZE)
             .mapNotNull { tracedEvent ->
                 // An exception here (e.g. a database error) would terminate the SSE stream for the client, so skip the event instead
                 runCatching {
@@ -462,6 +468,7 @@ data: {
         clientTraceparent: String?,
     ): Flux<ServerSentEvent<Any>> =
         sharedChangeEvents
+            .onBackpressureBuffer(SSE_CLIENT_BUFFER_SIZE)
             .filter { (recipientNavIdent, _) -> recipientNavIdent == navIdent || recipientNavIdent == "*" }
             .mapNotNull { (_, tracedEvent) ->
                 // An exception here would terminate the SSE stream for the client, so skip invalid events instead
@@ -720,9 +727,8 @@ data: {
 
     // Shared Kafka consumers - created once and shared by all clients
     private val sharedInternalEvents: Flux<Pair<String, KafkaEventWithTrace<InternalNotificationEvent>>> by lazy {
-        aivenKafkaClientCreator
-            .getNewKafkaNotificationInternalEventsReceiver()
-            .receive()
+        internalKafkaEventStreams
+            .internalNotificationEvents()
             .doOnNext { consumerRecord ->
                 logger.debug("Received internal notification event at offset {}: {}", consumerRecord.offset(), consumerRecord.key())
                 if (!environment.activeProfiles.contains("prod")) {
@@ -738,7 +744,6 @@ data: {
 
                     if (event == null) {
                         logger.error("Could not deserialize internal notification event at offset {}, skipping it", consumerRecord.offset())
-                        consumerRecord.receiverOffset().acknowledge()
                         return@mapNotNull null
                     }
 
@@ -756,7 +761,6 @@ data: {
                                     "Received internal notification event with inconsistent navIdent at offset {}",
                                     consumerRecord.offset(),
                                 )
-                                // Don't acknowledge to trigger reprocessing
                                 return@mapNotNull null
                             } else {
                                 navIdent
@@ -765,7 +769,6 @@ data: {
                             event.notifications.first().navIdent
                         }
 
-                    consumerRecord.receiverOffset().acknowledge()
                     Pair(first = navIdent, second = KafkaEventWithTrace(event, traceparent))
                 } catch (e: Exception) {
                     logger.error("Error processing internal notification event at offset {}: ${e.message}", consumerRecord.offset(), e)
@@ -775,9 +778,8 @@ data: {
     }
 
     private val sharedSystemNotificationEvents: Flux<KafkaEventWithTrace<SystemNotification>> by lazy {
-        aivenKafkaClientCreator
-            .getNewKafkaNotificationInternalSystemEventsReceiver()
-            .receive()
+        internalKafkaEventStreams
+            .internalSystemEvents()
             .doOnNext { consumerRecord ->
                 logger.debug("Received system notification event at offset {}: {}", consumerRecord.offset(), consumerRecord.key())
                 if (!environment.activeProfiles.contains("prod")) {
@@ -790,8 +792,6 @@ data: {
                 try {
                     val traceparent = extractTraceparentFromKafkaHeaders(consumerRecord.headers())
                     val event: SystemNotification? = consumerRecord.value()
-                    consumerRecord.receiverOffset().acknowledge()
-
                     if (event == null) {
                         logger.error("Could not deserialize system notification event at offset {}, skipping it", consumerRecord.offset())
                         return@mapNotNull null
@@ -806,9 +806,8 @@ data: {
     }
 
     private val sharedChangeEvents: Flux<Pair<String, KafkaEventWithTrace<NotificationChangeEvent>>> by lazy {
-        aivenKafkaClientCreator
-            .getNewKafkaNotificationInternalChangeEventsReceiver()
-            .receive()
+        internalKafkaEventStreams
+            .internalChangeEvents()
             .doOnNext { consumerRecord ->
                 if (!environment.activeProfiles.contains("prod")) {
                     logger.debug(
@@ -821,8 +820,6 @@ data: {
                 try {
                     val traceparent = extractTraceparentFromKafkaHeaders(consumerRecord.headers())
                     val changeEvent: NotificationChangeEvent? = consumerRecord.value()
-                    consumerRecord.receiverOffset().acknowledge()
-
                     if (changeEvent == null) {
                         logger.error("Could not deserialize internal change event at offset {}, skipping it", consumerRecord.offset())
                         return@mapNotNull null

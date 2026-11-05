@@ -9,7 +9,6 @@ val springMockkVersion = "5.0.1"
 val mockkVersion = "1.14.11"
 val klageAuthVersion = "0.4.0"
 val logstashVersion = "9.0"
-val reactorKafkaVersion = "1.3.25"
 val springDocVersion = "3.1.1"
 val shedlockVersion = "7.10.1"
 val otelVersion = "1.66.0"
@@ -125,7 +124,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-restclient")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springDocVersion")
     implementation("org.springframework.kafka:spring-kafka")
-    implementation("io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion")
     implementation("org.postgresql:postgresql")
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation("com.zaxxer:HikariCP")
