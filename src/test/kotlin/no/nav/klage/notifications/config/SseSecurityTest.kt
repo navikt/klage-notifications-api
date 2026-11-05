@@ -2,10 +2,9 @@ package no.nav.klage.notifications.config
 
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
-import io.mockk.mockk
 import no.nav.klage.auth.test.MockAzure
 import no.nav.klage.notifications.controller.SSEEventController
-import no.nav.klage.notifications.kafka.AivenKafkaClientCreator
+import no.nav.klage.notifications.kafka.InternalKafkaEventStreams
 import no.nav.klage.notifications.service.NotificationService
 import no.nav.klage.notifications.util.TokenUtil
 import org.junit.jupiter.api.BeforeEach
@@ -23,7 +22,6 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.request
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import reactor.core.publisher.Flux
-import reactor.kafka.receiver.KafkaReceiver
 
 /**
  * The SSE endpoint returns a Flux, which Spring MVC handles as an async request. Verifies that a
@@ -48,17 +46,17 @@ class SseSecurityTest {
     @Autowired
     lateinit var sseShutdownSignal: SseShutdownSignal
 
-    @MockkBean
-    lateinit var aivenKafkaClientCreator: AivenKafkaClientCreator
+    @MockkBean(relaxed = true)
+    lateinit var internalKafkaEventStreams: InternalKafkaEventStreams
 
     @MockkBean
     lateinit var notificationService: NotificationService
 
     @BeforeEach
     fun setup() {
-        every { aivenKafkaClientCreator.getNewKafkaNotificationInternalEventsReceiver() } returns neverEmittingReceiver()
-        every { aivenKafkaClientCreator.getNewKafkaNotificationInternalChangeEventsReceiver() } returns neverEmittingReceiver()
-        every { aivenKafkaClientCreator.getNewKafkaNotificationInternalSystemEventsReceiver() } returns neverEmittingReceiver()
+        every { internalKafkaEventStreams.internalNotificationEvents() } returns Flux.never()
+        every { internalKafkaEventStreams.internalChangeEvents() } returns Flux.never()
+        every { internalKafkaEventStreams.internalSystemEvents() } returns Flux.never()
         every { notificationService.getNotificationsByNavIdent(any()) } returns emptyList()
         every { notificationService.getAllSystemNotifications() } returns emptyList()
     }
@@ -85,6 +83,4 @@ class SseSecurityTest {
             .andExpect(status().isOk)
             .andExpect(content().string(org.hamcrest.Matchers.containsString("event:HEARTBEAT")))
     }
-
-    private fun <V : Any> neverEmittingReceiver(): KafkaReceiver<String, V> = mockk { every { receive() } returns Flux.never() }
 }

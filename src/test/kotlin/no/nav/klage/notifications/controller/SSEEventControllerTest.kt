@@ -3,18 +3,18 @@ package no.nav.klage.notifications.controller
 import io.mockk.every
 import io.mockk.mockk
 import no.nav.klage.notifications.config.SseShutdownSignal
+import no.nav.klage.notifications.domain.LostAccessNotification
 import no.nav.klage.notifications.domain.SystemNotification
+import no.nav.klage.notifications.dto.InternalNotificationEvent
 import no.nav.klage.notifications.dto.NotificationChangeEvent
-import no.nav.klage.notifications.kafka.AivenKafkaClientCreator
+import no.nav.klage.notifications.kafka.InternalKafkaEventStreams
 import no.nav.klage.notifications.service.NotificationService
-import org.apache.kafka.common.header.internals.RecordHeaders
+import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.http.codec.ServerSentEvent
 import reactor.core.publisher.Flux
 import reactor.core.scheduler.Schedulers
-import reactor.kafka.receiver.KafkaReceiver
-import reactor.kafka.receiver.ReceiverRecord
 import java.time.Duration
 import java.time.LocalDateTime
 import java.util.UUID
@@ -24,17 +24,12 @@ class SSEEventControllerTest {
     private val navIdent = "Z999999"
     private val sseShutdownSignal = SseShutdownSignal()
 
-    // Kafka receivers that never emit, so the stream stays open like in production.
-    private val aivenKafkaClientCreator =
-        mockk<AivenKafkaClientCreator> {
-            every { getNewKafkaNotificationInternalEventsReceiver() } returns neverEmittingReceiver()
-            every { getNewKafkaNotificationInternalChangeEventsReceiver() } returns neverEmittingReceiver()
-            every { getNewKafkaNotificationInternalSystemEventsReceiver() } returns neverEmittingReceiver()
-        }
+    // Event streams that never emit, so the stream stays open like in production.
+    private val defaultEventStreams = eventStreams()
 
     private val controller =
         SSEEventController(
-            aivenKafkaClientCreator = aivenKafkaClientCreator,
+            internalKafkaEventStreams = defaultEventStreams,
             notificationService =
                 mockk<NotificationService> {
                     every { getNotificationsByNavIdent(navIdent) } returns emptyList()
@@ -77,19 +72,14 @@ class SSEEventControllerTest {
         val changeEvents =
             listOf(
                 // Deserialization failure: ErrorHandlingDeserializer gives a null value
-                receiverRecord<NotificationChangeEvent>(value = null, offset = 0),
+                consumerRecord<NotificationChangeEvent>(value = null, offset = 0),
                 // DELETED without id, as published by deleteNotificationsByBehandlingId before the fix
-                receiverRecord(value = changeEvent(type = NotificationChangeEvent.Type.DELETED, id = null), offset = 1),
-                receiverRecord(value = changeEvent(type = NotificationChangeEvent.Type.READ, id = validId), offset = 2),
+                consumerRecord(value = changeEvent(type = NotificationChangeEvent.Type.DELETED, id = null), offset = 1),
+                consumerRecord(value = changeEvent(type = NotificationChangeEvent.Type.READ, id = validId), offset = 2),
             )
-        val kafkaClientCreator =
-            mockk<AivenKafkaClientCreator> {
-                every { getNewKafkaNotificationInternalEventsReceiver() } returns neverEmittingReceiver()
-                every { getNewKafkaNotificationInternalChangeEventsReceiver() } returns emittingReceiver(changeEvents)
-                every { getNewKafkaNotificationInternalSystemEventsReceiver() } returns neverEmittingReceiver()
-            }
+        val eventStreams = eventStreams(changeEvents = emittingStream(changeEvents))
 
-        val events = collectUntilShutdown(controller(kafkaClientCreator))
+        val events = collectUntilShutdown(controller(eventStreams = eventStreams))
 
         assertThat(events.map(ServerSentEvent<Any>::event)).containsExactly("HEARTBEAT", "read")
     }
@@ -98,13 +88,13 @@ class SSEEventControllerTest {
     fun `skips system notification that fails to map and keeps the stream open`() {
         val failing = systemNotification()
         val working = systemNotification()
-        val kafkaClientCreator =
-            mockk<AivenKafkaClientCreator> {
-                every { getNewKafkaNotificationInternalEventsReceiver() } returns neverEmittingReceiver()
-                every { getNewKafkaNotificationInternalChangeEventsReceiver() } returns neverEmittingReceiver()
-                every { getNewKafkaNotificationInternalSystemEventsReceiver() } returns
-                    emittingReceiver(listOf(receiverRecord(value = failing, offset = 0), receiverRecord(value = working, offset = 1)))
-            }
+        val eventStreams =
+            eventStreams(
+                systemEvents =
+                    emittingStream(
+                        listOf(consumerRecord(value = failing, offset = 0), consumerRecord(value = working, offset = 1)),
+                    ),
+            )
         val notificationService =
             mockk<NotificationService> {
                 every { getNotificationsByNavIdent(navIdent) } returns emptyList()
@@ -114,21 +104,50 @@ class SSEEventControllerTest {
                 every { isSystemNotificationReadByUser(systemNotificationId = working.id, navIdent = navIdent) } returns false
             }
 
-        val events = collectUntilShutdown(controller(kafkaClientCreator = kafkaClientCreator, notificationService = notificationService))
+        val events = collectUntilShutdown(controller(eventStreams = eventStreams, notificationService = notificationService))
 
         assertThat(events.map(ServerSentEvent<Any>::event)).containsExactly("HEARTBEAT", "create")
         assertThat(events.last().id()).endsWith(working.id.toString())
     }
 
+    @Test
+    fun `only delivers notification events addressed to the connected navIdent`() {
+        val otherNotificationId = UUID.randomUUID()
+        val matchingNotificationId = UUID.randomUUID()
+        val notificationEvents =
+            listOf(
+                consumerRecord(
+                    value =
+                        InternalNotificationEvent(
+                            notifications = listOf(lostAccessNotification(notificationId = otherNotificationId, navIdent = "Z111111")),
+                        ),
+                    offset = 0,
+                ),
+                consumerRecord(
+                    value =
+                        InternalNotificationEvent(
+                            notifications = listOf(lostAccessNotification(notificationId = matchingNotificationId, navIdent = navIdent)),
+                        ),
+                    offset = 1,
+                ),
+            )
+        val eventStreams = eventStreams(notificationEvents = emittingStream(notificationEvents))
+
+        val events = collectUntilShutdown(controller(eventStreams = eventStreams))
+
+        assertThat(events.map(ServerSentEvent<Any>::event)).containsExactly("HEARTBEAT", "create")
+        assertThat(events.last().id()).endsWith(matchingNotificationId.toString())
+    }
+
     private fun controller(
-        kafkaClientCreator: AivenKafkaClientCreator,
+        eventStreams: InternalKafkaEventStreams,
         notificationService: NotificationService =
             mockk {
                 every { getNotificationsByNavIdent(navIdent) } returns emptyList()
                 every { getAllSystemNotifications() } returns emptyList()
             },
     ) = SSEEventController(
-        aivenKafkaClientCreator = kafkaClientCreator,
+        internalKafkaEventStreams = eventStreams,
         notificationService = notificationService,
         tokenUtil = mockk { every { getIdent() } returns navIdent },
         environment = mockk { every { activeProfiles } returns arrayOf("test") },
@@ -143,26 +162,52 @@ class SSEEventControllerTest {
             }.collectList()
             .block(Duration.ofSeconds(5))!!
 
+    private fun eventStreams(
+        notificationEvents: Flux<ConsumerRecord<String, InternalNotificationEvent?>> = neverEmittingStream(),
+        changeEvents: Flux<ConsumerRecord<String, NotificationChangeEvent?>> = neverEmittingStream(),
+        systemEvents: Flux<ConsumerRecord<String, SystemNotification?>> = neverEmittingStream(),
+    ): InternalKafkaEventStreams =
+        mockk {
+            every { internalNotificationEvents() } returns notificationEvents
+            every { internalChangeEvents() } returns changeEvents
+            every { internalSystemEvents() } returns systemEvents
+        }
+
     private fun changeEvent(
         type: NotificationChangeEvent.Type,
         id: UUID?,
     ) = NotificationChangeEvent(id = id, ids = null, navIdent = navIdent, type = type, updatedAt = LocalDateTime.now())
 
+    private fun lostAccessNotification(
+        notificationId: UUID,
+        navIdent: String,
+    ) = LostAccessNotification(
+        id = notificationId,
+        message = "message",
+        navIdent = navIdent,
+        read = false,
+        createdAt = LocalDateTime.now(),
+        updatedAt = LocalDateTime.now(),
+        readAt = null,
+        markedAsDeleted = false,
+        kafkaMessageId = null,
+        sourceCreatedAt = LocalDateTime.now(),
+        behandlingId = UUID.randomUUID(),
+        saksnummer = "saksnummer",
+        ytelse = mockk { every { id } returns "1" },
+        behandlingType = mockk { every { id } returns "1" },
+    )
+
     private fun systemNotification() =
         SystemNotification(title = "title", message = "message", createdAt = LocalDateTime.now(), updatedAt = LocalDateTime.now())
 
-    private fun <V : Any> receiverRecord(
+    private fun <V : Any> consumerRecord(
         value: V?,
         offset: Long,
-    ): ReceiverRecord<String, V> =
-        mockk(relaxed = true) {
-            every { value() } returns value
-            every { offset() } returns offset
-            every { headers() } returns RecordHeaders()
-        }
+    ): ConsumerRecord<String, V?> = ConsumerRecord("topic", 0, offset, "key", value)
 
-    private fun <V : Any> emittingReceiver(records: List<ReceiverRecord<String, V>>): KafkaReceiver<String, V> =
-        mockk { every { receive() } returns Flux.fromIterable(records).concatWith(Flux.never()) }
+    private fun <V : Any> emittingStream(records: List<ConsumerRecord<String, V?>>): Flux<ConsumerRecord<String, V?>> =
+        Flux.fromIterable(records).concatWith(Flux.never())
 
-    private fun <V : Any> neverEmittingReceiver(): KafkaReceiver<String, V> = mockk { every { receive() } returns Flux.never() }
+    private fun <V : Any> neverEmittingStream(): Flux<ConsumerRecord<String, V?>> = Flux.never()
 }
