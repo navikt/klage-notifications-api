@@ -491,19 +491,19 @@ class NotificationService(
             notification.updatedAt = now
         }
 
-        // Create a single bulk change event for all deleted notifications
-        val notificationChangeEvent =
-            NotificationChangeEvent(
-                id = null,
-                ids = notifications.map { it.id },
-                navIdent = notifications.first().navIdent,
-                type = NotificationChangeEvent.Type.DELETED,
-                updatedAt = now,
+        // One bulk change event per owner, since a behandling theoretically can have notifications for several users
+        notifications.groupBy { it.navIdent }.forEach { (navIdent, ownerNotifications) ->
+            kafkaInternalEventService.publishInternalNotificationChangeEvent(
+                notificationChangeEvent =
+                    NotificationChangeEvent(
+                        id = null,
+                        ids = ownerNotifications.map { it.id },
+                        navIdent = navIdent,
+                        type = NotificationChangeEvent.Type.DELETED_MULTIPLE,
+                        updatedAt = now,
+                    ),
             )
-
-        kafkaInternalEventService.publishInternalNotificationChangeEvent(
-            notificationChangeEvent = notificationChangeEvent,
-        )
+        }
 
         // Record metrics for deleted notifications
         metricsService.recordMultipleNotificationsDeleted(notifications)
