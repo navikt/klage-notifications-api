@@ -6,7 +6,7 @@ val otelVersion = "1.66.0"
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
 
@@ -19,12 +19,6 @@ dependencies {
     compileOnly("io.opentelemetry:opentelemetry-sdk:$otelVersion")
     compileOnly("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure-spi:$otelVersion")
     compileOnly("io.opentelemetry:opentelemetry-api:$otelVersion")
-}
-
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
-    }
 }
 
 tasks.jar {

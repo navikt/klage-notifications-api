@@ -19,4 +19,5 @@ jobs:
     uses: navikt/klage-workflows/.github/workflows/build-deploy-feature.yaml@main
     secrets: inherit
     with:
+      java-version: '25'
       e2e-tests: ${{ inputs.e2e-tests }}
