@@ -21,9 +21,9 @@ jobs:
         environment: [dev, prod]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7.0.1
       - name: deploy kafka-topic ${{ matrix.topic }} to ${{ matrix.environment }}
-        uses: nais/deploy/actions/deploy@v2
+        uses: nais/deploy/actions/deploy@v3
         env:
           CLUSTER: ${{ matrix.environment }}-gcp
           RESOURCE: kafka-aiven/${{ matrix.topic }}/topic.yaml
