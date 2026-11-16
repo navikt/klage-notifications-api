@@ -159,7 +159,7 @@ dependencies {
 
 tasks.withType<KotlinCompile> {
     compilerOptions {
-        freeCompilerArgs = listOf("-Xjsr305=strict", "-Xannotation-default-target=param-property")
+        freeCompilerArgs = listOf("-Xjsr305=strict")
     }
 }
 
