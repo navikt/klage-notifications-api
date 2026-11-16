@@ -97,7 +97,6 @@ spec:
       {{#each externalHosts}}
         - host: {{host}}
       {{/each}}
-  envFrom:
   env:
     - name: SPRING_PROFILES_ACTIVE
       value: {{springProfile}}
