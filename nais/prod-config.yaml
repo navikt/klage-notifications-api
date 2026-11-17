@@ -31,7 +31,7 @@ adRoles:
   - name: STRENGT_FORTROLIG_ROLE_ID
     value: 2931da41-8b8e-42cd-99c0-04a169ddae40
   - name: EGEN_ANSATT_ROLE_ID
-    value: e750ceb5-b70b-4d94-b4fa-9d22467b786b
+    value: 3121171d-bced-4967-b993-caaf57f02b73
   - name: KABAL_ADMIN_ROLE_ID
     value: 90805436-8a2b-430a-a699-73b29205f25d
   - name: KABAL_ROL_ROLE_ID
@@ -42,5 +42,5 @@ adRoles:
     value: e11eac72-43dc-48bc-b9cb-383b600fd03b
 
 envs:
-  - name: JAVA_TOOL_OPTIONS
-    value: "-Xms256m -Xmx2048m --enable-native-access=ALL-UNNAMED"
+  - name: JAVA_OPTS
+    value: "-Xms256m -Xmx2048m"

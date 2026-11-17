@@ -32,7 +32,7 @@ adRoles:
   - name: STRENGT_FORTROLIG_ROLE_ID
     value: a1b518e2-3947-478d-8929-e5d685c47cac
   - name: EGEN_ANSATT_ROLE_ID
-    value: dbe4ad45-320b-4e9a-aaa1-73cca4ee124d
+    value: 8df187e3-f6ab-4a5d-8830-61bf148e59fe
   - name: KABAL_ADMIN_ROLE_ID
     value: 14d756b4-d014-419a-a5bc-b8f9e31ce248
   - name: KABAL_ROL_ROLE_ID
@@ -44,4 +44,6 @@ adRoles:
 
 envs:
   - name: JAVA_TOOL_OPTIONS
-    value: "-Xms1m -Xmx2048m -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 --enable-native-access=ALL-UNNAMED"
+    value: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+  - name: JAVA_OPTS
+    value: "-Xms1m -Xmx2048m"
